@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <Layouts>
       <div className="flex justify-content-center">
-        <h1 className="text-black">Report</h1>
+        <h1 className="text-black">หน้า แรก และ report</h1>
       </div>
     </Layouts>
   );
