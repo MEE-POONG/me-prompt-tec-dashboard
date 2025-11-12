@@ -59,13 +59,6 @@ export default function NavBar({
             >
               เข้าสู่ระบบ
             </Link>
-
-            <Link
-              href="/login"
-              className="inline-flex items-center px-4 py-2 border bg-white text-blue-700 rounded-xl font-bold transform hover:text-white hover:bg-yellow-500 transition-all duration-300 hover:scale-110"
-            >
-              สมัครสมาชิก
-            </Link>
           </div>
         </div>
       </div>
