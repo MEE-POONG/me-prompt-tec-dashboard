@@ -19,7 +19,7 @@ export const Intern: Dataintern[] = [
     name: "ธนภัทร โพธิ์ศรี",
     title: "นักศึกษาฝึกงาน (Intern)",
     bio: "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน สาขาระบบสารสนเทศ",
-    imageSrc: "/img/", // ⬅️ ใช้ Path String
+    imageSrc: "/img/pat2.jpg", // ⬅️ ใช้ Path String
     instagram: "https://www.instagram.com/tanaaa_pattt/", // ⬅️ เพิ่ม Link
     github: "https://github.com/Ggg-tanapatt",
     portfolio: "https://wondrous-tulumba-da430d.netlify.app/",
@@ -29,7 +29,7 @@ export const Intern: Dataintern[] = [
     name: "สุพรรษา ฉีดวงแก้ว",
     title: "นักศึกษาฝึกงาน (Intern)",
     bio: "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน สาขาระบบสารสนเทศ",
-    imageSrc: "/img/",
+    imageSrc: "/img/pic1.jpg",
     instagram: "https://www.instagram.com/nx_sxpan?igsh=MWo0cDBuZGV1cTIwaA%3D%3D&utm_source=qr",
     github: "https://github.com/Supansa09",
     portfolio: " https://cute-daffodil-356357.netlify.app/",
@@ -40,7 +40,7 @@ export const Intern: Dataintern[] = [
     name: "ศิวกร พล่ำแก้ว",
     title: "นักศึกษาฝึกงาน (Intern)",
     bio: "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน สาขาวิทยาการคอมพิวเตอร์",
-    imageSrc: "/img/",
+    imageSrc: "/img/pic2.jpg",
     instagram: "https://instagram.com",
     github: "https://github.com",
     portfolio: "https://superb-cat-e3792e.netlify.app/",
@@ -50,7 +50,7 @@ export const Intern: Dataintern[] = [
     name: "ธาวิน กาฬสินธุ์",
     title: "นักศึกษาฝึกงาน (Intern)",
     bio: "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน สาขาเทคโนโลยีมัลติมีเดีย",
-    imageSrc: "/img/", // (รูปเปล่า)
+    imageSrc: "/img/pic3.jpg", // (รูปเปล่า)
     instagram: "https://instagram.com",
     github: "https://github.com",
     portfolio: "https://curious-blancmange-c833fb.netlify.app/",

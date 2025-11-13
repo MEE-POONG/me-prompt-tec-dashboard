@@ -2,10 +2,12 @@ import Layouts from "@/components/Layouts";
 import React, { useState } from 'react'; 
 import Image from 'next/image'; // 🚨 Import เพิ่ม
 import { Intern, Dataintern } from '@/data/dataintern'; 
+import Link from "next/link";
 
 // 🚨 Import ไอคอนที่ต้องใช้ทั้งหมด
 import { FaInstagram, FaGithub } from 'react-icons/fa';
 import { FolderKanban, X, Smartphone, Monitor } from 'lucide-react';
+import addintern from "@/pages/addintern";
 
 export default function InternPage() {
   // State สำหรับ Modal (จากโค้ดตัวอย่าง)
@@ -34,9 +36,9 @@ export default function InternPage() {
             จัดการข้อมูลนักศึกษาฝึกงาน
           </h1>
           <div className="flex space-x-3">
-            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-5 rounded-lg transition-colors">
+            <Link href="/addintern" className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-5 rounded-lg transition-colors">
               เพิ่มข้อมูล
-            </button>
+              </Link>
             <button className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-5 rounded-lg transition-colors">
               ลบ
             </button>
