@@ -41,7 +41,7 @@ export default function InternPage() {
               </Link>
             <button className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-5 rounded-lg transition-colors">
               ลบ
-            </button>
+            </button> 
           </div>
         </div>
 
