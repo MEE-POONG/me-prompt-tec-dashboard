@@ -3,6 +3,9 @@ import Layouts from "@/components/Layouts"; // อย่าลืม import Layo
 import { Upload } from "lucide-react"; // (Optional) เพิ่มไอคอนสวยๆ
 import Link from "next/link";
 export default function AddInternPage() {
+  
+    
+ 
   return (
     <Layouts>
       {/* ส่วนเนื้อหาหลัก */}
@@ -122,10 +125,10 @@ export default function AddInternPage() {
           </div>
 
           {/* === ปุ่ม Submit === */}
-          {/* (ในรูปไม่มี แต่ฟอร์มควรจะต้องมีปุ่มบันทึกครับ) */}
           <div className="flex justify-end pt-8 mt-8 border-t border-gray-200">
             <button 
               type="submit"
+           
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors"
             >
               บันทึกข้อมูล
