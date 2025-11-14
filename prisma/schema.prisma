@@ -14,14 +14,233 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------- Enums ----------------
+enum Role {
+  admin
+  staff
+  student
+  viewer
+}
+
+enum CoopType {
+  coop
+  internship
+  part_time
+}
+
 enum ProjectStatus {
-  planned
+  planning
   in_progress
   completed
   on_hold
-  cancelled
 }
 
+enum MediaOwnerType {
+  company
+  project
+  member
+  intern
+  mou
+}
+
+enum MediaType {
+  image
+  video
+  file
+}
+
+// ---------------- Composite Types (Embedded) ----------------
+type Name {
+  first   String
+  last    String
+  display String?
+}
+
+type Address {
+  line1       String?
+  line2       String?
+  district    String?
+  province    String?
+  postalCode  String?
+  country     String? @default("TH")
+}
+
+type Social {
+  facebook  String?
+  x         String?
+  instagram String?
+  linkedin  String?
+  github    String?
+  website   String?
+}
+
+type Link {
+  label String
+  url   String
+}
+
+type Skill {
+  name  String
+  level String? // "beginner" | "intermediate" | "advanced" | "expert"
+}
+
+type Education {
+  school    String
+  faculty   String?
+  major     String?
+  degree    String? // "Diploma" | "Bachelor" | "Master" | "PhD" | "Other"
+  startDate DateTime?
+  endDate   DateTime?
+  gpa       Float?
+}
+
+type Experience {
+  company         String?
+  title           String?
+  startDate       DateTime?
+  endDate         DateTime?
+  responsibilities String[]
+  techStack        String[]
+}
+
+type Attachment {
+  type MediaType @default(image)
+  url  String
+  alt  String?
+}
+
+type Hero {
+  title   String?
+  subtitle String?
+  ctaText String?
+  ctaLink String?
+}
+
+type SEO {
+  siteTitle       String?
+  siteDescription String?
+  keywords        String[]
+}
+
+type Service {
+  name     String
+  summary  String?
+  features String[]
+  icon     String?
+}
+
+type ContactInfo {
+  email   String?
+  phone   String?
+  address Address?
+}
+
+type Resume {
+  summary     String?
+  skills      Skill[]
+  educations  Education[]
+  experiences Experience[]
+  projects    ResumeProject[]
+  links       Link[]
+}
+
+type ResumeProject {
+  name        String
+  description String?
+  techStack   String[]
+  links       Link[]
+}
+
+// ---------------- Core Models ----------------
+
+// ผู้ใช้งานหลังบ้าน
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(viewer)
+  isActive     Boolean  @default(true)
+
+  // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
+  memberId String? @db.ObjectId
+  member   Member? @relation(fields: [memberId], references: [id])
+
+  internId String? @db.ObjectId
+  intern   Intern? @relation(fields: [internId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([email])
+}
+
+// singleton โปรไฟล์บริษัท
+model Company {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  name       String     @default("ME PROMPT TECHNOLOGY COMPANY LIMITED")
+  tagline    String?
+  about      String?
+  addresses  Address[]
+  phones     String[]
+  emails     String[]
+  socials    Social?
+  services   Service[]
+  hero       Hero?
+  seo        SEO?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// สมาชิกทีม/พนักงาน
+model Member {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  name       Name
+  title      String?
+  department String?
+  bio        String?
+  photo      String?
+  socials    Social?
+  skills     Skill[]
+  slug       String    @unique
+
+  // relation: Projects ผ่าน join
+  projectLinks ProjectMember[]
+
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // text search ใช้ MongoDB Atlas Search/Index ภายนอกได้
+  @@index([slug])
+}
+
+// นักศึกษา Coop/ฝึกงาน (มีหน้า portfolio ของตัวเอง)
+model Intern {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          Name
+  university    String   @default("มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน")
+  faculty       String?  @default("คณะบริหารธุรกิจ")
+  major         String?  @default("สารสนเทศทางคอมพิวเตอร์")
+  studentId     String?
+  coopType      CoopType @default(coop)
+  contact       ContactInfo?
+  resume        Resume?
+  avatar        String?
+  portfolioSlug String   @unique
+  status        String   @default("published") // draft|published|archived
+
+  // relation: Projects ผ่าน join
+  projectLinks ProjectIntern[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioSlug])
+}
+
+// ผลงาน/โปรเจกต์บริษัท (หน้า Portfolio)
 model Project {
   id          String         @id @default(auto()) @map("_id") @db.ObjectId
   title       String
@@ -34,6 +253,117 @@ model Project {
   clientName  String?
   clientSector String?
   tags        String[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  techStack   String[]
+  cover       String?
+  gallery     Attachment[]
+  links       Link[]
+  featured    Boolean        @default(false)
+
+  // relations via join
+  memberLinks ProjectMember[]
+  internLinks ProjectIntern[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([featured])
+  @@index([slug])
+  @@index([title])
+}
+
+// ความร่วมมือ/MOU
+model MOU {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  university  String
+  faculty     String?
+  department  String?
+  signedDate  DateTime
+  expiryDate  DateTime?
+  contactName String?
+  contactEmail String?
+  contactPhone String?
+
+  // ผู้แทนบริษัทที่ลงนาม
+  companyRepId String?  @db.ObjectId
+  companyRep   Member?  @relation(fields: [companyRepId], references: [id])
+
+  fileUrl     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([university, faculty, signedDate])
+}
+
+// ข้อความติดต่อจากหน้าเว็บ
+model ContactMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String?
+  email     String?
+  phone     String?
+  subject   String?
+  message   String
+  source    String   @default("website") // website|portfolio|intern-page|other
+
+  handledById String?  @db.ObjectId
+  handledBy   User?    @relation(fields: [handledById], references: [id])
+
+  status    String   @default("new") // new|in-progress|done
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+// สื่อ/ไฟล์ ที่ผูกกับเอกสารต่างๆ
+model MediaAsset {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  ownerType MediaOwnerType
+  ownerId   String         @db.ObjectId
+  type      MediaType      @default(image)
+  url       String
+  alt       String?
+  tags      String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerType, ownerId])
+}
+
+// ---------------- Join Models (Many-to-Many) ----------------
+// Prisma + MongoDB ยังไม่มี implicit M2M; ใช้ join collection แทน
+
+model ProjectMember {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String  @db.ObjectId
+  memberId  String  @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id])
+  member  Member  @relation(fields: [memberId], references: [id])
+
+  role     String? // บทบาทในโปรเจกต์ (PM, Dev, Designer)
+  note     String?
+
+  @@index([projectId, memberId])
+  @@unique([projectId, memberId]) // ไม่ซ้ำในโปรเจกต์เดียวกัน
+}
+
+model ProjectIntern {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String  @db.ObjectId
+  internId  String  @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id])
+  intern  Intern  @relation(fields: [internId], references: [id])
+
+  responsibility String?
+  note           String?
+
+  @@index([projectId, internId])
+  @@unique([projectId, internId])
 }
