@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from "next/link";
 
 // Import ไอคอนเพิ่ม
-import { FaInstagram, FaGithub } from 'react-icons/fa';
+import { FaInstagram, FaGithub, FaFacebook } from 'react-icons/fa';
 import {
   FolderKanban,
   X,
@@ -38,6 +38,7 @@ interface InternData {
   title?: string;
   imageSrc?: string;
   instagram?: string;
+  facebook?: string;
   github?: string;
   portfolio?: string;
 }
@@ -77,6 +78,7 @@ export default function InternPage() {
           avatar: intern.avatar,
           portfolioSlug: intern.portfolioSlug,
           instagram: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('instagram'))?.url,
+          facebook: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('facebook'))?.url,
           github: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('github'))?.url,
           portfolio: `https://portfolio.example.com/${intern.portfolioSlug}`,
           contact: intern.contact,
@@ -257,7 +259,8 @@ export default function InternPage() {
                       </h2>
                       <p className="text-md font-medium text-blue-300 mb-4">{intern.title}</p>
                       <div className="flex justify-center gap-5 mt-4">
-                        {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-blue-400 transition-colors"><FaInstagram size={24} /></a>}
+                        {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-red-400 transition-colors"><FaInstagram size={24} /></a>}
+                        {intern.facebook && <a href={intern.facebook} target="_blank" className="hover:text-blue-400 transition-colors"><FaFacebook size={24} /></a>}
                         {intern.github && <a href={intern.github} target="_blank" className="hover:text-gray-400 transition-colors"><FaGithub size={24} /></a>}
                         {intern.portfolio && <button onClick={() => openModal(intern.portfolio)} className="hover:text-green-400 transition-colors"><FolderKanban size={24} /></button>}
                       </div>
@@ -320,6 +323,7 @@ export default function InternPage() {
                         <td className="p-4 text-center">
                           <div className="flex justify-center gap-3 text-gray-400">
                             {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-pink-600 transition-colors"><FaInstagram size={18} /></a>}
+                            {intern.facebook && <a href={intern.facebook} target="_blank" className="hover:text-blue-400 transition-colors"><FaFacebook size={24} /></a>}
                             {intern.github && <a href={intern.github} target="_blank" className="hover:text-black transition-colors"><FaGithub size={18} /></a>}
                             {intern.portfolio && <button onClick={() => openModal(intern.portfolio)} className="hover:text-blue-600 transition-colors"><FolderKanban size={18} /></button>}
                           </div>

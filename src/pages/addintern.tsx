@@ -1,170 +1,365 @@
 import React, { useState, useRef } from "react";
+import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
 import { Upload } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function AddInternPage() {
+  const router = useRouter();
 
-  // 1. State สำหรับเก็บข้อมูล
-  const [name, setName] = useState("");
+  // --- State สำหรับเก็บข้อมูล ---
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [facebook, setFacebook] = useState("");
   const [instagram, setInstagram] = useState("");
   const [github, setGithub] = useState("");
   const [portfolio, setPortfolio] = useState("");
-  const [position, setPosition] = useState("");
+  const [position, setPosition] = useState("coop");
+  const [university, setUniversity] = useState("มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน");
+  const [faculty, setFaculty] = useState("คณะบริหารธุรกิจ");
+  const [major, setMajor] = useState("สารสนเทศทางคอมพิวเตอร์");
+  const [studentId, setStudentId] = useState("");
+  const [portfolioSlug, setPortfolioSlug] = useState("");
 
-  // 2. State สำหรับรูปภาพ (แก้ Type)
-  const [imageFile, setImageFile] = useState<File | null>(null); // บอกว่าเก็บ File หรือ null
-  const [imageUrl, setImageUrl] = useState(""); 
-  
-  // 3. Ref สำหรับ Input file (แก้ Type)
-  const fileInputRef = useRef<HTMLInputElement>(null); // บอกว่าเป็น Input Element
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 4. ฟังก์ชันเลือกรูป (แก้ Type)
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // แปลงไฟล์เป็น Base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      setImageUrl(URL.createObjectURL(file));
+      const base64 = await convertToBase64(file);
+      setImageUrl(base64);
     }
   };
 
-  // 5. ฟังก์ชันบันทึก (แก้ Type)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = {
-      name, facebook, instagram, github, portfolio, position, image: imageFile,
-    };
-    console.log("ข้อมูลที่จะส่ง:", formData);
-    // เขียนโค้ดส่ง API ตรงนี้
+
+    if (!firstName || !lastName || !portfolioSlug) {
+      alert("กรุณากรอกข้อมูลที่จำเป็น (ชื่อ, นามสกุล, Portfolio Slug)");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // สร้าง links array
+      const links = [];
+      if (facebook) links.push({ label: "Facebook", url: facebook });
+      if (instagram) links.push({ label: "Instagram", url: instagram });
+      if (github) links.push({ label: "GitHub", url: github });
+      if (portfolio) links.push({ label: "Portfolio", url: portfolio });
+
+      const newInternData = {
+        name: {
+          first: firstName,
+          last: lastName,
+          display: displayName || `${firstName} ${lastName}`,
+        },
+        university,
+        faculty,
+        major,
+        studentId,
+        coopType: position,
+        contact: {
+          email: email || undefined,
+          phone: phone || undefined,
+        },
+        resume: {
+          links: links.length > 0 ? links : [],
+        },
+        avatar: imageUrl || undefined,
+        portfolioSlug,
+        status: "published",
+      };
+
+      const response = await fetch("/api/intern", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newInternData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
+      }
+
+      alert("เพิ่มข้อมูลเรียบร้อย!");
+      router.push("/intern");
+    } catch (error) {
+      console.error("Error creating intern:", error);
+      alert(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Layouts>
       <div className="p-6 md:p-8 text-black w-full max-w-6xl mx-auto">
-        
-        <h1 className="text-2xl lg:text-3xl font-bold mb-8">
-          เพิ่มข้อมูล
+
+        <h1 className="text-2xl lg:text-3xl font-bold mb-8 text-blue-700">
+          เพิ่มนักศึกษาฝึกงานใหม่
         </h1>
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
 
-            {/* --- ฝั่งซ้าย (รูป) --- */}
+            {/* --- ฝั่งซ้าย (รูป + Portfolio) --- */}
             <div className="space-y-6">
               <div>
-                <input 
+                <label className="block text-lg font-bold text-gray-800 mb-2">รูปภาพ</label>
+                <input
                   type="file"
                   ref={fileInputRef}
                   onChange={handleImageChange}
                   className="hidden"
                   accept="image/*"
                 />
-                <div 
+                <div
                   className="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300
-                             flex flex-col items-center justify-center 
+                             flex flex-col items-center justify-center
                              text-gray-500 cursor-pointer hover:bg-gray-200 transition-colors
                              relative overflow-hidden"
-                  // 6. แก้ Ref: เพิ่ม ? (Optional Chaining) กัน Error
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {imageUrl ? (
-                    <Image src={imageUrl} alt="Preview" layout="fill" objectFit="cover" />
+                    <Image src={imageUrl} alt="Preview" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <>
                       <Upload size={40} className="mb-2" />
-                      <span className="font-semibold">คลิกเพิ่มรูปภาพ</span>
+                      <span className="font-semibold">คลิกเพื่อเลือกรูปภาพ</span>
                     </>
                   )}
                 </div>
+                <p className="text-sm text-gray-400 text-center mt-2">คลิกที่รูปเพื่อเลือกรูปภาพ</p>
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Portfolio</label>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
+                <label className="block text-lg font-bold text-gray-800 mb-2">Portfolio Slug *</label>
+                <input
+                  type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={portfolio}
-                  onChange={(e) => setPortfolio(e.target.value)}
+                  value={portfolioSlug}
+                  onChange={(e) => setPortfolioSlug(e.target.value)}
+                  required
+                  placeholder="example-portfolio"
+                />
+                <p className="text-xs text-gray-500 mt-1">ใช้สำหรับ URL portfolio (ต้องไม่ซ้ำกัน)</p>
+              </div>
+
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">รหัสนักศึกษา</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="6410000000"
                 />
               </div>
             </div>
 
-            {/* --- ฝั่งขวา (ข้อมูล) --- */}
+            {/* --- ฝั่งขวา (ข้อมูลส่วนตัว) --- */}
             <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-800 mb-2">ชื่อ *</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    placeholder="สมชาย"
+                  />
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-800 mb-2">นามสกุล *</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    placeholder="ใจดี"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Name:</label>
-                <input 
-                  type="text" 
+                <label className="block text-lg font-bold text-gray-800 mb-2">ชื่อที่แสดง</label>
+                <input
+                  type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required 
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={`${firstName} ${lastName}`}
+                />
+                <p className="text-xs text-gray-500 mt-1">ถ้าไม่กรอก จะใช้ ชื่อ + นามสกุล</p>
+              </div>
+
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">Email</label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@email.com"
                 />
               </div>
+
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Facebook</label>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
+                <label className="block text-lg font-bold text-gray-800 mb-2">เบอร์โทร</label>
+                <input
+                  type="tel"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={facebook}
-                  onChange={(e) => setFacebook(e.target.value)}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0812345678"
                 />
               </div>
+
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Instagram</label>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Github</label>
-                <input 
-                  type="text" 
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={github}
-                  onChange={(e) => setGithub(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">ตำแหน่ง</label>
-                <select 
+                <label className="block text-lg font-bold text-gray-800 mb-2">ประเภท *</label>
+                <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 appearance-none"
                   value={position}
                   onChange={(e) => setPosition(e.target.value)}
                   required
                 >
-                  <option value="">-- กรุณาเลือกตำแหน่ง --</option>
-                  <option value="intern">นักศึกษาฝึกงาน</option>
-                  {/* เพิ่มตำแหน่งอื่นๆ ได้ที่นี่ */}
+                  <option value="coop">สหกิจศึกษา</option>
+                  <option value="internship">ฝึกงาน</option>
+                  <option value="part_time">Part-time</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* --- ข้อมูลมหาวิทยาลัย --- */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">ข้อมูลการศึกษา</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">มหาวิทยาลัย</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={university}
+                  onChange={(e) => setUniversity(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">คณะ</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">สาขา</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={major}
+                  onChange={(e) => setMajor(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* --- Social Links --- */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Social Links</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">Facebook</label>
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder="https://facebook.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">Instagram</label>
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder="https://instagram.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">GitHub</label>
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={github}
+                  onChange={(e) => setGithub(e.target.value)}
+                  placeholder="https://github.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">Portfolio URL</label>
+                <input
+                  type="url"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={portfolio}
+                  onChange={(e) => setPortfolio(e.target.value)}
+                  placeholder="https://yourportfolio.com"
+                />
               </div>
             </div>
           </div>
 
           {/* === ปุ่มกด === */}
           <div className="flex justify-end pt-8 mt-8 border-t border-gray-200 gap-4">
-            
-            <Link 
-              href="/intern" 
+
+            {/* ปุ่มยกเลิก กลับไปหน้า intern */}
+            <Link
+              href="/intern"
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-lg transition-colors flex items-center"
             >
               ยกเลิก
             </Link>
 
-            <button 
+            <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors"
+              disabled={isSubmitting}
+              className={`font-bold py-3 px-8 rounded-lg transition-colors ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
             >
-              บันทึกข้อมูล
+              {isSubmitting ? "กำลังเพิ่ม..." : "เพิ่มนักศึกษา"}
             </button>
           </div>
 
