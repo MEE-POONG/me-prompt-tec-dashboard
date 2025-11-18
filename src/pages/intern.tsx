@@ -144,7 +144,7 @@ export default function InternPage() {
                 {filteredInterns.map((intern) => (
                   <div 
                     key={intern.id} 
-                    className={`relative aspect-[9/12] rounded-2xl overflow-hidden shadow-xl w-full transition-all duration-300 ease-in-out group
+                    className={`relative aspect-9/12 rounded-2xl overflow-hidden shadow-xl w-full transition-all duration-300 ease-in-out group
                       ${selectedIds.includes(intern.id) ? 'ring-4 ring-red-500 scale-95' : 'hover:-translate-y-2 hover:shadow-2xl'}
                     `}
                   >
@@ -174,7 +174,7 @@ export default function InternPage() {
                     </div>
 
                     {/* Overlay Info */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm text-white transition-all duration-500 ease-in-out translate-y-full group-hover:translate-y-0">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm text-white transition-all duration-500 ease-in-out translate-y-full group-hover:translate-y-0">
                       <h2 className="text-2xl font-bold text-white mb-1">{intern.name}</h2>
                       <p className="text-md font-medium text-blue-300 mb-4">{intern.title}</p>
                       <div className="flex justify-center gap-5 mt-4">
@@ -217,7 +217,7 @@ export default function InternPage() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 relative rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                            <div className="w-12 h-12 relative rounded-full overflow-hidden border border-gray-200 shrink-0">
                               <Image src={intern.imageSrc} alt={intern.name} fill style={{ objectFit: "cover" }} />
                             </div>
                             <div>

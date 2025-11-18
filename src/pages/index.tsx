@@ -198,7 +198,7 @@ export default function Home() {
               {Intern.slice(0, 5).map((intern) => (
                 <div key={intern.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
                   {/* Avatar */}
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-200 shrink-0">
                     <Image src={intern.imageSrc} alt={intern.name} fill style={{objectFit: "cover"}} />
                   </div>
                   {/* Info */}
@@ -207,7 +207,7 @@ export default function Home() {
                     <p className="text-xs text-gray-500 truncate">{intern.title}</p>
                   </div>
                   {/* Status Indicator (สุ่มสถานะให้ดูสมจริง) */}
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     {intern.id % 3 === 0 ? (
                        <span className="w-3 h-3 bg-gray-300 rounded-full block" title="Offline"></span>
                     ) : (
