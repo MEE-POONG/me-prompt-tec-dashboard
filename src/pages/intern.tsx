@@ -1,26 +1,52 @@
 import Layouts from "@/components/Layouts";
-import React, { useState } from 'react'; 
-import Image from 'next/image'; 
-import { Intern, Dataintern } from '@/Data/dataintern'; 
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from "next/link";
 
 // Import ไอคอนเพิ่ม
 import { FaInstagram, FaGithub } from 'react-icons/fa';
-import { 
-  FolderKanban, 
-  X, 
-  Smartphone, 
-  Monitor, 
-  Trash2, 
+import {
+  FolderKanban,
+  X,
+  Smartphone,
+  Monitor,
+  Trash2,
   Search,       // ไอคอนค้นหา
   LayoutGrid,   // ไอคอนมุมมอง Grid
   List          // ไอคอนมุมมอง List
-} from 'lucide-react'; 
+} from 'lucide-react';
+
+interface InternData {
+  id: string;
+  name: {
+    first: string;
+    last: string;
+    display?: string;
+  };
+  avatar?: string;
+  portfolioSlug: string;
+  contact?: {
+    email?: string;
+    phone?: string;
+  };
+  resume?: {
+    summary?: string;
+    links?: Array<{ label: string; url: string }>;
+  };
+  coopType: string;
+  status: string;
+  title?: string;
+  imageSrc?: string;
+  instagram?: string;
+  github?: string;
+  portfolio?: string;
+}
 
 export default function InternPage() {
   // --- State ข้อมูล ---
-  const [internList, setInternList] = useState<Dataintern[]>(Intern);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [internList, setInternList] = useState<InternData[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- State ใหม่สำหรับ Search & Layout ---
   const [searchTerm, setSearchTerm] = useState(""); // เก็บคำค้นหา
@@ -29,9 +55,46 @@ export default function InternPage() {
   // State Modal (เดิม)
   const [modalUrl, setModalUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
-  
+
+  // --- ดึงข้อมูลจาก API ---
+  useEffect(() => {
+    fetchInterns();
+  }, []);
+
+  const fetchInterns = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/intern?limit=100');
+      const result = await response.json();
+
+      if (response.ok) {
+        // แปลงข้อมูลจาก API ให้ตรงกับ UI
+        const formattedInterns = result.data.map((intern: any) => ({
+          id: intern.id,
+          name: intern.name,
+          title: intern.coopType === 'coop' ? 'นักศึกษาฝึกงาน' : 'Intern',
+          imageSrc: intern.avatar || '/default-avatar.png',
+          avatar: intern.avatar,
+          portfolioSlug: intern.portfolioSlug,
+          instagram: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('instagram'))?.url,
+          github: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('github'))?.url,
+          portfolio: `https://portfolio.example.com/${intern.portfolioSlug}`,
+          contact: intern.contact,
+          resume: intern.resume,
+          coopType: intern.coopType,
+          status: intern.status,
+        }));
+        setInternList(formattedInterns);
+      }
+    } catch (error) {
+      console.error('Error fetching interns:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // --- ฟังก์ชัน Checkbox ---
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter(itemId => itemId !== id));
     } else {
@@ -40,12 +103,25 @@ export default function InternPage() {
   };
 
   // --- ฟังก์ชันลบ ---
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedIds.length === 0) return;
     if (confirm(`คุณต้องการลบข้อมูลจำนวน ${selectedIds.length} รายการใช่หรือไม่?`)) {
-      const newList = internList.filter(item => !selectedIds.includes(item.id));
-      setInternList(newList);
-      setSelectedIds([]);
+      try {
+        // ลบทีละรายการ
+        await Promise.all(
+          selectedIds.map(id =>
+            fetch(`/api/intern/${id}`, { method: 'DELETE' })
+          )
+        );
+
+        // รีเฟรชข้อมูล
+        await fetchInterns();
+        setSelectedIds([]);
+        alert('ลบข้อมูลเรียบร้อย');
+      } catch (error) {
+        console.error('Error deleting interns:', error);
+        alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+      }
     }
   };
 
@@ -58,9 +134,10 @@ export default function InternPage() {
 
   // --- 🔍 Logic การค้นหา ---
   // กรองรายชื่อตามคำค้นหา (ชื่อ)
-  const filteredInterns = internList.filter((intern) => 
-    intern.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInterns = internList.filter((intern) => {
+    const displayName = intern.name.display || `${intern.name.first} ${intern.name.last}`;
+    return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <Layouts>
@@ -151,9 +228,9 @@ export default function InternPage() {
                     {/* รูปภาพ */}
                     <Image
                       className="transition-transform duration-500 ease-in-out group-hover:scale-110"
-                      src={intern.imageSrc} 
-                      alt={intern.name}     
-                      fill 
+                      src={intern.imageSrc || '/default-avatar.png'}
+                      alt={intern.name.display || `${intern.name.first} ${intern.name.last}`}
+                      fill
                       style={{ objectFit: "cover" }}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
@@ -175,7 +252,9 @@ export default function InternPage() {
 
                     {/* Overlay Info */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm text-white transition-all duration-500 ease-in-out translate-y-full group-hover:translate-y-0">
-                      <h2 className="text-2xl font-bold text-white mb-1">{intern.name}</h2>
+                      <h2 className="text-2xl font-bold text-white mb-1">
+                        {intern.name.display || `${intern.name.first} ${intern.name.last}`}
+                      </h2>
                       <p className="text-md font-medium text-blue-300 mb-4">{intern.title}</p>
                       <div className="flex justify-center gap-5 mt-4">
                         {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-blue-400 transition-colors"><FaInstagram size={24} /></a>}
@@ -218,10 +297,17 @@ export default function InternPage() {
                         <td className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 relative rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-                              <Image src={intern.imageSrc} alt={intern.name} fill style={{ objectFit: "cover" }} />
+                              <Image
+                                src={intern.imageSrc || '/default-avatar.png'}
+                                alt={intern.name.display || `${intern.name.first} ${intern.name.last}`}
+                                fill
+                                style={{ objectFit: "cover" }}
+                              />
                             </div>
                             <div>
-                              <div className="font-bold text-gray-800">{intern.name}</div>
+                              <div className="font-bold text-gray-800">
+                                {intern.name.display || `${intern.name.first} ${intern.name.last}`}
+                              </div>
                               <div className="text-xs text-gray-500 md:hidden">{intern.title}</div>
                             </div>
                           </div>

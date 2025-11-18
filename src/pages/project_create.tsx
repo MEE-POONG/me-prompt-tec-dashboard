@@ -1,16 +1,19 @@
 "use client";
 import Layouts from "@/components/Layouts";
-import { Project, projects } from "@/Data/Project_data";
 import React, { useState } from "react";
+import { useRouter } from "next/router";
 
 
 export default function ProjectCreate() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [description, setDescription] = useState("");
   const [projectLink, setProjectLink] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const addTag = () => {
     if (tagInput && !tags.includes(tagInput)) {
@@ -23,23 +26,121 @@ export default function ProjectCreate() {
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
-  const handleSubmit = () => {
-    const newProject: Project = {
-      id: projects.length + 1,
-      name,
-      description,
-      imageSrc,
-      projectLink,
-      tags,
-    };
-    projects.push(newProject);
-    alert("เพิ่มโปรเจกต์เรียบร้อย!");
-    // clear
-    setName("");
-    setTags([]);
-    setImageSrc("");
-    setDescription("");
-    setProjectLink("");
+  // แปลงไฟล์เป็น Base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // จัดการการเลือกไฟล์
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      try {
+        const base64 = await convertToBase64(file);
+        setImageSrc(base64);
+      } catch (error) {
+        console.error("Error converting file:", error);
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+      }
+    } else {
+      alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+    }
+  };
+
+  // จัดการการลากไฟล์
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      try {
+        const base64 = await convertToBase64(file);
+        setImageSrc(base64);
+      } catch (error) {
+        console.error("Error converting file:", error);
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+      }
+    } else {
+      alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name || !description) {
+      alert("กรุณากรอกชื่อและรายละเอียดโปรเจกต์");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // สร้าง slug จากชื่อโปรเจกต์
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const projectData = {
+        title: name,
+        slug: slug,
+        summary: description.substring(0, 200), // ใช้ 200 ตัวอักษรแรกเป็น summary
+        description: description,
+        cover: imageSrc || null,
+        tags: tags,
+        techStack: [],
+        links: projectLink ? [{ label: "Project Link", url: projectLink }] : [],
+        featured: false,
+        status: "in_progress",
+      };
+
+      const response = await fetch("/api/project", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(projectData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "เกิดข้อผิดพลาดในการสร้างโปรเจกต์");
+      }
+
+      alert("เพิ่มโปรเจกต์เรียบร้อย!");
+      // clear form
+      setName("");
+      setTags([]);
+      setImageSrc("");
+      setDescription("");
+      setProjectLink("");
+
+      // redirect to project list page
+      router.push("/project");
+    } catch (error) {
+      console.error("Error creating project:", error);
+      alert(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการสร้างโปรเจกต์");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -103,21 +204,47 @@ export default function ProjectCreate() {
             <label className="text-sm font-bold text-blue-600">
               รูปภาพโปรเจกต์
             </label>
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <div
-              className="w-full h-64 border-2 border-dashed border-gray-300 rounded-2xl flex items-center justify-center text-gray-400 cursor-pointer hover:border-blue-400 transition-all"
-              onClick={() => {
-                const url = prompt("วาง URL รูปภาพ");
-                if (url) setImageSrc(url);
-              }}
+              className={`w-full h-64 border-2 border-dashed rounded-2xl flex items-center justify-center text-gray-400 cursor-pointer transition-all ${
+                isDragging
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 hover:border-blue-400"
+              }`}
+              onClick={() => document.getElementById("fileInput")?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
               {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt="Project"
-                  className="w-full h-full object-cover rounded-2xl"
-                />
+                <div className="relative w-full h-full">
+                  <img
+                    src={imageSrc}
+                    alt="Project"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImageSrc("");
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-all"
+                  >
+                    ✕
+                  </button>
+                </div>
               ) : (
-                <span>คลิกหรือวางรูปภาพที่นี่</span>
+                <div className="text-center">
+                  <p className="mb-2">คลิกเพื่อเลือกรูปภาพ</p>
+                  <p className="text-sm">หรือลากไฟล์มาวางที่นี่</p>
+                </div>
               )}
             </div>
           </div>
@@ -152,13 +279,18 @@ export default function ProjectCreate() {
                 placeholder="กรอก URL ของโปรเจกต์"
                 className="w-200 text-black border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
-              <a
+              <button
+                type="button"
                 onClick={handleSubmit}
-                href="/project"
-                className="px-5 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all"
+                disabled={isSubmitting}
+                className={`px-5 py-2 text-white rounded-md transition-all ${
+                  isSubmitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-500 hover:bg-green-600"
+                }`}
               >
-                เพิ่มโปรเจค
-              </a>
+                {isSubmitting ? "กำลังเพิ่ม..." : "เพิ่มโปรเจค"}
+              </button>
             </div>
           </div>
         </div>

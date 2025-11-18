@@ -57,12 +57,12 @@ type Name {
 }
 
 type Address {
-  line1       String?
-  line2       String?
-  district    String?
-  province    String?
-  postalCode  String?
-  country     String? @default("TH")
+  line1      String?
+  line2      String?
+  district   String?
+  province   String?
+  postalCode String?
+  country    String? @default("TH")
 }
 
 type Social {
@@ -95,10 +95,10 @@ type Education {
 }
 
 type Experience {
-  company         String?
-  title           String?
-  startDate       DateTime?
-  endDate         DateTime?
+  company          String?
+  title            String?
+  startDate        DateTime?
+  endDate          DateTime?
   responsibilities String[]
   techStack        String[]
 }
@@ -110,10 +110,10 @@ type Attachment {
 }
 
 type Hero {
-  title   String?
+  title    String?
   subtitle String?
-  ctaText String?
-  ctaLink String?
+  ctaText  String?
+  ctaLink  String?
 }
 
 type SEO {
@@ -155,11 +155,11 @@ type ResumeProject {
 
 // ผู้ใช้งานหลังบ้าน
 model User {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  email        String   @unique
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  email        String  @unique
   passwordHash String
-  role         Role     @default(viewer)
-  isActive     Boolean  @default(true)
+  role         Role    @default(viewer)
+  isActive     Boolean @default(true)
 
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
   memberId String? @db.ObjectId
@@ -168,34 +168,36 @@ model User {
   internId String? @db.ObjectId
   intern   Intern? @relation(fields: [internId], references: [id])
 
+  // relation: Contact messages handled by this user
+  handledMessages ContactMessage[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
-  @@index([email])
 }
 
 // singleton โปรไฟล์บริษัท
 model Company {
-  id         String     @id @default(auto()) @map("_id") @db.ObjectId
-  name       String     @default("ME PROMPT TECHNOLOGY COMPANY LIMITED")
-  tagline    String?
-  about      String?
-  addresses  Address[]
-  phones     String[]
-  emails     String[]
-  socials    Social?
-  services   Service[]
-  hero       Hero?
-  seo        SEO?
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String    @default("ME PROMPT TECHNOLOGY COMPANY LIMITED")
+  tagline   String?
+  about     String?
+  addresses Address[]
+  phones    String[]
+  emails    String[]
+  socials   Social?
+  services  Service[]
+  hero      Hero?
+  seo       SEO?
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // สมาชิกทีม/พนักงาน
 model Member {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
   name       Name
   title      String?
   department String?
@@ -203,61 +205,65 @@ model Member {
   photo      String?
   socials    Social?
   skills     Skill[]
-  slug       String    @unique
+  slug       String  @unique
 
   // relation: Projects ผ่าน join
   projectLinks ProjectMember[]
 
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  // relation: Users that link to this member
+  users User[]
 
-  // text search ใช้ MongoDB Atlas Search/Index ภายนอกได้
-  @@index([slug])
+  // relation: MOU contracts signed by this member
+  mouContracts MOU[]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // นักศึกษา Coop/ฝึกงาน (มีหน้า portfolio ของตัวเอง)
 model Intern {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
   name          Name
-  university    String   @default("มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน")
-  faculty       String?  @default("คณะบริหารธุรกิจ")
-  major         String?  @default("สารสนเทศทางคอมพิวเตอร์")
+  university    String       @default("มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน")
+  faculty       String?      @default("คณะบริหารธุรกิจ")
+  major         String?      @default("สารสนเทศทางคอมพิวเตอร์")
   studentId     String?
-  coopType      CoopType @default(coop)
+  coopType      CoopType     @default(coop)
   contact       ContactInfo?
   resume        Resume?
   avatar        String?
-  portfolioSlug String   @unique
-  status        String   @default("published") // draft|published|archived
+  portfolioSlug String       @unique
+  status        String       @default("published") // draft|published|archived
 
   // relation: Projects ผ่าน join
   projectLinks ProjectIntern[]
 
+  // relation: Users that link to this intern
+  users User[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([portfolioSlug])
 }
 
 // ผลงาน/โปรเจกต์บริษัท (หน้า Portfolio)
 model Project {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  slug        String         @unique
-  summary     String?
-  description String?
-  status      ProjectStatus  @default(in_progress)
-  startDate   DateTime?
-  endDate     DateTime?
-  clientName  String?
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  slug         String        @unique
+  summary      String?
+  description  String?
+  status       ProjectStatus @default(in_progress)
+  startDate    DateTime?
+  endDate      DateTime?
+  clientName   String?
   clientSector String?
-  tags        String[]
-  techStack   String[]
-  cover       String?
-  gallery     Attachment[]
-  links       Link[]
-  featured    Boolean        @default(false)
+  tags         String[]
+  techStack    String[]
+  cover        String?
+  gallery      Attachment[]
+  links        Link[]
+  featured     Boolean       @default(false)
 
   // relations via join
   memberLinks ProjectMember[]
@@ -268,48 +274,47 @@ model Project {
 
   @@index([status])
   @@index([featured])
-  @@index([slug])
   @@index([title])
 }
 
 // ความร่วมมือ/MOU
 model MOU {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  university  String
-  faculty     String?
-  department  String?
-  signedDate  DateTime
-  expiryDate  DateTime?
-  contactName String?
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  university   String
+  faculty      String?
+  department   String?
+  signedDate   DateTime
+  expiryDate   DateTime?
+  contactName  String?
   contactEmail String?
   contactPhone String?
 
   // ผู้แทนบริษัทที่ลงนาม
-  companyRepId String?  @db.ObjectId
-  companyRep   Member?  @relation(fields: [companyRepId], references: [id])
+  companyRep   Member? @relation(fields: [companyRepId], references: [id])
+  companyRepId String? @db.ObjectId
 
-  fileUrl     String?
-  notes       String?
-  isActive    Boolean  @default(true)
+  fileUrl  String?
+  notes    String?
+  isActive Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([university, faculty, signedDate])
 }
 
 // ข้อความติดต่อจากหน้าเว็บ
 model ContactMessage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String?
-  email     String?
-  phone     String?
-  subject   String?
-  message   String
-  source    String   @default("website") // website|portfolio|intern-page|other
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  name    String?
+  email   String?
+  phone   String?
+  subject String?
+  message String
+  source  String  @default("website") // website|portfolio|intern-page|other
 
-  handledById String?  @db.ObjectId
-  handledBy   User?    @relation(fields: [handledById], references: [id])
+  handledById String? @db.ObjectId
+  handledBy   User?   @relation(fields: [handledById], references: [id])
 
   status    String   @default("new") // new|in-progress|done
   createdAt DateTime @default(now())
@@ -339,24 +344,23 @@ model MediaAsset {
 // Prisma + MongoDB ยังไม่มี implicit M2M; ใช้ join collection แทน
 
 model ProjectMember {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  projectId String  @db.ObjectId
-  memberId  String  @db.ObjectId
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String @db.ObjectId
+  memberId  String @db.ObjectId
 
   project Project @relation(fields: [projectId], references: [id])
   member  Member  @relation(fields: [memberId], references: [id])
 
-  role     String? // บทบาทในโปรเจกต์ (PM, Dev, Designer)
-  note     String?
+  role String? // บทบาทในโปรเจกต์ (PM, Dev, Designer)
+  note String?
 
-  @@index([projectId, memberId])
   @@unique([projectId, memberId]) // ไม่ซ้ำในโปรเจกต์เดียวกัน
 }
 
 model ProjectIntern {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  projectId String  @db.ObjectId
-  internId  String  @db.ObjectId
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String @db.ObjectId
+  internId  String @db.ObjectId
 
   project Project @relation(fields: [projectId], references: [id])
   intern  Intern  @relation(fields: [internId], references: [id])
@@ -364,6 +368,5 @@ model ProjectIntern {
   responsibility String?
   note           String?
 
-  @@index([projectId, internId])
   @@unique([projectId, internId])
 }
