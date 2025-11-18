@@ -26,7 +26,7 @@ export const Intern: Dataintern[] = [
   },
   {
     id: 2,
-    name: "สุพรรษา ฉีดวงแก้ว",
+    name: "สุพรรษา ดีดวงแก้ว",
     title: "นักศึกษาฝึกงาน (Intern)",
     bio: "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน สาขาระบบสารสนเทศ",
     imageSrc: "/img/pic1.jpg",
