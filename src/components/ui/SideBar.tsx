@@ -1,4 +1,4 @@
-import { ChartNoAxesCombined, FolderGit2, PanelLeftClose, PanelLeftOpen, UserRoundPen } from 'lucide-react';
+import { ChartNoAxesCombined, FolderGit2, PanelLeftClose, PanelLeftOpen, UserRoundPen, UserStar } from 'lucide-react';
 import Link from 'next/link';
 
 interface SideBarProps {
@@ -97,6 +97,22 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                     />
                   </svg>
                   <span>Internships</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/intern"
+                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <UserStar />
+                  </svg>
+                  <span>Teams Member</span>
                 </Link>
               </li>
               <li>

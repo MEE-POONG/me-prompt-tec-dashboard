@@ -323,9 +323,9 @@ export default function InternPage() {
                         <td className="p-4 text-center">
                           <div className="flex justify-center gap-3 text-gray-400">
                             {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-pink-600 transition-colors"><FaInstagram size={18} /></a>}
-                            {intern.facebook && <a href={intern.facebook} target="_blank" className="hover:text-blue-400 transition-colors"><FaFacebook size={24} /></a>}
+                            {intern.facebook && <a href={intern.facebook} target="_blank" className="hover:text-blue-400 transition-colors"><FaFacebook size={18} /></a>}
                             {intern.github && <a href={intern.github} target="_blank" className="hover:text-black transition-colors"><FaGithub size={18} /></a>}
-                            {intern.portfolio && <button onClick={() => openModal(intern.portfolio)} className="hover:text-blue-600 transition-colors"><FolderKanban size={18} /></button>}
+                            {intern.portfolio && <button onClick={() => openModal(intern.portfolio)} className="hover:text-yellow-600 transition-colors"><FolderKanban size={18} /></button>}
                           </div>
                         </td>
                         <td className="p-4 text-right">
