@@ -1,0 +1,33 @@
+import React from 'react';
+import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
+
+export default function WelcomeBanner() {
+  return (
+    <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
+      
+      {/* Background Pattern (ตกแต่งพื้นหลัง) */}
+      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+         <div>
+            <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
+               สวัสดีผู้ดูแลระบบ <Sparkles size={24} className="text-yellow-300"/>
+            </h2>
+            <p className="text-blue-100 max-w-2xl text-lg">
+               ยินดีต้อนรับสู่ระบบจัดการหลังบ้าน Me Prompt Technology ศูนย์กลางการจัดการข้อมูลโปรเจกต์ บุคลากร และนักศึกษาฝึกงาน
+            </p>
+         </div>
+         
+         <div className="flex gap-3">
+            <Link href="/project_create">
+                <button className="bg-white text-blue-700 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-50 transition-transform hover:scale-105 active:scale-95">
+                    + เพิ่มผลงานใหม่
+                </button>
+            </Link>
+         </div>
+      </div>
+    </div>
+  );
+}
