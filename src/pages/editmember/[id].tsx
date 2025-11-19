@@ -28,7 +28,6 @@ export default function EditMemberPage() {
   const [portfolio, setPortfolio] = useState("");
 
   // Image State
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,33 +60,34 @@ export default function EditMemberPage() {
   const fetchMemberData = async (memberId: string) => {
     setIsLoading(true);
     try {
-      // สมมติว่ามี API /api/member/[id]
       const response = await fetch(`/api/member/${memberId}`);
       const result = await response.json();
 
       if (response.ok) {
         const member = result.data;
+
         // Map ข้อมูลจาก API เข้า State
-        setName(member.name || "");
+        setName(member.name?.display || `${member.name?.first || ''} ${member.name?.last || ''}`.trim());
         setTitle(member.title || "");
         setDepartment(member.department || "");
         setBio(member.bio || "");
-        setImageUrl(member.imageSrc || "");
-        
+        setImageUrl(member.photo || "");
+
         // Socials
-        setFacebook(member.facebook || "");
-        setInstagram(member.instagram || "");
-        setGithub(member.github || "");
-        setLinkedin(member.linkedin || "");
-        setPortfolio(member.portfolio || "");
-        setEmail(member.email || "");
-        setPhone(member.phone || "");
+        setFacebook(member.socials?.facebook || "");
+        setInstagram(member.socials?.instagram || "");
+        setGithub(member.socials?.github || "");
+        setLinkedin(member.socials?.linkedin || "");
+        setPortfolio(member.socials?.website || member.socials?.portfolio || "");
+        setEmail(member.socials?.email || "");
+        setPhone(member.socials?.phone || "");
       } else {
-        // ถ้าไม่เจอ API ให้ปล่อยผ่านไปก่อน (เพื่อไม่ให้หน้าขาวตอนเทส UI)
-        console.warn("API fetch failed, waiting for implementation.");
+        alert("ไม่พบข้อมูลพนักงาน");
+        router.push("/teammember");
       }
     } catch (error) {
       console.error('Error fetching member:', error);
+      alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +106,6 @@ export default function EditMemberPage() {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
       const base64 = await convertToBase64(file);
       setImageUrl(base64);
     }
@@ -117,36 +116,52 @@ export default function EditMemberPage() {
     setIsSubmitting(true);
 
     try {
+      // Split name into first and last
+      const nameParts = name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const updateData = {
-        name,
+        name: {
+          first: firstName,
+          last: lastName,
+          display: name.trim()
+        },
         title,
         department,
         bio,
-        contact: { email, phone },
-        socials: { facebook, instagram, github, linkedin, portfolio },
-        image: imageFile // ส่งไฟล์ไปจัดการที่ API
+        photo: imageUrl, // ส่ง URL รูปภาพ (อาจเป็น base64 หรือ URL)
+        socials: {
+          email,
+          phone,
+          facebook,
+          instagram,
+          github,
+          linkedin,
+          website: portfolio,
+          portfolio
+        }
       };
 
       console.log("Submitting Data:", updateData);
 
-      // --- ส่วนส่ง API (เปิดใช้เมื่อ Backend พร้อม) ---
-      /*
       const response = await fetch(`/api/member/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       });
-      if (!response.ok) throw new Error("Failed to update");
-      */
 
-      // จำลองว่าสำเร็จ
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update member");
+      }
+
       alert("บันทึกข้อมูลพนักงานเรียบร้อย!");
       router.push("/teammember");
 
     } catch (error) {
       console.error("Error:", error);
-      alert("เกิดข้อผิดพลาด");
+      alert(error instanceof Error ? error.message : "เกิดข้อผิดพลาด");
     } finally {
       setIsSubmitting(false);
     }
