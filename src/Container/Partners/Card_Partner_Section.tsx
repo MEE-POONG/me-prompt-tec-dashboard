@@ -56,7 +56,7 @@ export default function Card_Partner_Section({
               `}
             >
               {/* 1. ส่วนปกด้านบน */}
-              <div className="h-24 w-full bg-gradient-to-r from-blue-600 to-indigo-600 relative">
+              <div className="h-24 w-full bg-linear-to-r from-blue-600 to-indigo-600 relative">
                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-xl -mr-5 -mt-5"></div>
                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full blur-xl -ml-5 -mb-5"></div>
                  
@@ -94,7 +94,7 @@ export default function Card_Partner_Section({
               </div>
 
               {/* 3. ส่วนเนื้อหา */}
-              <div className="p-5 pt-3 text-center flex flex-col flex-grow">
+              <div className="p-5 pt-3 text-center flex flex-col grow">
                 <div className="mb-3 flex justify-center">
                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
                       ${partner.type.includes('ศึกษา') ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}
