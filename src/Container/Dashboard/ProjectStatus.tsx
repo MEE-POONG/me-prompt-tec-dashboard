@@ -101,7 +101,6 @@ export default function ProjectStatus() {
             ))}
          </div>
       </div>
-
     </div>
   );
 }

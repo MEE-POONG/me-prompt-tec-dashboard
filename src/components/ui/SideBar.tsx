@@ -1,13 +1,15 @@
-import { 
-  ChartNoAxesCombined, 
-  FolderGit2, 
-  PanelLeftClose, 
-  PanelLeftOpen, 
-  UserRoundPen, 
+import {
+  ChartNoAxesCombined,
+  FolderGit2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  UserRoundPen,
   UserStar,
-  Handshake // ✅ เพิ่มไอคอน Handshake เข้ามา
-} from 'lucide-react';
-import Link from 'next/link';
+  Handshake,
+  ChevronDown, // ✅ เพิ่มไอคอน Handshake เข้ามา
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 interface SideBarProps {
   isOpen: boolean;
@@ -15,6 +17,12 @@ interface SideBarProps {
 }
 
 export default function SideBar({ isOpen, onClose }: SideBarProps) {
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+  // 2. ฟังก์ชันสำหรับสลับสถานะ (Toggle)
+  const toggleDashboard = () => {
+    setIsDashboardOpen(!isDashboardOpen);
+  };
   return (
     <>
       {/* Overlay - แสดงเมื่อ sidebar เปิดบนมือถือ */}
@@ -28,13 +36,13 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-50 h-screen bg-linear-to-b from-blue-600 to-blue-800 text-white transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? "translate-x-0" : "-translate-x-full"
         } w-64`}
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-blue-500">
-            <h2 className="text-xl font-bold">เมนู</h2>
+            <h2 className="text-xl font-bold">เมนู'</h2>
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-blue-700 transition-colors"
@@ -55,38 +63,56 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
           <nav className="flex-1 overflow-y-auto p-4">
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/"
-                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+                {/* ปุ่มกดหลัก */}
+                <button
+                  onClick={toggleDashboard}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-blue-700 transition-colors group"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <ChartNoAxesCombined />
-                  </svg>
-                  <span>Report</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/project"
-                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  <div className="flex items-center space-x-3">
+                    <ChartNoAxesCombined className="w-5 h-5" />
+                    <span>DashBoard</span>
+                  </div>
+
+                  {/* ลูกศรหมุน Smooth */}
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-300 ease-in-out ${
+                      isDashboardOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                  />
+                </button>
+
+                {/* ส่วน Dropdown (Animation Wrapper) */}
+                <div
+                  className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                    isDashboardOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
+                  }`}
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <FolderGit2 />
-                  </svg>
-                  <span>Project</span>
-                </Link>
+                  {/* Inner Container (ต้องมี overflow-hidden) */}
+                  <div className="overflow-hidden">
+                    <ul className="mt-1 ml-4 border-l-2 border-blue-500/30 space-y-1 pt-1 pb-2">
+                      <li>
+                        <Link
+                          href="/"
+                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
+                        >
+                          Report
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/message"
+                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
+                        >
+                          Message
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </li>
-              
+
               {/* ✅ เพิ่มเมนู Partnerships ตรงนี้ครับ */}
               <li>
                 <Link
