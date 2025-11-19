@@ -20,7 +20,9 @@ export default function EditInternPage() {
   const [github, setGithub] = useState("");
   const [portfolio, setPortfolio] = useState("");
   const [position, setPosition] = useState("coop");
-  const [university, setUniversity] = useState("มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน");
+  const [university, setUniversity] = useState(
+    "มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน"
+  );
   const [faculty, setFaculty] = useState("คณะบริหารธุรกิจ");
   const [major, setMajor] = useState("สารสนเทศทางคอมพิวเตอร์");
   const [studentId, setStudentId] = useState("");
@@ -35,7 +37,7 @@ export default function EditInternPage() {
 
   // --- useEffect: ดึงข้อมูลจาก API ---
   useEffect(() => {
-    if (id && typeof id === 'string') {
+    if (id && typeof id === "string") {
       fetchInternData(id);
     }
   }, [id]);
@@ -63,22 +65,30 @@ export default function EditInternPage() {
 
         // ดึง social links จาก resume
         const links = intern.resume?.links || [];
-        const fbLink = links.find((l: any) => l.label.toLowerCase().includes('facebook'));
-        const igLink = links.find((l: any) => l.label.toLowerCase().includes('instagram'));
-        const ghLink = links.find((l: any) => l.label.toLowerCase().includes('github'));
-        const pfLink = links.find((l: any) => l.label.toLowerCase().includes('portfolio'));
+        const fbLink = links.find((l: any) =>
+          l.label.toLowerCase().includes("facebook")
+        );
+        const igLink = links.find((l: any) =>
+          l.label.toLowerCase().includes("instagram")
+        );
+        const ghLink = links.find((l: any) =>
+          l.label.toLowerCase().includes("github")
+        );
+        const pfLink = links.find((l: any) =>
+          l.label.toLowerCase().includes("portfolio")
+        );
 
         setFacebook(fbLink?.url || "");
         setInstagram(igLink?.url || "");
         setGithub(ghLink?.url || "");
         setPortfolio(pfLink?.url || "");
       } else {
-        alert('ไม่พบข้อมูล Intern');
-        router.push('/intern');
+        alert("ไม่พบข้อมูล Intern");
+        router.push("/intern");
       }
     } catch (error) {
-      console.error('Error fetching intern:', error);
-      alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      console.error("Error fetching intern:", error);
+      alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +172,11 @@ export default function EditInternPage() {
       router.push("/intern");
     } catch (error) {
       console.error("Error updating intern:", error);
-      alert(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -181,18 +195,18 @@ export default function EditInternPage() {
   return (
     <Layouts>
       <div className="p-6 md:p-8 text-black w-full max-w-6xl mx-auto">
-
         <h1 className="text-2xl lg:text-3xl font-bold mb-8 text-blue-700">
           แก้ไขข้อมูล (ID: {id})
         </h1>
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-
             {/* --- ฝั่งซ้าย (รูป + Portfolio) --- */}
             <div className="space-y-6">
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">รูปภาพ</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  รูปภาพ
+                </label>
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -208,7 +222,12 @@ export default function EditInternPage() {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {imageUrl ? (
-                    <Image src={imageUrl} alt="Preview" fill style={{ objectFit: "cover" }} />
+                    <Image
+                      src={imageUrl}
+                      alt="Preview"
+                      fill
+                      style={{ objectFit: "cover" }}
+                    />
                   ) : (
                     <>
                       <Upload size={40} className="mb-2" />
@@ -216,11 +235,15 @@ export default function EditInternPage() {
                     </>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 text-center mt-2">คลิกที่รูปเพื่อเปลี่ยนรูปใหม่</p>
+                <p className="text-sm text-gray-400 text-center mt-2">
+                  คลิกที่รูปเพื่อเปลี่ยนรูปใหม่
+                </p>
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Portfolio Slug *</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  Portfolio Slug *
+                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -232,7 +255,9 @@ export default function EditInternPage() {
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">รหัสนักศึกษา</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  รหัสนักศึกษา
+                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -246,7 +271,9 @@ export default function EditInternPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-lg font-bold text-gray-800 mb-2">ชื่อ *</label>
+                  <label className="block text-lg font-bold text-gray-800 mb-2">
+                    ชื่อ *
+                  </label>
                   <input
                     type="text"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -256,7 +283,9 @@ export default function EditInternPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-800 mb-2">นามสกุล *</label>
+                  <label className="block text-lg font-bold text-gray-800 mb-2">
+                    นามสกุล *
+                  </label>
                   <input
                     type="text"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -268,7 +297,9 @@ export default function EditInternPage() {
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">ชื่อที่แสดง</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  ชื่อที่แสดง
+                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -279,7 +310,9 @@ export default function EditInternPage() {
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Email</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  Email
+                </label>
                 <input
                   type="email"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -289,7 +322,9 @@ export default function EditInternPage() {
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">เบอร์โทร</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  เบอร์โทร
+                </label>
                 <input
                   type="tel"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -299,7 +334,9 @@ export default function EditInternPage() {
               </div>
 
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">ประเภท</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  ประเภท
+                </label>
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 appearance-none"
                   value={position}
@@ -314,12 +351,58 @@ export default function EditInternPage() {
             </div>
           </div>
 
+          {/* --- ข้อมูลมหาวิทยาลัย --- */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              ข้อมูลการศึกษา
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  มหาวิทยาลัย
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={university}
+                  onChange={(e) => setUniversity(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  คณะ
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  สาขา
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  value={major}
+                  onChange={(e) => setMajor(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* --- Social Links --- */}
           <div className="mt-8 pt-8 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Social Links</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Social Link
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Facebook</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  Facebook
+                </label>
                 <input
                   type="url"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -329,7 +412,9 @@ export default function EditInternPage() {
                 />
               </div>
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Instagram</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  Instagram
+                </label>
                 <input
                   type="url"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -339,7 +424,9 @@ export default function EditInternPage() {
                 />
               </div>
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">GitHub</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  GitHub
+                </label>
                 <input
                   type="url"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -349,7 +436,9 @@ export default function EditInternPage() {
                 />
               </div>
               <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">Portfolio URL</label>
+                <label className="block text-lg font-bold text-gray-800 mb-2">
+                  Portfolio URL
+                </label>
                 <input
                   type="url"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -363,7 +452,6 @@ export default function EditInternPage() {
 
           {/* === ปุ่มกด === */}
           <div className="flex justify-end pt-8 mt-8 border-t border-gray-200 gap-4">
-
             {/* ปุ่มยกเลิก กลับไปหน้า intern */}
             <Link
               href="/intern"
@@ -384,7 +472,6 @@ export default function EditInternPage() {
               {isSubmitting ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
             </button>
           </div>
-
         </form>
       </div>
     </Layouts>
