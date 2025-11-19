@@ -115,11 +115,11 @@ export default function AccountPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center space-x-2">
                       <Link href={`/addaccount?id=${acc.id}`}>
-                        <button className="cursor-pointer px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition transition delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-indigo-500">
+                        <button className="cursor-pointer px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110">
                           แก้ไข
                         </button>
                       </Link>
-                      <button onClick={() => handleDelete(acc.id)} className="cursor-pointer px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition transition delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-indigo-500">
+                      <button onClick={() => handleDelete(acc.id)} className="cursor-pointer px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110">
                         ลบ
                       </button>
                     </td>
