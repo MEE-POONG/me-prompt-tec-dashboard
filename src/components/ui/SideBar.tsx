@@ -1,4 +1,12 @@
-import { ChartNoAxesCombined, FolderGit2, PanelLeftClose, PanelLeftOpen, UserRoundPen, UserStar } from 'lucide-react';
+import { 
+  ChartNoAxesCombined, 
+  FolderGit2, 
+  PanelLeftClose, 
+  PanelLeftOpen, 
+  UserRoundPen, 
+  UserStar,
+  Handshake // ✅ เพิ่มไอคอน Handshake เข้ามา
+} from 'lucide-react';
 import Link from 'next/link';
 
 interface SideBarProps {
@@ -78,6 +86,25 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                   <span>Project</span>
                 </Link>
               </li>
+              
+              {/* ✅ เพิ่มเมนู Partnerships ตรงนี้ครับ */}
+              <li>
+                <Link
+                  href="/manage_partners" // ลิงก์ไปหน้าจัดการพันธมิตร
+                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <Handshake />
+                  </svg>
+                  <span>Partnerships</span>
+                </Link>
+              </li>
+
               <li>
                 <Link
                   href="/intern"

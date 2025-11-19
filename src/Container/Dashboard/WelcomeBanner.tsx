@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react';
 
 export default function WelcomeBanner() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
+    <div className="bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg mb-8 relative overflow-hidden">
       
       {/* Background Pattern (ตกแต่งพื้นหลัง) */}
       <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
