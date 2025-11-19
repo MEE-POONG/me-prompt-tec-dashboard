@@ -12,6 +12,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
+import FilterButton from "@/components/ui/Filterbutton";
 
 interface Project {
   id: string;
@@ -40,10 +41,19 @@ export default function All_Project() {
   // --- State ---
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+
+  // --- Filter Handlers ---
+  const setFilters = (filters: { tag: string | null; tech: string | null }) => {
+    setSelectedTag(filters.tag);
+    setSelectedTech(filters.tech);
+
+  };
 
   // --- Fetch Projects ---
   useEffect(() => {
@@ -93,22 +103,47 @@ export default function All_Project() {
 
   // --- Logic ---
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags)));
+  const allTechStacks = Array.from(
+  new Set(
+    projects
+      .flatMap(p => p.techStack)
+      .filter((t): t is string => Boolean(t))  // <-- ตัด undefined ออกแบบ type-safe
+  )
+);
+
 
   const filteredProjects = projects.filter((p) => {
     const matchSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       (p.description &&
         p.description.toLowerCase().includes(search.toLowerCase())) ||
-      (p.summary &&
-        p.summary.toLowerCase().includes(search.toLowerCase()));
+      (p.summary && p.summary.toLowerCase().includes(search.toLowerCase()));
     const matchTag = selectedTag ? p.tags.includes(selectedTag) : true;
     return matchSearch && matchTag;
   });
 
+  const filteredStack = projects.filter((p) => {
+    const matchSearch =
+      p.title.toLowerCase().includes(search.toLowerCase()) || 
+      (p.description &&
+        p.description.toLowerCase().includes(search.toLowerCase())) ||
+      (p.summary && p.summary.toLowerCase().includes(search.toLowerCase()));
+    const matchTag = selectedTag ? p.tags.includes(selectedTag) : true;
+    const matchTech = selectedTech ? p.techStack && p.techStack.includes(selectedTech) : true;
+    return matchSearch && matchTag && matchTech;
+  });
+  const filteredProjectsFinal = selectedTech ? filteredStack : filteredProjects;
+
+  // Use filteredProjectsFinal for rendering
+  const filteredProjectsToShow = filteredProjectsFinal; 
+
+
   // --- Get project link ---
   const getProjectLink = (project: Project) => {
     if (project.links && project.links.length > 0) {
-      const mainLink = project.links.find((link: any) => link.type === "website" || link.type === "demo");
+      const mainLink = project.links.find(
+        (link: any) => link.type === "website" || link.type === "demo"
+      );
       return mainLink?.url || project.links[0]?.url || "#";
     }
     return "#";
@@ -122,7 +157,8 @@ export default function All_Project() {
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900">Projects</h2>
             <p className="text-gray-500 mt-1">
-              ผลงานและโปรเจกต์ทั้งหมด ({loading ? "..." : filteredProjects.length})
+              ผลงานและโปรเจกต์ทั้งหมด (
+              {loading ? "..." : filteredProjectsToShow.length } โปรเจกต์)
             </p>
           </div>
 
@@ -130,7 +166,11 @@ export default function All_Project() {
             {/* Search & Filter Group */}
             <div className="flex gap-2">
               <Searchbar value={search} onSearch={setSearch} />
-              <Filterbutton tags={allTags} onFilterChange={setSelectedTag} />
+              <FilterButton
+                tags={allTags}
+                techStacks={allTechStacks}
+                onFilterChange={setFilters}
+              />
             </div>
 
             {/* View Toggle & Add Button Group */}
@@ -183,7 +223,9 @@ export default function All_Project() {
             <div className="bg-red-50 p-4 rounded-full mb-4">
               <Search size={40} className="text-red-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">เกิดข้อผิดพลาด</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              เกิดข้อผิดพลาด
+            </h3>
             <p className="text-red-500 mt-1">{error}</p>
             <button
               onClick={fetchProjects}
@@ -192,12 +234,12 @@ export default function All_Project() {
               ลองอีกครั้ง
             </button>
           </div>
-        ) : filteredProjects.length > 0 ? (
+        ) : filteredProjectsToShow.length > 0 ? (
           <>
             {/* 🟢 VIEW: GRID */}
             {viewType === "grid" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredProjects.map((project) => (
+                {filteredProjectsToShow.map((project) => (
                   <div
                     key={project.id}
                     className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full group"
@@ -218,7 +260,7 @@ export default function All_Project() {
 
                       <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <Link
-                          href={`/project/edit/${project.id}`}
+                          href={`/editproject/${project.id}`}
                           className="p-2 bg-white/90 rounded-full text-yellow-500 hover:text-yellow-600 shadow-sm backdrop-blur-sm"
                         >
                           <SquarePen size={18} />
@@ -273,7 +315,7 @@ export default function All_Project() {
             {/* 🟢 VIEW: LIST */}
             {viewType === "list" && (
               <div className="flex flex-col gap-4">
-                {filteredProjects.map((project) => (
+                {filteredProjectsToShow.map((project) => (
                   <div
                     key={project.id}
                     className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col sm:flex-row gap-6 items-center group"
@@ -310,7 +352,7 @@ export default function All_Project() {
 
                     <div className="flex sm:flex-col gap-2 shrink-0">
                       <Link
-                        href={`/project/edit/${project.id}`}
+                        href={`/editproject/${project.id}`}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-yellow-50 hover:text-yellow-600 rounded-lg transition-colors"
                       >
                         <SquarePen size={16} /> <span>Edit</span>
