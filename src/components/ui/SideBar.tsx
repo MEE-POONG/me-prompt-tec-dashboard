@@ -101,7 +101,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
               </li>
               <li>
                 <Link
-                  href="/intern"
+                  href="/teammember"
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <svg

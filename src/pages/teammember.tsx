@@ -1,5 +1,6 @@
 import Layouts from '@/components/Layouts'
-import Teams_Menu_Section from '@/Container/Teams/teams_menu_section'
+import Teams_Menu_Section from '@/Container/Teams/Teams_Menu_Section'
+
 import React from 'react'
 
 export default function teammember() {
