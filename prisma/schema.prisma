@@ -160,7 +160,11 @@ model User {
   passwordHash String
   role         Role    @default(viewer)
   isActive     Boolean @default(true)
-
+  
+  name         String?  // ชื่อ-นามสกุล (ใช้แทน fullName)
+  phone        String?  // เบอร์โทร
+  position     String?  // ตำแหน่ง
+  // ------------------------
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
   memberId String? @db.ObjectId
   member   Member? @relation(fields: [memberId], references: [id])
