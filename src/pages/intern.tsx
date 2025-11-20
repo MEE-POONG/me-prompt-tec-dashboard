@@ -11,9 +11,10 @@ import {
   Smartphone,
   Monitor,
   Trash2,
-  Search,       // ไอคอนค้นหา
-  LayoutGrid,   // ไอคอนมุมมอง Grid
-  List          // ไอคอนมุมมอง List
+  Search,       
+  LayoutGrid,   
+  List,
+  ExternalLink // ✅ เพิ่มไอคอนนี้สำหรับปุ่มเปิดแยก (เผื่อไว้)
 } from 'lucide-react';
 
 interface InternData {
@@ -50,10 +51,10 @@ export default function InternPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- State ใหม่สำหรับ Search & Layout ---
-  const [searchTerm, setSearchTerm] = useState(""); // เก็บคำค้นหา
-  const [viewType, setViewType] = useState<'grid' | 'list'>('grid'); // เก็บรูปแบบมุมมอง ('grid' หรือ 'list')
+  const [searchTerm, setSearchTerm] = useState(""); 
+  const [viewType, setViewType] = useState<'grid' | 'list'>('grid'); 
 
-  // State Modal (เดิม)
+  // State Modal
   const [modalUrl, setModalUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
 
@@ -69,23 +70,31 @@ export default function InternPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // แปลงข้อมูลจาก API ให้ตรงกับ UI
-        const formattedInterns = result.data.map((intern: any) => ({
-          id: intern.id,
-          name: intern.name,
-          title: intern.coopType === 'coop' ? 'นักศึกษาฝึกงาน' : 'Intern',
-          imageSrc: intern.avatar || '/default-avatar.png',
-          avatar: intern.avatar,
-          portfolioSlug: intern.portfolioSlug,
-          instagram: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('instagram'))?.url,
-          facebook: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('facebook'))?.url,
-          github: intern.resume?.links?.find((l: any) => l.label.toLowerCase().includes('github'))?.url,
-          portfolio: `https://portfolio.example.com/${intern.portfolioSlug}`,
-          contact: intern.contact,
-          resume: intern.resume,
-          coopType: intern.coopType,
-          status: intern.status,
-        }));
+        const formattedInterns = result.data.map((intern: any) => {
+          // ✅ 1. ดึงลิงก์ Portfolio จริงๆ ออกมา (แก้จุดที่ทำให้ลิงก์พัง)
+          const links = intern.resume?.links || [];
+          const pfLink = links.find((l: any) => l.label.toLowerCase().includes('portfolio'))?.url;
+
+          return {
+            id: intern.id,
+            name: intern.name,
+            title: intern.coopType === 'coop' ? 'นักศึกษาฝึกงาน' : 'Intern',
+            imageSrc: intern.avatar || '/default-avatar.png',
+            avatar: intern.avatar,
+            portfolioSlug: intern.portfolioSlug,
+            instagram: links.find((l: any) => l.label.toLowerCase().includes('instagram'))?.url,
+            facebook: links.find((l: any) => l.label.toLowerCase().includes('facebook'))?.url,
+            github: links.find((l: any) => l.label.toLowerCase().includes('github'))?.url,
+            
+            // ✅ 2. ใช้ลิงก์จริง (ไม่เติม prefix มั่วซั่วแล้ว)
+            portfolio: pfLink || "", 
+
+            contact: intern.contact,
+            resume: intern.resume,
+            coopType: intern.coopType,
+            status: intern.status,
+          };
+        });
         setInternList(formattedInterns);
       }
     } catch (error) {
@@ -109,14 +118,11 @@ export default function InternPage() {
     if (selectedIds.length === 0) return;
     if (confirm(`คุณต้องการลบข้อมูลจำนวน ${selectedIds.length} รายการใช่หรือไม่?`)) {
       try {
-        // ลบทีละรายการ
         await Promise.all(
           selectedIds.map(id =>
             fetch(`/api/intern/${id}`, { method: 'DELETE' })
           )
         );
-
-        // รีเฟรชข้อมูล
         await fetchInterns();
         setSelectedIds([]);
         alert('ลบข้อมูลเรียบร้อย');
@@ -129,13 +135,13 @@ export default function InternPage() {
 
   // --- ฟังก์ชัน Modal ---
   const openModal = (url: string | undefined | null) => {
-    setModalUrl(url ?? null);
+    if (!url) return;
+    setModalUrl(url);
     setViewMode('desktop'); 
   };
   const closeModal = () => setModalUrl(null);
 
   // --- 🔍 Logic การค้นหา ---
-  // กรองรายชื่อตามคำค้นหา (ชื่อ)
   const filteredInterns = internList.filter((intern) => {
     const displayName = intern.name.display || `${intern.name.first} ${intern.name.last}`;
     return displayName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -154,10 +160,10 @@ export default function InternPage() {
             </span>
           </h1>
 
-          {/* === Control Bar (ค้นหา + ปุ่มจัดการ) === */}
+          {/* === Control Bar === */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             
-            {/* 1. ช่องค้นหา */}
+            {/* ช่องค้นหา */}
             <div className="relative w-full md:w-96">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search size={20} className="text-gray-400" />
@@ -173,7 +179,7 @@ export default function InternPage() {
 
             <div className="flex items-center gap-3 w-full md:w-auto justify-end">
               
-              {/* 2. ปุ่มเปลี่ยนมุมมอง (Grid / List) */}
+              {/* ปุ่มเปลี่ยนมุมมอง */}
               <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
                 <button 
                   onClick={() => setViewType('grid')}
@@ -189,12 +195,11 @@ export default function InternPage() {
                 </button>
               </div>
 
-              {/* ปุ่มเพิ่มข้อมูล */}
+              {/* ปุ่มเพิ่ม & ลบ */}
               <Link href="/addintern" className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2 whitespace-nowrap">
                 + เพิ่ม
               </Link>
               
-              {/* ปุ่มลบ */}
               <button 
                 onClick={handleDelete}
                 disabled={selectedIds.length === 0}
@@ -210,14 +215,14 @@ export default function InternPage() {
           </div>
         </div>
 
-        {/* === ส่วนแสดงผลข้อมูล (Grid หรือ List) === */}
+        {/* === ส่วนแสดงผลข้อมูล === */}
         {filteredInterns.length === 0 ? (
           <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
             ไม่พบข้อมูลที่ค้นหา
           </div>
         ) : (
           <>
-            {/* === แบบ GRID VIEW (การ์ดเดิม) === */}
+            {/* === GRID VIEW === */}
             {viewType === 'grid' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {filteredInterns.map((intern) => (
@@ -227,7 +232,6 @@ export default function InternPage() {
                       ${selectedIds.includes(intern.id) ? 'ring-4 ring-red-500 scale-95' : 'hover:-translate-y-2 hover:shadow-2xl'}
                     `}
                   >
-                    {/* รูปภาพ */}
                     <Image
                       className="transition-transform duration-500 ease-in-out group-hover:scale-110"
                       src={intern.imageSrc || '/default-avatar.png'}
@@ -237,7 +241,6 @@ export default function InternPage() {
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
 
-                    {/* Admin UI */}
                     <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
                       <input 
                         type="checkbox" 
@@ -252,7 +255,6 @@ export default function InternPage() {
                       </Link>
                     </div>
 
-                    {/* Overlay Info */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm text-white transition-all duration-500 ease-in-out translate-y-full group-hover:translate-y-0">
                       <h2 className="text-2xl font-bold text-white mb-1">
                         {intern.name.display || `${intern.name.first} ${intern.name.last}`}
@@ -262,6 +264,7 @@ export default function InternPage() {
                         {intern.instagram && <a href={intern.instagram} target="_blank" className="hover:text-red-400 transition-colors"><FaInstagram size={24} /></a>}
                         {intern.facebook && <a href={intern.facebook} target="_blank" className="hover:text-blue-400 transition-colors"><FaFacebook size={24} /></a>}
                         {intern.github && <a href={intern.github} target="_blank" className="hover:text-gray-400 transition-colors"><FaGithub size={24} /></a>}
+                        {/* ปุ่ม Portfolio เรียกใช้ Modal */}
                         {intern.portfolio && <button onClick={() => openModal(intern.portfolio)} className="hover:text-green-400 transition-colors"><FolderKanban size={24} /></button>}
                       </div>
                     </div>
@@ -270,7 +273,7 @@ export default function InternPage() {
               </div>
             )}
 
-            {/* === แบบ LIST VIEW (ตาราง) === */}
+            {/* === LIST VIEW === */}
             {viewType === 'list' && (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
                 <table className="w-full text-left border-collapse">
@@ -344,21 +347,42 @@ export default function InternPage() {
           </>
         )}
 
-        {/* === Modal (เดิม) === */}
+        {/* === ✅ ส่วน Modal ที่ปรับปรุงแล้ว (ป้องกันจอเทา) === */}
         {modalUrl && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeModal} />
-             <div className="relative z-10 w-full max-w-6xl h-[90vh] bg-white rounded-lg shadow-xl flex flex-col">
-                <div className="flex justify-between items-center p-3 border-b bg-gray-50 rounded-t-lg">
-                   <span className="text-gray-600 text-sm truncate hidden md:block">{modalUrl}</span>
+             {/* พื้นหลังดำ */}
+             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal} />
+             
+             <div className="relative z-10 w-full max-w-6xl h-[90vh] bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                
+                {/* Header ของ Modal: แสดงลิงก์ + ปุ่มเปิดแยก */}
+                <div className="flex justify-between items-center p-3 border-b bg-gray-100">
+                   <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="text-gray-500 text-xs font-bold whitespace-nowrap">Source:</span>
+                      <a href={modalUrl} target="_blank" rel="noreferrer" className="text-blue-600 text-sm hover:underline truncate max-w-[200px] md:max-w-md">
+                          {modalUrl}
+                      </a>
+                      <a href={modalUrl} target="_blank" rel="noreferrer" className="p-1.5 bg-white border border-gray-300 rounded text-gray-500 hover:text-blue-600" title="Open in new tab">
+                          <ExternalLink size={14}/>
+                      </a>
+                   </div>
                    <div className="flex items-center gap-2">
-                      <button onClick={() => setViewMode('desktop')} className={`p-2 rounded-md ${viewMode === 'desktop' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'} transition-colors`}><Monitor size={18} /></button>
-                      <button onClick={() => setViewMode('mobile')} className={`p-2 rounded-md ${viewMode === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'} transition-colors`}><Smartphone size={18} /></button>
-                      <button onClick={closeModal} className="text-gray-500 hover:text-gray-900 ml-2"><X size={24} /></button>
+                      <button onClick={() => setViewMode('desktop')} className={`p-2 rounded-md ${viewMode === 'desktop' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}><Monitor size={18} /></button>
+                      <button onClick={() => setViewMode('mobile')} className={`p-2 rounded-md ${viewMode === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}><Smartphone size={18} /></button>
+                      <button onClick={closeModal} className="text-gray-500 hover:text-red-600 ml-2"><X size={24} /></button>
                    </div>
                 </div>
-                <div className="w-full h-full p-4 bg-gray-300 rounded-b-lg overflow-auto flex justify-center">
-                  <iframe src={modalUrl} className={`h-full rounded-lg shadow-xl transition-all duration-300 ${viewMode === 'desktop' ? 'w-full' : 'w-[375px] max-w-full'}`} frameBorder="0" />
+
+                {/* พื้นที่แสดงเว็บ (Iframe) */}
+                <div className="w-full h-full bg-gray-200 flex justify-center relative">
+                   {/* ตัว Iframe */}
+                   <iframe 
+                       src={modalUrl} 
+                       className={`h-full bg-white shadow-xl transition-all duration-300 ${viewMode === 'desktop' ? 'w-full' : 'w-[375px] border-x-8 border-gray-800'}`} 
+                       frameBorder="0" 
+                       // เพิ่มสิทธิ์ให้ iframe เพื่อลดโอกาสจอเทา
+                       sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                   />
                 </div>
              </div>
           </div>
