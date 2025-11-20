@@ -311,6 +311,7 @@ model MOU {
 model ContactMessage {
   id      String  @id @default(auto()) @map("_id") @db.ObjectId
   name    String?
+  date    DateTime?
   email   String?
   phone   String?
   subject String?
