@@ -43,7 +43,8 @@ export default function DashboardStats({ totalInterns }: DashboardStatsProps) {
       unit: "แห่ง",
       icon: <Building2 size={24} />,
       color: "bg-pink-50 text-pink-600",
-      link: "#", // ใส่ลิงก์หน้า Partner ถ้ามี
+      // 👇 แก้จาก "#" เป็นหน้า manage_partners
+      link: "/manage_partners",
       desc: "MOU และความร่วมมือ"
     },
   ];
