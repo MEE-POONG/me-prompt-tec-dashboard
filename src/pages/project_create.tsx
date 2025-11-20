@@ -44,7 +44,13 @@ export default function ProjectCreate() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      setImageUrl(URL.createObjectURL(file));
+
+      // แปลงรูปเป็น base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
