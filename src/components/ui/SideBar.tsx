@@ -108,6 +108,14 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                           Message
                         </Link>
                       </li>
+                      <li>
+                        <Link
+                          href="/program"
+                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
+                        >
+                          Program
+                        </Link>
+                      </li>
                     </ul>
                   </div>
                 </div>
