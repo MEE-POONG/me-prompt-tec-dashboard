@@ -6,7 +6,9 @@ import {
   UserRoundPen,
   UserStar,
   Handshake,
-  ChevronDown, // ✅ เพิ่มไอคอน Handshake เข้ามา
+  ChevronDown,
+  Briefcase, // เพิ่มไอคอนสำหรับเมนูย่อย (Optional)
+  Users      // เพิ่มไอคอนสำหรับเมนูย่อย (Optional)
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,14 +20,21 @@ interface SideBarProps {
 
 export default function SideBar({ isOpen, onClose }: SideBarProps) {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isPartnershipsOpen, setIsPartnershipsOpen] = useState(false); // ✅ 1. เพิ่ม State สำหรับ Partnerships
 
-  // 2. ฟังก์ชันสำหรับสลับสถานะ (Toggle)
+  // ฟังก์ชัน Toggle Dashboard
   const toggleDashboard = () => {
     setIsDashboardOpen(!isDashboardOpen);
   };
+
+  // ✅ 2. ฟังก์ชัน Toggle Partnerships
+  const togglePartnerships = () => {
+    setIsPartnershipsOpen(!isPartnershipsOpen);
+  };
+
   return (
     <>
-      {/* Overlay - แสดงเมื่อ sidebar เปิดบนมือถือ */}
+      {/* Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-white bg-opacity-50 z-40 lg:hidden"
@@ -42,7 +51,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-blue-500">
-            <h2 className="text-xl font-bold">เมนู'</h2>
+            <h2 className="text-xl font-bold">เมนู</h2>
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-blue-700 transition-colors"
@@ -62,8 +71,9 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
           {/* Sidebar Content */}
           <nav className="flex-1 overflow-y-auto p-4">
             <ul className="space-y-2">
+              
+              {/* --- 1. DASHBOARD DROPDOWN --- */}
               <li>
-                {/* ปุ่มกดหลัก */}
                 <button
                   onClick={toggleDashboard}
                   className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-blue-700 transition-colors group"
@@ -72,8 +82,6 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                     <ChartNoAxesCombined className="w-5 h-5" />
                     <span>DashBoard</span>
                   </div>
-
-                  {/* ลูกศรหมุน Smooth */}
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-300 ease-in-out ${
                       isDashboardOpen ? "rotate-180" : "rotate-0"
@@ -81,7 +89,6 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                   />
                 </button>
 
-                {/* ส่วน Dropdown (Animation Wrapper) */}
                 <div
                   className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
                     isDashboardOpen
@@ -89,7 +96,6 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                       : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
-                  {/* Inner Container (ต้องมี overflow-hidden) */}
                   <div className="overflow-hidden">
                     <ul className="mt-1 ml-4 border-l-2 border-blue-500/30 space-y-1 pt-1 pb-2">
                       <li>
@@ -121,41 +127,69 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                 </div>
               </li>
 
+              {/* --- 2. PROJECT (Link ปกติ) --- */}
               <li>
                 <Link
-                  href="/project" // ลิงก์ไปหน้าจัดการพันธมิตร
+                  href="/project"
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <FolderGit2 />
-                  </svg>
+                  <FolderGit2 className="w-5 h-5" />
                   <span>Project</span>
                 </Link>
               </li>
 
-              {/* ✅ เพิ่มเมนู Partnerships ตรงนี้ครับ */}
+              {/* --- 3. PARTNERSHIPS DROPDOWN (เพิ่มใหม่ตามที่ขอ) --- */}
               <li>
-                <Link
-                  href="/manage_partners" // ลิงก์ไปหน้าจัดการพันธมิตร
-                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+                <button
+                  onClick={togglePartnerships}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-blue-700 transition-colors group"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <Handshake />
-                  </svg>
-                  <span>Partnerships</span>
-                </Link>
+                  <div className="flex items-center space-x-3">
+                    <Handshake className="w-5 h-5" />
+                    <span>Partnerships</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-300 ease-in-out ${
+                      isPartnershipsOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                    isPartnershipsOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <ul className="mt-1 ml-4 border-l-2 border-blue-500/30 space-y-1 pt-1 pb-2">
+                      <li>
+                        {/* ลิงก์ไปหน้าจัดการรายชื่อพันธมิตร */}
+                        <Link
+                          href="/manage_partners"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
+                        >
+                          <Users size={16} /> {/* ไอคอนเสริม */}
+                          Manage Partners
+                        </Link>
+                      </li>
+                      <li>
+                        {/* ลิงก์ไปหน้าโปรเจกต์รวมของพันธมิตร */}
+                        <Link
+                          href="/projects_partner"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
+                        >
+                          <Briefcase size={16} /> {/* ไอคอนเสริม */}
+                          Partner Projects
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </li>
 
+              {/* --- 4. OTHER MENUS --- */}
               <li>
                 <Link
                   href="/intern"
@@ -182,14 +216,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                   href="/teammember"
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <UserStar />
-                  </svg>
+                  <UserStar className="w-5 h-5" />
                   <span>Teams Member</span>
                 </Link>
               </li>
@@ -198,14 +225,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                   href="/account"
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <UserRoundPen />
-                  </svg>
+                  <UserRoundPen className="w-5 h-5" />
                   <span>Account</span>
                 </Link>
               </li>

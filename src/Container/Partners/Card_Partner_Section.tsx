@@ -1,15 +1,15 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from "next/link";
-import { Globe, SquarePen, ExternalLink, Building2, GraduationCap, FolderGit2 } from 'lucide-react';
+import { Globe, SquarePen, ExternalLink, Building2, GraduationCap } from 'lucide-react';
 
-// --- 1. Type สำหรับ Project ย่อย ---
+// --- 1. Type สำหรับ Project ---
 export interface PartnerProject {
   name: string;
   link?: string;
 }
 
-// --- 2. Type หลักของ Partner (ต้องมี projects) ---
+// --- 2. PartnerData ---
 export interface PartnerData {
   id: string;
   name: string;       
@@ -17,7 +17,7 @@ export interface PartnerData {
   website?: string;   
   logoSrc: string;    
   description?: string;
-  projects?: PartnerProject[]; // ✅ ต้องมีบรรทัดนี้ เส้นแดงหน้าอื่นถึงจะหาย
+  projects?: PartnerProject[]; 
 }
 
 interface CardPartnerSectionProps {
@@ -60,6 +60,7 @@ export default function Card_Partner_Section({
                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-xl -mr-5 -mt-5"></div>
                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full blur-xl -ml-5 -mb-5"></div>
                  
+                 {/* Checkbox */}
                  <div className="absolute top-3 left-3 z-20">
                     <input 
                       type="checkbox" 
@@ -69,7 +70,8 @@ export default function Card_Partner_Section({
                     />
                  </div>
 
-                 <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                 {/* ปุ่มแก้ไข */}
+                 <div className="absolute top-3 right-3 z-20">
                     <Link href={`/manage_partners/edit/${partner.id}`}>
                       <button className="p-2 bg-white/20 hover:bg-white text-white hover:text-blue-600 rounded-lg backdrop-blur-sm transition-all shadow-sm">
                         <SquarePen size={16} />
@@ -108,26 +110,7 @@ export default function Card_Partner_Section({
                     {partner.name}
                 </h3>
 
-                {/* ส่วนแสดง Project Tags */}
-                {partner.projects && partner.projects.length > 0 ? (
-                  <div className="mb-3 bg-gray-50 rounded-lg p-2 text-left w-full">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1">
-                       <FolderGit2 size={10}/> Projects ({partner.projects.length})
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                       {partner.projects.slice(0, 2).map((proj, idx) => (
-                          <span key={idx} className="text-[10px] bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-600 truncate max-w-full">
-                             {proj.name}
-                          </span>
-                       ))}
-                       {partner.projects.length > 2 && (
-                          <span className="text-[10px] text-gray-400 px-1">+{partner.projects.length - 2}</span>
-                       )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-3 h-14"></div> 
-                )}
+                {/* --- ตัดส่วน Projects ออกไปแล้ว --- */}
 
                 <div className="w-full border-t border-gray-50 my-3 mt-auto"></div>
 
@@ -156,7 +139,7 @@ export default function Card_Partner_Section({
               <tr>
                 <th className="p-4 w-14 text-center">เลือก</th>
                 <th className="p-4">รายชื่อพันธมิตร</th>
-                <th className="p-4 hidden md:table-cell">โครงการร่วม (Projects)</th>
+                {/* ตัด Header คอลัมน์ Projects ออก */}
                 <th className="p-4 text-center">ช่องทาง</th>
                 <th className="p-4 text-right">Action</th>
               </tr>
@@ -175,28 +158,19 @@ export default function Card_Partner_Section({
                   <td className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 relative rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-white p-1">
-                        <Image src={partner.logoSrc} alt={partner.name} fill className="object-contain" />
+                        <Image 
+                           src={partner.logoSrc} 
+                           alt={partner.name} 
+                           fill 
+                           className="object-contain"
+                           onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/png?text=No+Img' }} 
+                        />
                       </div>
                       <div className="font-semibold text-gray-800">{partner.name}</div>
                     </div>
                   </td>
                   
-                  <td className="p-4 hidden md:table-cell">
-                     {partner.projects && partner.projects.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                           {partner.projects.slice(0, 2).map((proj, i) => (
-                              <span key={i} className="bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-md text-xs">
-                                 {proj.name}
-                              </span>
-                           ))}
-                           {partner.projects.length > 2 && (
-                              <span className="text-xs text-gray-400 self-center">+{partner.projects.length - 2} more</span>
-                           )}
-                        </div>
-                     ) : (
-                        <span className="text-gray-300 text-xs">-</span>
-                     )}
-                  </td>
+                  {/* ตัด Data Cell คอลัมน์ Projects ออก */}
 
                   <td className="p-4 text-center">
                     {partner.website ? (
