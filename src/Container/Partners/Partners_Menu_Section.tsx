@@ -1,6 +1,15 @@
 import React from 'react';
-import Link from 'next/link';
-import { Search, LayoutGrid, List, Trash2, Handshake, Plus } from 'lucide-react';
+// import Link from 'next/link'; // Commented out for preview environment
+import { Search, LayoutGrid, List, Trash2, Handshake, Plus, FolderGit2 } from 'lucide-react';
+
+// Mock Link component for preview environment (In your actual Next.js app, use import Link from 'next/link')
+const Link = ({ href, children, className }: { href: string, children: React.ReactNode, className?: string }) => {
+  return (
+    <a href={href} className={className} style={{ textDecoration: 'none' }}>
+      {children}
+    </a>
+  );
+};
 
 interface PartnersMenuProps {
   totalCount: number;
@@ -23,22 +32,22 @@ export default function Partners_Menu_Section({
 }: PartnersMenuProps) {
   return (
     <div className="mb-8">
-      {/* 1. ส่วนหัวข้อ (ปรับสีให้เข้มขึ้น) */}
+      {/* 1. ส่วนหัวข้อ */}
       <div className="flex items-center gap-4 mb-6">
         <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-md shadow-blue-200">
-             <Handshake size={32} strokeWidth={1.5} />
+          <Handshake size={32} strokeWidth={1.5} />
         </div>
         <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                จัดการพันธมิตร
-            </h1>
-            <p className="text-base text-gray-500 mt-1 font-medium">
-                สถาบันและองค์กรที่ร่วมมือ ({totalCount} แห่ง)
-            </p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            จัดการพันธมิตร
+          </h1>
+          <p className="text-base text-gray-500 mt-1 font-medium">
+            สถาบันและองค์กรที่ร่วมมือ ({totalCount} แห่ง)
+          </p>
         </div>
       </div>
 
-      {/* 2. แถบเครื่องมือ (Control Bar) */}
+      {/* 2. แถบเครื่องมือ (Toolbar เดียว) */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 pr-4 rounded-2xl shadow-sm border border-gray-200">
         
         {/* ช่องค้นหา */}
@@ -55,7 +64,7 @@ export default function Partners_Menu_Section({
           />
         </div>
 
-        {/* ปุ่มควบคุม */}
+        {/* ปุ่มควบคุมด้านขวา */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
           
           {/* ปุ่มสลับมุมมอง */}
@@ -74,15 +83,24 @@ export default function Partners_Menu_Section({
             </button>
           </div>
           
-          <div className="h-8 w-px bg-gray-200 mx-1"></div>
+          <div className="h-8 w-px bg-gray-200 mx-1" />
 
-          {/* ปุ่มเพิ่ม */}
+          {/* ปุ่มเพิ่มพันธมิตร */}
           <Link 
             href="/manage_partners/add" 
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-200 flex items-center gap-2 active:scale-95"
           >
             <Plus size={20} strokeWidth={3} /> 
             <span>เพิ่มข้อมูล</span>
+          </Link>
+
+          {/* 🔹 ปุ่มใหม่: จัดการโปรเจกต์ทั้งหมด (แก้ไข Link แล้ว) */}
+          <Link
+            href="/projects_partner"
+            className="bg-linear-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-amber-200 flex items-center gap-2 active:scale-95"
+          >
+            <FolderGit2 size={20} />
+            <span>โปรเจกต์ทั้งหมด</span>
           </Link>
           
           {/* ปุ่มลบ */}
