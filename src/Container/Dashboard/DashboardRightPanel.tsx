@@ -4,89 +4,9 @@ import Image from 'next/image';
 import { Mail, Clock, Users } from 'lucide-react';
 import { Intern } from "@/Data/dataintern"; 
 
-interface Message {
-  id: number;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  date: string;
-  status: string;
-}
-
-interface DashboardRightPanelProps {
-  contactMessages: Message[];
-  unreadCount: number;
-  onReadMessage: (id: number) => void;
-}
-
-export default function DashboardRightPanel({
-  contactMessages,
-  unreadCount,
-  onReadMessage
-}: DashboardRightPanelProps) {
+export default function DashboardRightPanel() {
   return (
     <div className="space-y-8">
-      {/* 📩 Contact Messages */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <Mail size={20} className="text-blue-500" /> ข้อความเข้าใหม่
-          </h3>
-          {unreadCount > 0 && (
-            <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">
-              {unreadCount} new
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {contactMessages.map((msg) => (
-            <div
-              key={msg.id}
-              onClick={() => onReadMessage(msg.id)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md
-                ${
-                  msg.status === 'new'
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-white border-gray-100 opacity-70 hover:opacity-100'
-                }
-              `}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <h4
-                  className={`text-sm font-bold ${
-                    msg.status === 'new' ? 'text-blue-800' : 'text-gray-700'
-                  }`}
-                >
-                  {msg.subject}
-                </h4>
-                <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                  <Clock size={10} /> {msg.date}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 line-clamp-2 mb-2">{msg.message}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500 bg-white/50 px-2 py-0.5 rounded">
-                  จาก: {msg.name}
-                </span>
-                {msg.status === 'new' && (
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ⬇ ปุ่มนี้ไปหน้า /message */}
-        <Link
-          href="/message"
-          className="w-full mt-4 text-xs text-center text-gray-400 hover:text-blue-600 py-2 block"
-        >
-          ดูข้อความทั้งหมด
-        </Link>
-      </div>
-
       {/* 🧑‍💻 Active Interns */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
