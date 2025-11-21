@@ -4,15 +4,15 @@ import { Users, Briefcase, GraduationCap, Building2, ArrowRight } from 'lucide-r
 
 interface DashboardStatsProps {
   totalInterns: number;
+  totalMembers: number; // ✅ เพิ่ม prop นี้
 }
 
-export default function DashboardStats({ totalInterns }: DashboardStatsProps) {
+export default function DashboardStats({ totalInterns, totalMembers }: DashboardStatsProps) {
   
-  // ข้อมูลจำลองสำหรับองค์กร
   const stats = [
     {
       label: "โปรเจกต์ทั้งหมด (Portfolio)",
-      value: 12,
+      value: 12, // อันนี้อาจจะดึง API เพิ่มในอนาคต
       unit: "งาน",
       icon: <Briefcase size={24} />,
       color: "bg-purple-50 text-purple-600",
@@ -21,7 +21,7 @@ export default function DashboardStats({ totalInterns }: DashboardStatsProps) {
     },
     {
       label: "พนักงานประจำ (Full-time)",
-      value: 8,
+      value: totalMembers, // ✅ ใช้ค่าจาก prop
       unit: "คน",
       icon: <Users size={24} />,
       color: "bg-blue-50 text-blue-600",
@@ -43,7 +43,6 @@ export default function DashboardStats({ totalInterns }: DashboardStatsProps) {
       unit: "แห่ง",
       icon: <Building2 size={24} />,
       color: "bg-pink-50 text-pink-600",
-      // 👇 แก้จาก "#" เป็นหน้า manage_partners
       link: "/manage_partners",
       desc: "MOU และความร่วมมือ"
     },

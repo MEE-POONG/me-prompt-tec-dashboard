@@ -33,8 +33,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     search,
     coopType,
     status,
-    sortBy = "createdAt",
-    order = "desc"
+    gen,
   } = req.query;
 
   const pageNum = parseInt(page as string);
@@ -43,6 +42,11 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 
   // สร้าง filter conditions
   const where: any = {};
+
+  // Logic กรองรุ่น
+  if (gen && gen !== 'all') {
+    where.gen = gen as string;
+  }
 
   if (coopType) {
     where.coopType = coopType as CoopType;
@@ -66,9 +70,11 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
       where,
       skip,
       take: limitNum,
-      orderBy: {
-        [sortBy as string]: order as "asc" | "desc",
-      },
+      // ✅ แก้ไขการเรียงลำดับตรงนี้
+      orderBy: [
+        { gen: 'desc' },       // 1. รุ่นใหม่สุดอยู่บน (เรียงจากเลขมากไปน้อย)
+        { createdAt: 'desc' }  // 2. ในรุ่นเดียวกัน ข้อมูลใหม่สุดอยู่ก่อน
+      ],
       include: {
         projectLinks: {
           include: {
@@ -113,6 +119,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     portfolioSlug,
     status,
     projects,
+    gen,
   } = req.body;
 
   // Validation
@@ -152,6 +159,10 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       avatar,
       portfolioSlug,
       status: status || "published",
+      
+      // บันทึกรุ่น
+      gen: gen || "6", 
+
       // เชื่อม projects
       projectLinks: projects?.length ? {
         create: projects.map((p: any) => ({

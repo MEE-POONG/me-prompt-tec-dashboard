@@ -136,12 +136,12 @@ type ContactInfo {
 }
 
 type Resume {
-  summary     String?
-  skills      Skill[]
-  educations  Education[]
-  experiences Experience[]
-  projects    ResumeProject[]
-  links       Link[]
+  summary      String?
+  skills       Skill[]
+  educations   Education[]
+  experiences  Experience[]
+  projects     ResumeProject[]
+  links        Link[]
 }
 
 type ResumeProject {
@@ -155,15 +155,15 @@ type ResumeProject {
 
 // ผู้ใช้งานหลังบ้าน
 model User {
-  id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  email        String  @unique
-  passwordHash String
-  role         Role    @default(viewer)
-  isActive     Boolean @default(true)
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  email          String  @unique
+  passwordHash   String
+  role           Role    @default(viewer)
+  isActive       Boolean @default(true)
   
-  name         String?  // ชื่อ-นามสกุล (ใช้แทน fullName)
-  phone        String?  // เบอร์โทร
-  position     String?  // ตำแหน่ง
+  name           String?  // ชื่อ-นามสกุล (ใช้แทน fullName)
+  phone          String?  // เบอร์โทร
+  position       String?  // ตำแหน่ง
   // ------------------------
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
   memberId String? @db.ObjectId
@@ -233,6 +233,10 @@ model Intern {
   faculty       String?      @default("คณะบริหารธุรกิจ")
   major         String?      @default("สารสนเทศทางคอมพิวเตอร์")
   studentId     String?
+
+  // ✅ เพิ่มฟิลด์รุ่น (Generation) ตรงนี้ครับ
+  gen           String       @default("6") 
+
   coopType      CoopType     @default(coop)
   contact       ContactInfo?
   resume        Resume?
@@ -309,14 +313,14 @@ model MOU {
 
 // ข้อความติดต่อจากหน้าเว็บ
 model ContactMessage {
-  id      String  @id @default(auto()) @map("_id") @db.ObjectId
-  name    String?
-  date    DateTime?
-  email   String?
-  phone   String?
-  subject String?
-  message String
-  source  String  @default("website") // website|portfolio|intern-page|other
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String?
+  date      DateTime?
+  email     String?
+  phone     String?
+  subject   String?
+  message   String
+  source    String  @default("website") // website|portfolio|intern-page|other
 
   handledById String? @db.ObjectId
   handledBy   User?   @relation(fields: [handledById], references: [id])

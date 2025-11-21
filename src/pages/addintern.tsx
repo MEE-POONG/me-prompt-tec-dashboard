@@ -1,12 +1,13 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
-import { Upload } from "lucide-react";
+import { Upload, Layers } from "lucide-react"; // ✅ เพิ่มไอคอน Layers
 import Link from "next/link";
 import Image from "next/image";
 
 export default function AddInternPage() {
   const router = useRouter();
+  const { gen } = router.query; // ✅ รับค่า gen จาก URL
 
   // --- State สำหรับเก็บข้อมูล ---
   const [firstName, setFirstName] = useState("");
@@ -24,12 +25,25 @@ export default function AddInternPage() {
   const [major, setMajor] = useState("สารสนเทศทางคอมพิวเตอร์");
   const [studentId, setStudentId] = useState("");
   const [portfolioSlug, setPortfolioSlug] = useState("");
+  
+  // ✅ State สำหรับรุ่น (Gen)
+  const [selectedGen, setSelectedGen] = useState("6"); 
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ ตั้งค่ารุ่นเริ่มต้นจาก URL (ถ้าส่งมา)
+  useEffect(() => {
+    if (gen && typeof gen === 'string' && gen !== 'all') {
+      setSelectedGen(gen);
+    }
+  }, [gen]);
+
+  // ✅ Generate ตัวเลือกรุ่น (เช่น 1 ถึง 10)
+  const genOptions = Array.from({ length: 10 }, (_, i) => String(10 - i));
 
   // แปลงไฟล์เป็น Base64
   const convertToBase64 = (file: File): Promise<string> => {
@@ -89,6 +103,9 @@ export default function AddInternPage() {
         avatar: imageUrl || undefined,
         portfolioSlug,
         status: "published",
+        
+        // ✅ ส่งค่า gen ไปที่ API
+        gen: selectedGen, 
       };
 
       const response = await fetch("/api/intern", {
@@ -119,8 +136,9 @@ export default function AddInternPage() {
     <Layouts>
       <div className="p-6 md:p-8 text-black w-full max-w-6xl mx-auto">
 
-        <h1 className="text-2xl lg:text-3xl font-bold mb-8 text-blue-700">
-          เพิ่มนักศึกษาฝึกงานใหม่
+        <h1 className="text-2xl lg:text-3xl font-bold mb-8 text-blue-700 flex items-center gap-2">
+          เพิ่มนักศึกษาฝึกงานใหม่ 
+          <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">รุ่นที่ {selectedGen}</span>
         </h1>
 
         <form onSubmit={handleSubmit}>
@@ -169,15 +187,31 @@ export default function AddInternPage() {
                 <p className="text-xs text-gray-500 mt-1">ใช้สำหรับ URL portfolio (ต้องไม่ซ้ำกัน)</p>
               </div>
 
-              <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">รหัสนักศึกษา</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="6410000000"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-lg font-bold text-gray-800 mb-2">รหัสนักศึกษา</label>
+                    <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    placeholder="6410000000"
+                    />
+                </div>
+                {/* ✅ เพิ่มช่องเลือกรุ่น */}
+                <div>
+                    <label className="block text-lg font-bold text-gray-800 mb-2">รุ่นที่ (Gen)</label>
+                    <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Layers size={18}/></div>
+                        <select
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 appearance-none cursor-pointer"
+                            value={selectedGen}
+                            onChange={(e) => setSelectedGen(e.target.value)}
+                        >
+                            {genOptions.map(g => <option key={g} value={g}>รุ่นที่ {g}</option>)}
+                        </select>
+                    </div>
+                </div>
               </div>
             </div>
 
