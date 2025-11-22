@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { GradientBackground } from "../animate-ui/components/backgrounds/gradient";
 
 interface SideBarProps {
   isOpen: boolean;
@@ -44,13 +45,13 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen bg-linear-to-b from-blue-600 to-blue-800 text-white transition-transform duration-300 ${
+        className={`fixed top-0 left-0 z-50 h-screen bg-linear-to-bl from-blue-800 via-purple-700 to-red-600 text-white transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } w-64`}
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 border-b border-blue-500">
+          <div className="flex items-center justify-between p-4 border-b border-white">
             <h2 className="text-xl font-bold">เมนู</h2>
             <button
               onClick={onClose}
@@ -139,54 +140,22 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
               </li>
 
               {/* --- 3. PARTNERSHIPS DROPDOWN (เพิ่มใหม่ตามที่ขอ) --- */}
+             
               <li>
-                <button
-                  onClick={togglePartnerships}
-                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-blue-700 transition-colors group"
+                <Link
+                  href="/manage_partners"
+                  className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <div className="flex items-center space-x-3">
-                    <Handshake className="w-5 h-5" />
-                    <span>Partnerships</span>
-                  </div>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-300 ease-in-out ${
-                      isPartnershipsOpen ? "rotate-180" : "rotate-0"
-                    }`}
-                  />
-                </button>
-
-                <div
-                  className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
-                    isPartnershipsOpen
-                      ? "grid-rows-[1fr] opacity-100"
-                      : "grid-rows-[0fr] opacity-0"
-                  }`}
-                >
-                  <div className="overflow-hidden">
-                    <ul className="mt-1 ml-4 border-l-2 border-blue-500/30 space-y-1 pt-1 pb-2">
-                      <li>
-                        {/* ลิงก์ไปหน้าจัดการรายชื่อพันธมิตร */}
-                        <Link
-                          href="/manage_partners"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
-                        >
-                          <Users size={16} /> {/* ไอคอนเสริม */}
-                          Manage Partners
-                        </Link>
-                      </li>
-                      <li>
-                        {/* ลิงก์ไปหน้าโปรเจกต์รวมของพันธมิตร */}
-                        <Link
-                          href="/projects_partner"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-r-lg transition-colors"
-                        >
-                          <Briefcase size={16} /> {/* ไอคอนเสริม */}
-                          Partner Projects
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <Handshake size={16} />
+                  </svg>
+                  <span>Partnerships</span>
+                </Link>
               </li>
 
               {/* --- 4. OTHER MENUS --- */}
@@ -233,14 +202,14 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
           </nav>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-blue-500">
-            <div className="flex items-center space-x-3 p-3 bg-blue-700 rounded-lg">
+          <div className="p-4">
+            <div className="flex items-center space-x-3 p-3 rounded-lg">
               <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center font-bold">
                 U
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold">ผู้ใช้งาน</p>
-                <p className="text-xs text-blue-200">user@example.com</p>
+                <p className="text-xs text-white">user@example.com</p>
               </div>
             </div>
           </div>

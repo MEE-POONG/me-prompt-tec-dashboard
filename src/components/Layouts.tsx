@@ -2,6 +2,7 @@ import Head from "next/head";
 import React, { ReactNode, useState } from "react";
 import NavBar from "./ui/NavBar";
 import SideBar from "./ui/SideBar";
+import { StarsBackground } from "./animate-ui/components/backgrounds/stars";
 
 interface LayoutProps {
   children: ReactNode;
