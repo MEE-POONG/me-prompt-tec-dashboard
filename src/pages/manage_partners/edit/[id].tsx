@@ -15,22 +15,29 @@ import {
 
 export default function EditPartnerPage() {
   const router = useRouter();
-  const { id } = router.query; // รับ ID จาก URL
+  const { id } = router.query;
 
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [status, setStatus] = useState("active"); // เก็บไว้ส่งค่ากลับเฉยๆ แต่ไม่แสดง UI
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // โหลดข้อมูลจาก API
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   useEffect(() => {
     if (!id || typeof id !== "string") return;
 
@@ -45,7 +52,7 @@ export default function EditPartnerPage() {
         setType(p.type || "");
         setWebsite(p.website || "");
         setDescription(p.description || "");
-        setStatus((p.status as "active" | "inactive") || "active");
+        setStatus(p.status || "active");
         setImageUrl(p.logo || "");
       } catch (err) {
         console.error("Load partner error", err);
@@ -58,11 +65,20 @@ export default function EditPartnerPage() {
     loadPartner();
   }, [id]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
-      setImageUrl(URL.createObjectURL(file));
+      if (file.size > 2 * 1024 * 1024) {
+        alert("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        return;
+      }
+      try {
+        const base64 = await convertToBase64(file);
+        setImageUrl(base64);
+      } catch (err) {
+        console.error("Error converting image", err);
+        alert("ไม่สามารถอ่านไฟล์รูปภาพได้");
+      }
     }
   };
 
@@ -81,7 +97,7 @@ export default function EditPartnerPage() {
           website,
           logo: imageUrl,
           description,
-          status,
+          status, // ส่งค่าเดิมกลับไป (หรือจะ fix เป็น active ก็ได้ถ้าต้องการ)
         }),
       });
 
@@ -260,6 +276,8 @@ export default function EditPartnerPage() {
                   </div>
                 </div>
               </div>
+
+              {/* ✅ ลบส่วน Status ออกแล้ว */}
 
               <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
                 <Link

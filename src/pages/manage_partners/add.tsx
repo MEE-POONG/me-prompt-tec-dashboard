@@ -9,7 +9,6 @@ import {
   Save,
   X,
   ArrowLeft,
-  CheckCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,19 +20,37 @@ export default function AddPartnerPage() {
   const [type, setType] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<"active" | "inactive">("active");
+  // const [status, setStatus] = useState("active"); // ไม่ต้องใช้ state แล้วเพราะ fix ค่าเลย
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [submitting, setSubmitting] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ฟังก์ชันแปลงไฟล์รูปเป็น Base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
-      setImageUrl(URL.createObjectURL(file));
+      if (file.size > 2 * 1024 * 1024) {
+        alert("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        return;
+      }
+      try {
+        const base64 = await convertToBase64(file);
+        setImageUrl(base64);
+      } catch (err) {
+        console.error("Error converting image", err);
+        alert("ไม่สามารถอ่านไฟล์รูปภาพได้");
+      }
     }
   };
 
@@ -47,8 +64,6 @@ export default function AddPartnerPage() {
     try {
       setSubmitting(true);
 
-      // ในโปรเจกต์จริงอาจจะต้องอัปโหลดไฟล์ขึ้น storage ก่อน
-      // ตอนนี้ใช้ imageUrl (preview) เก็บเป็น string ไปก่อน
       const res = await fetch("/api/partners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,7 +73,7 @@ export default function AddPartnerPage() {
           website,
           logo: imageUrl,
           description,
-          status,
+          status: "active", // ✅ Fix ค่าเป็น active เสมอ
         }),
       });
 
@@ -235,61 +250,10 @@ export default function AddPartnerPage() {
               </div>
             </div>
 
-            {/* Status */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <label className="block text-sm font-bold text-gray-900 mb-3">
-                สถานะพันธมิตร
-              </label>
-              <div className="flex gap-4">
-                <div
-                  onClick={() => setStatus("active")}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
-                    status === "active"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-200 hover:border-gray-300 text-gray-600"
-                  }`}
-                >
-                  <CheckCircle
-                    size={18}
-                    className={
-                      status === "active"
-                        ? "fill-blue-600 text-white"
-                        : "text-gray-400"
-                    }
-                  />
-                  <span className="font-semibold text-sm">
-                    กำลังร่วมมือ (Active)
-                  </span>
-                </div>
-
-                <div
-                  onClick={() => setStatus("inactive")}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
-                    status === "inactive"
-                      ? "border-gray-500 bg-gray-100 text-gray-800"
-                      : "border-gray-200 hover:border-gray-300 text-gray-600"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      status === "inactive"
-                        ? "border-gray-600 bg-gray-600"
-                        : "border-gray-400"
-                    }`}
-                  >
-                    {status === "inactive" && (
-                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                    )}
-                  </div>
-                  <span className="font-semibold text-sm">
-                    สิ้นสุดโครงการ (Inactive)
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* ✅ ลบส่วน Status ออกแล้ว */}
 
             {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 mt-8">
+            <div className="flex justify-end gap-3 mt-8 border-t border-gray-100 pt-6">
               <Link href="/manage_partners">
                 <button
                   type="button"

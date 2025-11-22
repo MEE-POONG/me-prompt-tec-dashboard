@@ -1,8 +1,8 @@
 import React from 'react';
-// import Link from 'next/link'; // Commented out for preview environment
-import { Search, LayoutGrid, List, Trash2, Handshake, Plus, FolderGit2 } from 'lucide-react';
+// import Link from 'next/link'; 
+import { Search, LayoutGrid, List, Trash2, Handshake, Plus } from 'lucide-react';
 
-// Mock Link component for preview environment (In your actual Next.js app, use import Link from 'next/link')
+// Mock Link 
 const Link = ({ href, children, className }: { href: string, children: React.ReactNode, className?: string }) => {
   return (
     <a href={href} className={className} style={{ textDecoration: 'none' }}>
@@ -47,7 +47,7 @@ export default function Partners_Menu_Section({
         </div>
       </div>
 
-      {/* 2. แถบเครื่องมือ (Toolbar เดียว) */}
+      {/* 2. แถบเครื่องมือ */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 pr-4 rounded-2xl shadow-sm border border-gray-200">
         
         {/* ช่องค้นหา */}
@@ -94,15 +94,6 @@ export default function Partners_Menu_Section({
             <span>เพิ่มข้อมูล</span>
           </Link>
 
-          {/* 🔹 ปุ่มใหม่: จัดการโปรเจกต์ทั้งหมด (แก้ไข Link แล้ว) */}
-          <Link
-            href="/projects_partner"
-            className="bg-linear-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-amber-200 flex items-center gap-2 active:scale-95"
-          >
-            <FolderGit2 size={20} />
-            <span>โปรเจกต์ทั้งหมด</span>
-          </Link>
-          
           {/* ปุ่มลบ */}
           <button 
             onClick={onDelete}

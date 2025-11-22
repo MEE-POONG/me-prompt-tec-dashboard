@@ -12,7 +12,7 @@ export default function ManagePartnersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // โหลดข้อมูลจาก API แทน mock
+  // โหลดข้อมูลจาก API
   useEffect(() => {
     const loadPartners = async () => {
       try {
@@ -27,7 +27,8 @@ export default function ManagePartnersPage() {
             type: p.type,
             logoSrc: p.logo || "https://placehold.co/400x400/png?text=Logo",
             website: p.website || "",
-            projects: [], // ถ้ายังไม่มีระบบ project ต่อกับ partner ให้เว้นไว้ก่อน
+            description: p.description, 
+            // ตัด projects: [] ออกแล้ว
           })
         );
 
@@ -66,7 +67,6 @@ export default function ManagePartnersPage() {
           fetch(`/api/partners/${id}`, { method: "DELETE" })
         )
       );
-      // ลบจาก state ด้วย
       setPartnersList((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
       setSelectedIds([]);
       alert("ลบข้อมูลเรียบร้อย");
