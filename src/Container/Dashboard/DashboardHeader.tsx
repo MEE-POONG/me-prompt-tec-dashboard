@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { useRouter } from "next/router"; 
+import { Bell, Mail, Clock, CheckCircle2 } from "lucide-react";
 
 // --- Type Definitions ---
-interface HandledBy {
-  name: string;
-}
-
 interface ContactMessage {
   id: number;
   name: string;
@@ -15,10 +12,10 @@ interface ContactMessage {
   message?: string;
   status: string;
   createdAt: string;
-  handledBy: HandledBy | null;
 }
 
 export default function DashboardHeader() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<ContactMessage[]>([]);
@@ -26,15 +23,14 @@ export default function DashboardHeader() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      // ดึง 5 ข้อความใหม่ล่าสุด
+      // ดึง 5 ข้อความใหม่
       const resNew = await fetch(`/api/contact/contacts?status=new&limit=5`);
       const dataNew = await resNew.json();
 
-      // ดึง 2 ข้อความเก่าที่อ่านแล้ว
-      const resOld = await fetch(`/api/contact/contacts?status=in-progress&limit=2`);
+      // ดึง 3 ข้อความเก่า
+      const resOld = await fetch(`/api/contact/contacts?status=in-progress&limit=3`);
       const dataOld = await resOld.json();
 
-      // รวมกัน: ใหม่ + เก่า
       const combined = [...(dataNew.data || []), ...(dataOld.data || [])];
 
       setNotifications(combined);
@@ -46,20 +42,30 @@ export default function DashboardHeader() {
 
   const handleClickNotification = async (id: number) => {
     try {
-      const res = await fetch(`/api/contact/contacts?id=${id}`, {
-        method: "PATCH",
+      // ✅ แก้ไขการเรียก API ให้ถูกต้อง
+      // เปลี่ยน URL เป็น /api/contact/${id} (สำหรับอัปเดตรายการเดียว)
+      // เปลี่ยน Method เป็น PUT (ตาม API ฝั่ง Backend)
+      await fetch(`/api/contact/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "in-progress" }),
       });
-      if (!res.ok) throw new Error("Failed to mark as read");
+
+      setIsOpen(false);
+      router.push(`/message?id=${id}`);
+      
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, status: "in-progress" } : n))
       );
-      setUnreadCount((prev) => Math.max(prev - 1, 0));
+
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Close dropdown if click outside
+  // ... (ส่วน useEffect และ render เหมือนเดิม)
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -72,19 +78,19 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // update ทุก 1 นาที
+    const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  const formatDate = (dateStr: string) => {
+  const getTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString("th-TH", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "เมื่อสักครู่";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} นาทีที่แล้ว`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ชม. ที่แล้ว`;
+    return date.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
   };
 
   return (
@@ -99,79 +105,92 @@ export default function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-        {/* 🔔 Bell */}
-        <div
-          className="relative cursor-pointer p-2 rounded-full hover:bg-gray-100 transition-colors"
+        <button
+          className={`relative p-2.5 rounded-full transition-all duration-200 ${
+            isOpen ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100 text-gray-600"
+          }`}
           onClick={() => setIsOpen(!isOpen)}
         >
           <Bell size={24} />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-pulse">
               {unreadCount}
             </span>
           )}
-        </div>
+        </button>
 
-        {/* Dropdown */}
         {isOpen && (
-          <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-gray-800 text-sm">การแจ้งเตือน</h3>
-              <Link href="/message" className="text-xs text-blue-600 hover:underline">
-                อ่านทั้งหมด
-              </Link>
+          <div className="absolute right-0 top-full mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-black/5">
+            <div className="px-5 py-4 border-b border-gray-50 bg-white flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                การแจ้งเตือน
+                {unreadCount > 0 && (
+                    <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-bold">
+                        {unreadCount} ใหม่
+                    </span>
+                )}
+              </h3>
             </div>
 
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
               {notifications.length > 0 ? (
-                notifications.map((noti) => (
-                  <div
-                    key={noti.id}
-                    className={`p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer flex gap-3 items-start ${
-                      noti.status === "new" ? "bg-blue-50/30" : ""
-                    }`}
-                    onClick={() => handleClickNotification(noti.id)}
-                  >
+                <div className="divide-y divide-gray-50">
+                  {notifications.map((noti) => (
                     <div
-                      className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${
-                        noti.status === "new" ? "bg-red-500" : "bg-gray-300"
-                      }`}
-                    ></div>
-                    <div>
-                      <p
-                        className={`text-xs ${
-                          noti.status === "new"
-                            ? "font-semibold text-gray-800"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {noti.subject || noti.message}
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        {formatDate(noti.createdAt)}
-                      </p>
+                      key={noti.id}
+                      onClick={() => handleClickNotification(noti.id)}
+                      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors group relative flex gap-4 items-start
+                        ${noti.status === "new" ? "bg-blue-50/30" : "bg-white"}
+                      `}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border ${
+                          noti.status === "new" ? "bg-blue-100 border-blue-200 text-blue-600" : "bg-gray-100 border-gray-200 text-gray-500"
+                      }`}>
+                          <Mail size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                            <p className={`text-sm truncate pr-2 ${noti.status === "new" ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                                {noti.name}
+                            </p>
+                            <span className="text-[10px] text-gray-400 flex items-center gap-1 whitespace-nowrap">
+                                <Clock size={10} />
+                                {getTimeAgo(noti.createdAt)}
+                            </span>
+                        </div>
+                        <p className={`text-xs mb-1 truncate ${noti.status === "new" ? "text-gray-800 font-medium" : "text-gray-500"}`}>
+                            {noti.subject || "ไม่มีหัวข้อ"}
+                        </p>
+                        <p className="text-[11px] text-gray-400 line-clamp-1">
+                            {noti.message || "คลิกเพื่อดูรายละเอียดข้อความ..."}
+                        </p>
+                      </div>
+                      {noti.status === "new" && (
+                        <div className="absolute top-1/2 right-3 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full shadow-sm shadow-blue-200"></div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
-                <div className="p-8 text-center text-gray-400 text-xs">
-                  ไม่มีการแจ้งเตือนใหม่
+                <div className="py-12 text-center flex flex-col items-center justify-center text-gray-400">
+                  <div className="bg-gray-50 p-4 rounded-full mb-3">
+                    <CheckCircle2 size={32} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">ไม่มีการแจ้งเตือนใหม่</p>
                 </div>
               )}
             </div>
 
-            <div className="p-2 text-center border-t border-gray-100 bg-gray-50">
-              <Link
-                href="/message"
-                className="text-xs text-gray-500 hover:text-blue-600 block py-1"
-              >
-                ดูประวัติการแจ้งเตือนทั้งหมด
-              </Link>
-            </div>
+            <Link href="/message">
+                <div className="p-3 bg-gray-50 border-t border-gray-100 text-center hover:bg-gray-100 transition-colors cursor-pointer">
+                    <span className="text-xs font-semibold text-blue-600 hover:underline">
+                        ดูประวัติการแจ้งเตือนทั้งหมด
+                    </span>
+                </div>
+            </Link>
           </div>
         )}
 
-        {/* Buttons */}
         <div className="flex gap-3 ml-4">
           <button className="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
             Download Report
@@ -186,4 +205,3 @@ export default function DashboardHeader() {
     </div>
   );
 }
-  
