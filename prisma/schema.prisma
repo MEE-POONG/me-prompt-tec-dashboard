@@ -382,12 +382,12 @@ model ProjectIntern {
 // ... (ต่อจากบรรทัดสุดท้ายของไฟล์เดิม)
 
 // ตารางเก็บตำแหน่งงานที่เปิดรับ (Internship Positions)
-// model InternshipPosition {
-//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-//   title       String   // ชื่อตำแหน่ง เช่น Frontend Developer
-//   description String   // รายละเอียด
-//   isOpen      Boolean  @default(true) // เปิดรับอยู่หรือไม่
+model InternshipPosition {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String   // ชื่อตำแหน่ง เช่น Frontend Developer
+  description String   // รายละเอียด
+  isOpen      Boolean  @default(true) // เปิดรับอยู่หรือไม่
   
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-// }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
