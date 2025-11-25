@@ -52,12 +52,12 @@ export default function DashboardStats({ totalInterns, totalMembers }: Dashboard
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
         <Link key={index} href={stat.link}>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-[0px_4px_22px_-2px_rgba(147,51,234,0.5)] hover:border-fuchsia-200 hover:scale-105 transition-all cursor-pointer group h-full">
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-xl ${stat.color} group-hover:scale-110 transition-transform`}>
                 {stat.icon}
               </div>
-              <span className="text-gray-300 group-hover:text-blue-500 transition-colors">
+              <span className="text-gray-300 group-hover:text-fuchsia-500 duration-300 transition-colors">
                 <ArrowRight size={20} />
               </span>
             </div>

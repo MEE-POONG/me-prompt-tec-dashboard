@@ -147,3 +147,12 @@ body {
   animation: heartbeat 1.8s ease-in-out infinite;
 }
 
+.no-scroll {
+  overflow: hidden;
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+

@@ -33,7 +33,7 @@ export default function WelcomeBanner() {
 
         <div className="flex gap-3">
           <Link href="/project_create">
-            <button className="bg-white text-blue-700 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-50 transition-transform hover:scale-105 active:scale-95">
+            <button className="bg-white text-blue-700 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-blue-50 hover:text-fuchsia-600 duration-300 transition-transform hover:scale-105 active:scale-95">
               + เพิ่มผลงานใหม่
             </button>
           </Link>

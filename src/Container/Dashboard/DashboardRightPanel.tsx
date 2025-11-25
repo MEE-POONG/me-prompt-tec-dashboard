@@ -64,13 +64,13 @@ export default function DashboardRightPanel() {
         </div>
 
         {/* แสดงพนักงานทั้งหมด (มี Scrollbar) */}
-        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-3 max-h-[300px] pr-1 custom-scrollbar overflow-hidden">
           {isLoading ? (
             <div className="text-center text-gray-400 text-xs py-4">กำลังโหลด...</div>
           ) : members.length > 0 ? (
             members.map((person) => (
                 <Link href={`/teammember/edit/${person.id}`} key={person.id}>
-                    <div className="flex items-center gap-3 p-2 hover:bg-blue-50/50 rounded-xl transition-colors cursor-pointer group border border-transparent hover:border-blue-100">
+                    <div className="flex items-center gap-3 p-2 hover:bg-blue-50/50 hover:scale-105 duration-300 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-blue-100">
                         <div className="relative w-9 h-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
                             <Image 
                                 src={person.photo || '/default-avatar.png'} 
@@ -117,13 +117,13 @@ export default function DashboardRightPanel() {
             </span>
         </div>
 
-        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-3 max-h-[300px] pr-1 custom-scrollbar overflow-hidden">
           {isLoading ? (
             <div className="text-center text-gray-400 text-xs py-4">กำลังโหลด...</div>
           ) : interns.length > 0 ? (
             interns.map((person) => (
                 <Link href={`/editintern/${person.id}`} key={person.id}>
-                    <div className="flex items-center gap-3 p-2 hover:bg-orange-50/50 rounded-xl transition-colors cursor-pointer group border border-transparent hover:border-orange-100">
+                    <div className="flex items-center gap-3 p-2 hover:bg-orange-50/50 hover:scale-105 duration-300 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-orange-100">
                         <div className="relative w-9 h-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
                             <Image 
                                 src={person.avatar || '/default-avatar.png'} 

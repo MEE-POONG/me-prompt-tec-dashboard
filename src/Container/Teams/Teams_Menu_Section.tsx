@@ -24,7 +24,7 @@ export default function Teams_Menu_Section({
   return (
     <div className="mb-6">
       {/* หัวข้อ */}
-      <h1 className="text-2xl lg:text-3xl font-bold mb-4 text-black">
+      <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 via-violet-700 to-red-400 bg-clip-text text-transparent mb-4">
         จัดการข้อมูลพนักงาน (Team Members)
         <span className="text-sm font-normal text-gray-500 ml-3">
           (ทั้งหมด {totalCount} คน)

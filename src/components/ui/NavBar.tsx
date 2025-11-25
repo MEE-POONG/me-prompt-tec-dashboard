@@ -56,7 +56,7 @@ export default function NavBar({
           <div>
             <Link
               href="/login"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-yellow-500 transition-all duration-300 hover:scale-110"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-yellow-400 transition-all duration-300 hover:scale-110"
             >
               เข้าสู่ระบบ
             </Link>

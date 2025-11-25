@@ -96,7 +96,7 @@ export default function DashboardHeader() {
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-40">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">
+        <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 via-violet-700 to-red-400 bg-clip-text text-transparent">
           Executive Dashboard
         </h1>
         <p className="text-gray-500 mt-1">
@@ -111,7 +111,7 @@ export default function DashboardHeader() {
           }`}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <Bell size={24} />
+          <Bell size={24} className="text-yellow-500"/>
           {unreadCount > 0 && (
             <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-pulse">
               {unreadCount}
@@ -192,11 +192,11 @@ export default function DashboardHeader() {
         )}
 
         <div className="flex gap-3 ml-4">
-          <button className="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+          <button className="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all hover:scale-105 duration-300">
             Download Report
           </button>
           <Link href="/project">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all hover:scale-105 duration-300 shadow-sm">
               + สร้างโปรเจกต์ใหม่
             </button>
           </Link>

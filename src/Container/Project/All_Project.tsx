@@ -155,7 +155,7 @@ export default function All_Project() {
         {/* === Header & Controls === */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h2 className="text-3xl font-extrabold text-gray-900">Projects</h2>
+            <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 via-violet-700 to-red-400 bg-clip-text text-transparent">จัดการโปรเจกต์</h2>
             <p className="text-gray-500 mt-1">
               ผลงานและโปรเจกต์ทั้งหมด (
               {loading ? "..." : filteredProjectsToShow.length } โปรเจกต์)

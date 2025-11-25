@@ -184,7 +184,7 @@ export default function InternPage() {
         {/* === ส่วนหัวข้อ === */}
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-            <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 via-violet-700 to-red-400 bg-clip-text text-transparent flex items-center gap-2">
               จัดการข้อมูลนักศึกษาฝึกงาน
               {/* ✅ ปรับป้ายกำกับรุ่น */}
               <span

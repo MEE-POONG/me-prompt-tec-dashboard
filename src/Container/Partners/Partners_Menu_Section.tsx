@@ -38,7 +38,7 @@ export default function Partners_Menu_Section({
           <Handshake size={32} strokeWidth={1.5} />
         </div>
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-blue-600 via-violet-700 to-red-400 bg-clip-text text-transparent tracking-tight">
             จัดการพันธมิตร
           </h1>
           <p className="text-base text-gray-500 mt-1 font-medium">
