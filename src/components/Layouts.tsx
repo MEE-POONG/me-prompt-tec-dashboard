@@ -3,6 +3,7 @@ import React, { ReactNode, useState } from "react";
 import NavBar from "./ui/NavBar";
 import SideBar from "./ui/SideBar";
 import { StarsBackground } from "./animate-ui/components/backgrounds/stars";
+import ProtectedRoute from "./auth/ProtectedRoute";
 
 interface LayoutProps {
   children: ReactNode;
@@ -39,6 +40,7 @@ export default function Layouts({
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
       </Head>
+      <ProtectedRoute>
       <div className="flex min-h-screen bg-white">
         {/* Sidebar */}
         <SideBar isOpen={isSidebarOpen} onClose={toggleSidebar} />
@@ -53,6 +55,7 @@ export default function Layouts({
           <main className="grow">{children}</main>
         </div>
       </div>
+      </ProtectedRoute>
     </>
   );
 }

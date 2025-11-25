@@ -9,10 +9,17 @@ import {
   LucideIcon,
   ChevronsLeftRightEllipsis,
   ChevronUp,
+  Settings,
+  Power,
 } from "lucide-react";
 import { div } from "motion/react-client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+
+interface UserData {
+  name: string;
+  email: string;
+}
 
 interface SideBarProps {
   isOpen: boolean;
@@ -46,20 +53,31 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({
     dashboard: false,
   });
+  const [user, setUser] = useState<UserData | null>(null);
 
   const toggle = (key: string) =>
     setOpenMap((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    window.location.href = "/"; // refresh UI
+  };
   useEffect(() => {
-  if (isOpen) {
-    document.body.classList.add("no-scroll");
-  } else {
-    document.body.classList.remove("no-scroll");
-  }
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser) as UserData);
+    }
+  }, []);
 
-  return () => document.body.classList.remove("no-scroll");
-}, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("no-scroll");
+    } else {
+      document.body.classList.remove("no-scroll");
+    }
 
+    return () => document.body.classList.remove("no-scroll");
+  }, [isOpen]);
 
   const menuItems: MenuItem[] = useMemo(
     () => [
@@ -132,10 +150,10 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
       <aside
         className={`fixed top-0 left-0 z-50 h-screen bg-linear-to-bl from-blue-800 via-purple-700 to-red-600 text-white transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } w-64 overflow-x-hidden`}
+        } w-64 overflow-visible`} // ** เปลี่ยน overflow-x-hidden เป็น overflow-visible หรือลบออกเพื่อให้ dropdown ไม่โดนตัด **
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-white">
+          <div className="flex items-center justify-between p-4 border-b border-white/20">
             <h2 className="text-xl font-bold">เมนู</h2>
             <button
               onClick={onClose}
@@ -159,7 +177,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                       <li key={item.key}>
                         <button
                           onClick={() => toggle(item.key)}
-                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-fuchsia-700 transition-all hover:translate-x-1 duration-300 w-full justify-between"
+                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-all hover:translate-x-1 duration-300 w-full justify-between"
                         >
                           <div className="flex items-center space-x-3">
                             <Icon className="w-5 h-5" />
@@ -186,7 +204,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                                 <li key={child.key}>
                                   <Link
                                     href={child.href}
-                                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-blue-700/50 rounded-lg transition-all hover:translate-x-1 duration-300"
+                                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/20 rounded-lg transition-all hover:translate-x-1 duration-300"
                                   >
                                     {child.label}
                                   </Link>
@@ -205,7 +223,7 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
                   <li key={item.key}>
                     <Link
                       href={item.href}
-                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-fuchsia-700 transition-all hover:translate-x-1 duration-300"
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/20 transition-all hover:translate-x-1 duration-300"
                     >
                       <Icon className="w-5 h-5" />
                       <span>{item.label}</span>
@@ -216,47 +234,67 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
             </ul>
           </nav>
 
-          <div className="p-4">
-            <div className="flex items-center space-x-3 p-3 rounded-lg">
-              <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center font-bold">
-                U
+          <div className="relative p-4">
+            {" "}
+            {/* เพิ่ม Container wrapper เพื่อจัดการ padding */}
+            <div className="relative w-full flex items-center space-x-3 p-3 rounded-lg bg-white/10 backdrop-blur-sm">
+              {/* Avatar */}
+              <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center font-bold text-white shrink-0">
+                {user?.name?.charAt(0).toUpperCase() || "U"}
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold">ผู้ใช้งาน</p>
-                <p className="text-xs text-white">user@example.com</p>
-              </div>
-              <div className="relative inline-block text-left">
-                {/* ปุ่มกด */}
-                <button
-                  onClick={() => setOpen(!open)}
-                  className="flex items-center gap-1 px-2 py-2 rounded-full hover:bg-fuchsia-100 hover:text-fuchsia-600 transition"
-                >
-                  <ChevronUp
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      open ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
 
-                {/* เมนู Dropdown */}
-                {open && (
-                  <div
-                    className="absolute bottom-full mb-2 w-40 bg-fuchsia-50 bg-opacity-10 shadow-lg border rounded-lg animate-[fadeIn_0.2s_ease-out]"
-                  >
-                    <ul className="py-2 text-sm text-gray-700">
-                      <li className="px-3 py-1 hover:bg-gray-100 cursor-pointer">
-                        ตัวเลือกที่ 1
+              {/* Text info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">
+                  {user?.name || "ผู้ใช้งาน"}
+                </p>
+                <p className="text-xs text-gray-200 truncate">
+                  {user?.email || "user@example.com"}
+                </p>
+              </div>
+
+              {/* ปุ่ม Toggle */}
+              <button
+                onClick={() => setOpen(!open)}
+                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/20 transition shrink-0"
+              >
+                <ChevronUp
+                  className={`w-4 h-4 transition-transform duration-300 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* --- Dropdown Menu (ย้ายมาตรงนี้) --- */}
+              {open && (
+                <div className="absolute bottom-full left-0 w-full mb-2 z-50">
+                  <div className="bg-white/20 text-gray-800 rounded-xl shadow-2xl border border-white/20 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                    {/* Header เล็กๆ ใน Dropdown (Optional) */}
+                    <div className="px-4 py-2 bg-white/20 border-b border-white/20 text-xs font-semibold text-white">
+                      เมนูสมาชิก
+                    </div>
+
+                    <ul className="py-1 text-sm">
+                      <li className="px-4 py-2 text-white hover:bg-fuchsia-50 hover:text-fuchsia-700 cursor-pointer transition-colors flex items-center gap-2">
+                        <span>
+                          <Settings size={20} />
+                        </span>{" "}
+                        ตั้งค่าบัญชี
                       </li>
-                      <li className="px-3 py-1 hover:bg-gray-100 cursor-pointer">
-                        ตัวเลือกที่ 2
-                      </li>
-                      <li className="px-3 py-1 hover:bg-gray-100 cursor-pointer">
-                        ตัวเลือกที่ 3
+                      <hr className="my-1 border-white/20" />
+                      <li
+                        className="px-4 py-2 text-white hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors flex items-center gap-2"
+                        onClick={handleLogout}
+                      >
+                        <span>
+                          <Power size={20} />
+                        </span>{" "}
+                        ออกจากระบบ
                       </li>
                     </ul>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

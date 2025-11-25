@@ -1,43 +1,48 @@
+"use client";
+
 import { Menu, PanelLeft, PanelLeftClose } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface NavBarProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
 }
 
-export default function NavBar({
-  onToggleSidebar,
-  isSidebarOpen,
-}: NavBarProps) {
+export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) {
+  const [user, setUser] = useState<any>(null);
+
+  // ดึงข้อมูล user จาก localStorage ตอนโหลดหน้าเว็บ
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+    }
+  }, []);
+
+  // ปุ่ม Logout
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/"; // refresh UI หลัง logout
+  };
+
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200 w-full">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16 w-full">
-          {/* LEFT SIDE (Hamburger + Logo) */}
+          {/* LEFT side */}
           <div className="flex items-center space-x-4">
-            {/* Hamburger Menu Button */}
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg transition-all duration-300 hover:scale-110"
+              className="p-2 rounded-lg transition-all duration-300 hover:scale-110 text-black"
               aria-label="Toggle Sidebar"
             >
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isSidebarOpen ? (
-                  <PanelLeft className="hidden" />
-                ) : (
-                  <PanelLeftClose />
-                )}
-              </svg>
+              {isSidebarOpen ? <PanelLeft className="text-white"/> : <PanelLeftClose />}
             </button>
 
-            {/* Logo */}
             <Link href="/" className="flex items-center space-x-2">
               <img
                 src="/img/logo/logo.png"
@@ -52,14 +57,22 @@ export default function NavBar({
             </Link>
           </div>
 
-          {/* RIGHT SIDE (Login Button) */}
+          {/* RIGHT side */}
           <div>
-            <Link
-              href="/login"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-yellow-400 transition-all duration-300 hover:scale-110"
-            >
-              เข้าสู่ระบบ
-            </Link>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="font-bold text-gray-800">
+                  สวัสดี {user.email}
+                </span>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-blue-600 transition-all duration-300 hover:scale-110"
+              >
+                เข้าสู่ระบบ
+              </Link>
+            )}
           </div>
         </div>
       </div>
