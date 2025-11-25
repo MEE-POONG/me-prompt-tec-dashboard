@@ -63,11 +63,13 @@ export default function WorkList({ }: WorkListProps) {
                 <Link key={project.id} href={`/workspace/${project.id}`}>
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group h-full flex flex-col">
                         <div className="flex justify-between items-start mb-4">
-                            <div className={`p-3 rounded-xl ${project.color}`}>
-                                <Folder size={24} fill="currentColor" className="opacity-20" />
-                                <Folder size={24} className="absolute top-3 left-3" />
-                                {/* Using a simple Folder icon for now, the above trick is just for visual depth if needed, but let's stick to simple */}
-                                <Folder size={28} strokeWidth={1.5} />
+                            <div className="flex items-center">
+                                <div className={`p-3 rounded-xl ${project.color} max-w-max mr-2`}>
+                                    <Folder size={28} strokeWidth={1.5} />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                    {project.name}
+                                </h3>
                             </div>
                             <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors" onClick={(e) => e.preventDefault()}>
                                 <MoreVertical size={20} />
@@ -75,9 +77,6 @@ export default function WorkList({ }: WorkListProps) {
                         </div>
 
                         <div className="flex-1">
-                            <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-1">
-                                {project.name}
-                            </h3>
                             <p className="text-sm text-gray-500 line-clamp-2 mb-4 h-10">
                                 {project.description}
                             </p>
