@@ -1,4 +1,7 @@
-import { PrismaClient } from '../generated/prisma/client';
+// src/lib/prisma.ts
+
+// เช็ค path นี้ ถ้ามันขีดเส้นแดง ให้ลองลบ /client ออก หรือแก้ให้ตรงกับโฟลเดอร์ generated
+import { PrismaClient } from '../generated/prisma'; 
 
 declare global {
   var prisma: PrismaClient | undefined;
