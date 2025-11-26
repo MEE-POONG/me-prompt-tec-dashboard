@@ -17,7 +17,13 @@ export default function ManagePartnersPage() {
     const loadPartners = async () => {
       try {
         setLoading(true);
+        // เรียก API ภายในโปรเจกต์เดียวกัน (localhost:3000)
         const res = await fetch("/api/partners");
+        
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status}`);
+        }
+
         const json = await res.json();
 
         const formatted: PartnerData[] = (json.data || []).map(
@@ -27,14 +33,15 @@ export default function ManagePartnersPage() {
             type: p.type,
             logoSrc: p.logo || "https://placehold.co/400x400/png?text=Logo",
             website: p.website || "",
-            description: p.description, 
-            // ตัด projects: [] ออกแล้ว
+            description: p.description,
+            // projects ตัดออกแล้วตามที่ตกลง
           })
         );
 
         setPartnersList(formatted);
       } catch (err) {
         console.error("Failed to load partners", err);
+        // อาจจะแจ้งเตือนผู้ใช้ตรงนี้ได้ถ้าต้องการ
       } finally {
         setLoading(false);
       }
@@ -62,17 +69,21 @@ export default function ManagePartnersPage() {
     if (!ok) return;
 
     try {
+      // ลบทีละรายการ
       await Promise.all(
-        selectedIds.map((id) =>
-          fetch(`/api/partners/${id}`, { method: "DELETE" })
-        )
+        selectedIds.map(async (id) => {
+          const res = await fetch(`/api/partners/${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error(`Failed to delete ${id}`);
+        })
       );
+
+      // ถ้าลบสำเร็จ ให้เอาออกจาก state หน้าจอ
       setPartnersList((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
       setSelectedIds([]);
       alert("ลบข้อมูลเรียบร้อย");
     } catch (err) {
       console.error("Delete failed", err);
-      alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      alert("ลบข้อมูลบางรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
   };
 
@@ -104,4 +115,4 @@ export default function ManagePartnersPage() {
       </div>
     </Layouts>
   );
-}
+} 
