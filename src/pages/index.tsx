@@ -1,39 +1,55 @@
-import React, { useState } from "react";
+import React from "react";
 import Layouts from "@/components/Layouts";
-// ตรวจสอบ path นี้ให้ตรงกับโฟลเดอร์จริงของคุณ
-import { Intern } from "@/Data/dataintern";
+import { Intern } from "@/Data/dataintern"; 
 
-// Import Components ที่เราแยกไว้
+// Import Components
 import DashboardHeader from "@/Container/Dashboard/DashboardHeader";
+import WelcomeBanner from "@/Container/Dashboard/WelcomeBanner"; 
 import DashboardStats from "@/Container/Dashboard/DashboardStats";
-import ProjectStatus from "@/Container/Dashboard/ProjectStatus";
+import ProjectStatus from "@/Container/Dashboard/ProjectStatus"; 
 import DashboardRightPanel from "@/Container/Dashboard/DashboardRightPanel";
-import WelcomeBanner from "@/Container/Dashboard/WelcomeBanner"; // ✅ เพิ่มตัวใหม่
 
 export default function Home() {
   return (
     <Layouts>
-      <div className="p-6 md:p-8 w-full max-w-7xl mx-auto space-y-6 text-black">
-        {/* 1. ส่วนหัว (Header) */}
-        <DashboardHeader />
+      <div className="relative min-h-screen bg-[#f9fafb] overflow-hidden text-black font-sans">
+        
+        {/* --- 🌟 Background Aurora (ปรับให้สว่างและสดใสขึ้น) --- */}
+        <div className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
+            {/* สีม่วงอ่อน (Violet) */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-400/20 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
+            
+            {/* สีชมพูอ่อน (Pink) */}
+            <div className="absolute top-[10%] right-[-10%] w-[45%] h-[45%] bg-pink-400/20 rounded-full blur-[100px] mix-blend-multiply"></div>
+            
+            {/* สีฟูเชีย (Fuchsia) */}
+            <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] bg-fuchsia-400/20 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
+            
+            {/* สีฟ้าอ่อนๆ แซมนิดหน่อย */}
+            <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] bg-blue-300/20 rounded-full blur-[120px] mix-blend-multiply"></div>
+        </div>
 
-        {/* 2. แบนเนอร์ต้อนรับ (Welcome Banner) */}
-        <WelcomeBanner />
-
-        {/* 3. การ์ดสถิติองค์กร (Stats) */}
-        <DashboardStats totalInterns={Intern.length} totalMembers={0} />
-
-        {/* 4. เนื้อหาหลัก (Grid) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-2">
-          {/* ฝั่งซ้าย: สถานะโปรเจกต์ */}
-          <div className="lg:col-span-2">
-            <ProjectStatus />
+        {/* Content Container */}
+        <div className="relative z-10 p-6 md:p-8 w-full max-w-7xl mx-auto space-y-8">
+          
+          <DashboardHeader />
+          <WelcomeBanner />
+          
+          <div className="space-y-8">
+            <div className="py-2">
+               <DashboardStats />
+            </div>
           </div>
 
-          {/* ฝั่งขวา: ข้อความ & ทีมงาน */}
-          <div className="lg:col-span-1">
-            <DashboardRightPanel />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <ProjectStatus /> 
+            </div>
+            <div className="lg:col-span-1">
+              <DashboardRightPanel />
+            </div>
           </div>
+
         </div>
       </div>
     </Layouts>
