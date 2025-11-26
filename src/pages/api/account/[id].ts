@@ -56,6 +56,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
     name, 
     email, 
     password, 
+    role,
     phone, 
     position,
     // รับ role หรือ isActive เพิ่มเติมได้ถ้าต้องการ
@@ -87,6 +88,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
   if (email !== undefined) updateData.email = email;
   if (phone !== undefined) updateData.phone = phone;
   if (position !== undefined) updateData.position = position;
+  if (role !== undefined) updateData.role = role;
 
   // อัปเดตรหัสผ่านเฉพาะเมื่อมีการกรอกมาใหม่ (ไม่ว่าง)
   if (password && password.trim() !== "") {
