@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 export default function AddPartnerPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function AddPartnerPage() {
   const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,7 +46,8 @@ export default function AddPartnerPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        alert("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        setErrorMessage("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        setShowErrorModal(true);
         return;
       }
       try {
@@ -51,7 +55,8 @@ export default function AddPartnerPage() {
         setImageUrl(base64);
       } catch (err) {
         console.error("Error converting image", err);
-        alert("ไม่สามารถอ่านไฟล์รูปภาพได้");
+        setErrorMessage("ไม่สามารถอ่านไฟล์รูปภาพได้");
+        setShowErrorModal(true);
       }
     }
   };
@@ -59,7 +64,8 @@ export default function AddPartnerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !type) {
-      alert("กรุณากรอกชื่อหน่วยงานและประเภทให้ครบ");
+      setErrorMessage("กรุณากรอกชื่อหน่วยงานและประเภทให้ครบ");
+      setShowErrorModal(true);
       return;
     }
 
@@ -81,14 +87,16 @@ export default function AddPartnerPage() {
 
       if (!res.ok) {
         console.error(await res.text());
-        alert("บันทึกข้อมูลไม่สำเร็จ");
+        setErrorMessage("บันทึกข้อมูลไม่สำเร็จ");
+        setShowErrorModal(true);
         return;
       }
 
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Create partner error", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      setErrorMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -283,6 +291,14 @@ export default function AddPartnerPage() {
           message="เพิ่มพันธมิตรสำเร็จ!"
           description="คุณได้เพิ่มข้อมูลพันธมิตรเรียบร้อยแล้ว"
           onClose={() => setShowSuccessModal(false)}
+        />
+
+        {/* Modal Error */}
+        <ModalError
+          open={showErrorModal}
+          message="เกิดข้อผิดพลาด!"
+          description={errorMessage}
+          onClose={() => setShowErrorModal(false)}
         />
       </div>
     </Layouts>

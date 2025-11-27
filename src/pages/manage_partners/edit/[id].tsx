@@ -12,6 +12,8 @@ import {
   X,
   ArrowLeft,
 } from "lucide-react";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 export default function EditPartnerPage() {
   const router = useRouter();
@@ -28,6 +30,9 @@ export default function EditPartnerPage() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -56,7 +61,8 @@ export default function EditPartnerPage() {
         setImageUrl(p.logo || "");
       } catch (err) {
         console.error("Load partner error", err);
-        alert("โหลดข้อมูลพันธมิตรไม่สำเร็จ");
+        setErrorMessage("โหลดข้อมูลพันธมิตรไม่สำเร็จ");
+        setShowErrorModal(true);
       } finally {
         setLoading(false);
       }
@@ -69,7 +75,8 @@ export default function EditPartnerPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        alert("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        setErrorMessage("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
+        setShowErrorModal(true);
         return;
       }
       try {
@@ -77,7 +84,8 @@ export default function EditPartnerPage() {
         setImageUrl(base64);
       } catch (err) {
         console.error("Error converting image", err);
-        alert("ไม่สามารถอ่านไฟล์รูปภาพได้");
+        setErrorMessage("ไม่สามารถอ่านไฟล์รูปภาพได้");
+        setShowErrorModal(true);
       }
     }
   };
@@ -103,15 +111,16 @@ export default function EditPartnerPage() {
 
       if (!res.ok) {
         console.error(await res.text());
-        alert("บันทึกการแก้ไขไม่สำเร็จ");
+        setErrorMessage("บันทึกการแก้ไขไม่สำเร็จ");
+        setShowErrorModal(true);
         return;
       }
 
-      alert("บันทึกการแก้ไขเรียบร้อย!");
-      router.push("/manage_partners");
+      setShowSuccessModal(true);
     } catch (err) {
       console.error("Update partner error", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      setErrorMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -299,6 +308,23 @@ export default function EditPartnerPage() {
             </form>
           )}
         </div>
+
+        {/* Modal Success */}
+        <ModalSuccess
+          open={showSuccessModal}
+          href="/manage_partners"
+          message="แก้ไขข้อมูลสำเร็จ!"
+          description="บันทึกการแก้ไขเรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
+        />
+
+        {/* Modal Error */}
+        <ModalError
+          open={showErrorModal}
+          message="เกิดข้อผิดพลาด!"
+          description={errorMessage}
+          onClose={() => setShowErrorModal(false)}
+        />
       </div>
     </Layouts>
   );
