@@ -244,7 +244,7 @@ export default function AddOrEditAccount() {
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className={`px-6 py-2 text-white rounded-md font-medium shadow-sm
+                  className={`px-6 py-2 text-white rounded-md font-medium shadow-sm v
               ${
                 isEditMode
                   ? "bg-amber-500 hover:bg-amber-600"
@@ -272,12 +272,9 @@ export default function AddOrEditAccount() {
         <ModalSuccess
           open={showSuccessModal}
           href="/account"
-          message={isEditMode ? "แก้ไขบัญชีสำเร็จ!" : "สร้างบัญชีผู้ใช้สำเร็จ!"}
-          description={
-            isEditMode
-              ? "บัญชีผู้ใช้ได้รับการแก้ไขเรียบร้อยแล้ว"
-              : "คุณได้สร้างบัญชีผู้ใช้เรียบร้อยแล้ว"
-          }
+          message="เพิ่มบัญชีสำเร็จ!"
+          description="คุณได้สร้างบัญชีผู้ใช้เรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
         />
       </div>
     </Layouts>

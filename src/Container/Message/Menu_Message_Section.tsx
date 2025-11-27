@@ -13,6 +13,9 @@ import {
   X,
   Calendar,
   RefreshCcw,
+  Phone,
+  ExternalLink,
+  Briefcase,
 } from "lucide-react";
 
 // --- Type Definitions ---
@@ -24,10 +27,14 @@ interface ContactMessage {
   id: number;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   content?: string;
   message?: string;
   status: string;
+  source?: string;
+  resumeUrl?: string;
+  portfolioUrl?: string;
   createdAt: string;
   handledBy: HandledBy | null;
 }
@@ -425,11 +432,11 @@ export default function Menu_Message_Section() {
               {/* Content */}
               <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-white">
                 <div className="flex justify-between items-start mb-6">
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                       {selectedMessage.subject}
                     </h2>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0 uppercase">
                         {(
                           selectedMessage.name ||
@@ -444,6 +451,11 @@ export default function Menu_Message_Section() {
                         <p className="text-xs text-gray-500">
                           {selectedMessage.email}
                         </p>
+                        {selectedMessage.phone && (
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                            <Phone size={12} /> {selectedMessage.phone}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -455,6 +467,47 @@ export default function Menu_Message_Section() {
                 <div className="prose max-w-none text-gray-700 text-sm leading-relaxed whitespace-pre-line border-t border-gray-100 pt-6">
                   {selectedMessage.message || selectedMessage.content}
                 </div>
+
+                {/* Attachments Section */}
+                {(selectedMessage.resumeUrl ||
+                  selectedMessage.portfolioUrl) && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <FileText size={16} /> ไฟล์แนบ
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedMessage.resumeUrl && (
+                        <a
+                          href={
+                            selectedMessage.resumeUrl.startsWith('http')
+                              ? selectedMessage.resumeUrl
+                              : `${process.env.NEXT_PUBLIC_FILE_BASE_URL || ''}${selectedMessage.resumeUrl}`
+                          }
+                          download
+                          className="px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 border border-blue-200"
+                        >
+                          <FileText size={16} /> Resume
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                      {selectedMessage.portfolioUrl && (
+                        <a
+                          href={
+                            selectedMessage.portfolioUrl.startsWith('http')
+                              ? selectedMessage.portfolioUrl
+                              : `${process.env.NEXT_PUBLIC_FILE_BASE_URL || ''}${selectedMessage.portfolioUrl}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-green-50 text-green-700 text-sm rounded-lg font-medium hover:bg-green-100 transition-colors flex items-center gap-2 border border-green-200"
+                        >
+                          <Briefcase size={16} /> Portfolio
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer Reply Box */}

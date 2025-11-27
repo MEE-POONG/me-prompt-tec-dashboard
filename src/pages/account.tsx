@@ -21,9 +21,6 @@ export default function AccountPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showPasswordIds, setShowPasswordIds] = useState<
-    Record<string, boolean>
-  >({});
 
   // ฟังก์ชันดึงข้อมูลจาก API
   const fetchAccounts = async () => {
@@ -61,12 +58,6 @@ export default function AccountPage() {
       console.error("Error deleting:", error);
       // ใช้ modal แจ้ง error แทน alert
     }
-  };
-  const togglePassword = (id: string) => {
-    setShowPasswordIds((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
   };
 
   // ฟังก์ชันกรองข้อมูลสำหรับค้นหา

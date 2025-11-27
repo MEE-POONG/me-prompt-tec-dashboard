@@ -4,6 +4,7 @@ import Layouts from "@/components/Layouts";
 import { Upload, Layers } from "lucide-react"; // ✅ เพิ่มไอคอน Layers
 import Link from "next/link";
 import Image from "next/image";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 
 export default function AddInternPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function AddInternPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,8 +126,7 @@ export default function AddInternPage() {
         throw new Error(result.error || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
       }
 
-      alert("เพิ่มข้อมูลเรียบร้อย!");
-      router.push("/intern");
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error creating intern:", error);
       alert(
@@ -458,6 +459,14 @@ export default function AddInternPage() {
           </div>
         </form>
       </div>
+      {/* Modal Success */}
+      <ModalSuccess
+        open={showSuccessModal}
+        href="/intern"
+        message="เพิ่มนักศึกษาฝึกงานสำเร็จ!"
+        description="คุณได้เพิ่มข้อมูลนักศึกษาฝึกงานเรียบร้อยแล้ว"
+        onClose={() => setShowSuccessModal(false)}
+      />
     </Layouts>
   );
 }

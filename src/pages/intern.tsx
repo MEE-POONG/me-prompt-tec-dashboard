@@ -17,6 +17,7 @@ import {
   Filter,
   UserPlus,
 } from "lucide-react";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
 interface InternData {
   id: string;
@@ -61,6 +62,7 @@ export default function InternPage() {
 
   // ✅ 1. ตั้งค่าเริ่มต้นเป็น "all"
   const [selectedGen, setSelectedGen] = useState<string>("all");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // State Modal
   const [modalUrl, setModalUrl] = useState<string | null>(null);
@@ -144,24 +146,25 @@ export default function InternPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (selectedIds.length === 0) return;
-    if (
-      confirm(`คุณต้องการลบข้อมูลจำนวน ${selectedIds.length} รายการใช่หรือไม่?`)
-    ) {
-      try {
-        await Promise.all(
-          selectedIds.map((id) =>
-            fetch(`/api/intern/${id}`, { method: "DELETE" })
-          )
-        );
-        await fetchInterns();
-        setSelectedIds([]);
-        alert("ลบข้อมูลเรียบร้อย");
-      } catch (error) {
-        console.error("Error deleting interns:", error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
-      }
+    setShowDeleteModal(true); // สั่งเปิด Modal แทนการใช้ confirm()
+  };
+  const onConfirmDelete = async () => {
+    try {
+      // ลบข้อมูลสมาชิกที่เลือก
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch(`/api/intern/${id}`, { method: "DELETE" })
+        )
+      );
+
+      // รีเซ็ตค่าและดึงข้อมูลใหม่
+      setSelectedIds([]);
+      await fetchInterns(); // รอให้ fetch เสร็จ
+    } catch (err) {
+      alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+      console.error("Error deleting interns:", err);
     }
   };
 
@@ -598,6 +601,14 @@ export default function InternPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {showDeleteModal && (
+          <ModalDelete
+            message={`คุณแน่ใจหรือไม่ที่จะลบพนักงาน ${selectedIds.length} คน?`}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirmDelete}
+          />
         )}
       </div>
     </Layouts>

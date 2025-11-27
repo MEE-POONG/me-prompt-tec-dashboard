@@ -321,6 +321,8 @@ model ContactMessage {
   subject   String?
   message   String
   source    String  @default("website") // website|portfolio|intern-page|other
+  resumeUrl      String?
+  portfolioUrl   String? 
 
   handledById String? @db.ObjectId
   handledBy   User?   @relation(fields: [handledById], references: [id])
@@ -403,25 +405,4 @@ model Partner {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-model Application {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  firstName      String
-  lastName       String
-  email          String
-  phone          String
-  
-  // ข้อมูลการศึกษา
-  educationLevel String
-  university     String
-  faculty        String
-  gpa            Float    // เก็บเป็นตัวเลขทศนิยม
-  
-  // ข้อมูลสมัครงาน
-  position       String
-  portfolioUrl   String?  // ใส่ ? แปลว่าไม่บังคับ (null ได้)
-  message        String?
-  resumeUrl      String?  // เก็บชื่อไฟล์ หรือ Link (ตาม logic ปัจจุบัน)
-  
-  createdAt      DateTime @default(now())
 }
