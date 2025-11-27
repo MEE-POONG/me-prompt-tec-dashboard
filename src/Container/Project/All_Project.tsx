@@ -14,6 +14,9 @@ import {
   Plus,
   Briefcase, // ✅ เพิ่มไอคอนนี้
 } from "lucide-react";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 interface Project {
   id: string;
@@ -41,6 +44,10 @@ export default function All_Project() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // --- Filter Handlers ---
   const setFilters = (filters: { tag: string | null; tech: string | null }) => {
@@ -74,11 +81,16 @@ export default function All_Project() {
   };
     
   // --- Delete Handler ---
-  const handleDelete = async (id: string) => {
-    if (!confirm("คุณแน่ใจหรือไม่ที่จะลบโปรเจกต์นี้?")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/project/${id}`, {
+      const response = await fetch(`/api/project/${deleteId}`, {
         method: "DELETE",
       });
 
@@ -86,10 +98,15 @@ export default function All_Project() {
         throw new Error("Failed to delete project");
       }
 
-      fetchProjects();
+      // Refresh the project list
+      await fetchProjects();
+      setShowDeleteModal(false);
+      setShowSuccessModal(true);
+      setDeleteId(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete project");
       console.error("Error deleting project:", err);
+      setShowDeleteModal(false);
+      setShowErrorModal(true);
     }
   };
 
@@ -262,7 +279,10 @@ export default function All_Project() {
                         <Link href={`/editproject/${project.id}`} className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:text-violet-600 hover:bg-white shadow-lg transition-colors">
                           <SquarePen size={18} />
                         </Link>
-                        <button onClick={() => handleDelete(project.id)} className="p-2.5 bg-white/90 backdrop-blur-md rounded-xl text-slate-600 hover:text-red-600 hover:bg-white shadow-lg transition-colors">
+                        <button
+                          onClick={() => handleDeleteClick(project.id)}
+                          className="p-2 bg-white/90 rounded-full text-red-500 hover:text-red-600 shadow-sm backdrop-blur-sm"
+                        >
                           <Trash size={18} />
                         </button>
                       </div>
@@ -336,8 +356,11 @@ export default function All_Project() {
                       <Link href={`/editproject/${project.id}`} className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors">
                         <SquarePen size={20} />
                       </Link>
-                      <button onClick={() => handleDelete(project.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash size={20} />
+                      <button
+                        onClick={() => handleDeleteClick(project.id)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                      >
+                        <Trash size={16} /> <span>Delete</span>
                       </button>
                     </div>
                   </div>
@@ -360,6 +383,31 @@ export default function All_Project() {
             </button>
           </div>
         )}
+
+        {/* Modal Delete */}
+        {showDeleteModal && (
+          <ModalDelete
+            message="คุณแน่ใจหรือไม่ที่จะลบโปรเจกต์นี้?"
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleDeleteConfirm}
+          />
+        )}
+
+        {/* Modal Success */}
+        <ModalSuccess
+          open={showSuccessModal}
+          message="ลบโปรเจกต์สำเร็จ!"
+          description="ลบข้อมูลโปรเจกต์เรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
+        />
+
+        {/* Modal Error */}
+        <ModalError
+          open={showErrorModal}
+          message="เกิดข้อผิดพลาด!"
+          description="ไม่สามารถลบโปรเจกต์ได้ กรุณาลองใหม่อีกครั้ง"
+          onClose={() => setShowErrorModal(false)}
+        />
       </div>
     </div>
   );

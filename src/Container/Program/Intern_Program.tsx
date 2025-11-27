@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import Layouts from "@/components/Layouts";
 
 import { Edit2, Trash2, Plus, X, Save } from "lucide-react"; // อย่าลืมลง lucide-react หรือใช้ icon อื่น
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 
 
 
@@ -53,6 +55,11 @@ export default function ManageInternship() {
   const [currentId, setCurrentId] = useState<number | null>(null); // ถ้า null = สร้างใหม่, ถ้ามีเลข = แก้ไข
 
   const [formData, setFormData] = useState({ title: "", description: "" });
+
+  // State สำหรับ Delete Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
 
 
@@ -123,21 +130,25 @@ export default function ManageInternship() {
 
 
     setIsModalOpen(false);
+    setShowSuccessModal(true);
 
   };
 
 
 
   // ลบข้อมูล
+  const handleDeleteClick = (id: number) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
+  };
 
-  const handleDelete = (id: number) => {
-
-    if (confirm("ต้องการลบตำแหน่งงานนี้ใช่หรือไม่?")) {
-
-      setPositions((prev) => prev.filter((item) => item.id !== id));
-
+  const handleDeleteConfirm = () => {
+    if (deleteId !== null) {
+      setPositions((prev) => prev.filter((item) => item.id !== deleteId));
+      setShowDeleteModal(false);
+      setShowSuccessModal(true);
+      setDeleteId(null);
     }
-
   };
 
 
@@ -248,7 +259,7 @@ export default function ManageInternship() {
 
                     <button
 
-                        onClick={() => handleDelete(position.id)}
+                        onClick={() => handleDeleteClick(position.id)}
 
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ลบ"
 
@@ -388,7 +399,22 @@ export default function ManageInternship() {
 
         )}
 
+        {/* Modal Delete */}
+        {showDeleteModal && (
+          <ModalDelete
+            message="ต้องการลบตำแหน่งงานนี้ใช่หรือไม่?"
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleDeleteConfirm}
+          />
+        )}
 
+        {/* Modal Success */}
+        <ModalSuccess
+          open={showSuccessModal}
+          message="สำเร็จ!"
+          description="ดำเนินการเรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
+        />
 
       </div>
 
