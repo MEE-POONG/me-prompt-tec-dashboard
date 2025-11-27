@@ -7,7 +7,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { name, email, phone, subject, message, source, status } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      subject,
+      message,
+      source,
+      status,
+      resumeUrl,
+      portfolioUrl,
+      handledById
+    } = req.body;
 
     const newMessage = await prisma.contactMessage.create({
       data: {
@@ -18,7 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: message ?? "",
         source: source ?? "website",
         status: status ?? "new",
-        date: new Date()
+        date: new Date(),
+        resumeUrl: resumeUrl ?? undefined,
+        portfolioUrl: portfolioUrl ?? undefined,
+        handledById: handledById ?? undefined
       },
     });
 

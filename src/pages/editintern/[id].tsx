@@ -4,6 +4,7 @@ import Layouts from "@/components/Layouts";
 import { Upload, Layers } from "lucide-react"; // ✅ เพิ่มไอคอน Layers
 import Link from "next/link";
 import Image from "next/image";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 
 export default function EditInternPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function EditInternPage() {
   const [major, setMajor] = useState("สารสนเทศทางคอมพิวเตอร์");
   const [studentId, setStudentId] = useState("");
   const [portfolioSlug, setPortfolioSlug] = useState("");
-  
+
   // ✅ State สำหรับรุ่น (Gen)
   const [selectedGen, setSelectedGen] = useState("6");
 
@@ -37,6 +38,7 @@ export default function EditInternPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // ✅ ตัวเลือกรุ่น (1-10)
   const genOptions = Array.from({ length: 10 }, (_, i) => String(10 - i));
@@ -68,7 +70,7 @@ export default function EditInternPage() {
         setPosition(intern.coopType || "coop");
         setPortfolioSlug(intern.portfolioSlug || "");
         setImageUrl(intern.avatar || "");
-        
+
         // ✅ ดึงค่า gen มาใส่ State (ถ้าไม่มีให้เป็น "6")
         setSelectedGen(intern.gen || "6");
 
@@ -161,7 +163,7 @@ export default function EditInternPage() {
         avatar: imageUrl || undefined,
         portfolioSlug,
         status: "published",
-        
+
         // ✅ ส่งค่า gen ที่แก้ไขไปอัปเดต
         gen: selectedGen,
       };
@@ -180,8 +182,7 @@ export default function EditInternPage() {
         throw new Error(result.error || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
       }
 
-      alert("แก้ไขข้อมูลเรียบร้อย!");
-      router.push("/intern");
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error updating intern:", error);
       alert(
@@ -208,13 +209,13 @@ export default function EditInternPage() {
     <Layouts>
       <div className="p-6 md:p-8 text-black w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
-            <h1 className="text-2xl lg:text-3xl font-bold text-blue-700">
+          <h1 className="text-2xl lg:text-3xl font-bold text-blue-700">
             แก้ไขข้อมูล (ID: {id})
-            </h1>
-            {/* แสดงรุ่นปัจจุบันที่กำลังแก้ไข */}
-            <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold border border-blue-100">
-                รุ่นที่ {selectedGen}
-            </span>
+          </h1>
+          {/* แสดงรุ่นปัจจุบันที่กำลังแก้ไข */}
+          <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold border border-blue-100">
+            รุ่นที่ {selectedGen}
+          </span>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -274,29 +275,37 @@ export default function EditInternPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-lg font-bold text-gray-800 mb-2">
+                  <label className="block text-lg font-bold text-gray-800 mb-2">
                     รหัสนักศึกษา
-                    </label>
-                    <input
+                  </label>
+                  <input
                     type="text"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    />
+                  />
                 </div>
                 {/* ✅ เพิ่มช่องแก้ไขรุ่น */}
                 <div>
-                    <label className="block text-lg font-bold text-gray-800 mb-2">รุ่นที่ (Gen)</label>
-                    <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Layers size={18}/></div>
-                        <select
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 appearance-none cursor-pointer"
-                            value={selectedGen}
-                            onChange={(e) => setSelectedGen(e.target.value)}
-                        >
-                            {genOptions.map(g => <option key={g} value={g}>รุ่นที่ {g}</option>)}
-                        </select>
+                  <label className="block text-lg font-bold text-gray-800 mb-2">
+                    รุ่นที่ (Gen)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                      <Layers size={18} />
                     </div>
+                    <select
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 appearance-none cursor-pointer"
+                      value={selectedGen}
+                      onChange={(e) => setSelectedGen(e.target.value)}
+                    >
+                      {genOptions.map((g) => (
+                        <option key={g} value={g}>
+                          รุ่นที่ {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -341,7 +350,9 @@ export default function EditInternPage() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder={`${firstName} ${lastName}`}
                 />
-                <p className="text-xs text-gray-500 mt-1">ถ้าไม่กรอก จะใช้ ชื่อ + นามสกุล</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  ถ้าไม่กรอก จะใช้ ชื่อ + นามสกุล
+                </p>
               </div>
 
               <div>
@@ -470,24 +481,11 @@ export default function EditInternPage() {
                   placeholder="https://github.com/..."
                 />
               </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-800 mb-2">
-                  Portfolio URL
-                </label>
-                <input
-                  type="url"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  value={portfolio}
-                  onChange={(e) => setPortfolio(e.target.value)}
-                  placeholder="https://yourportfolio.com"
-                />
-              </div>
             </div>
           </div>
 
           {/* === ปุ่มกด === */}
           <div className="flex justify-end pt-8 mt-8 border-t border-gray-200 gap-4">
-
             {/* ปุ่มยกเลิก กลับไปหน้า intern */}
             <Link
               href="/intern"
@@ -508,9 +506,16 @@ export default function EditInternPage() {
               {isSubmitting ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
             </button>
           </div>
-
         </form>
       </div>
+
+      <ModalSuccess
+        open={showSuccessModal}
+        href="/intern"
+        message="แก้ไขข้อมูลนักศึกษาฝึกงานสำเร็จ!"
+        description="คุณได้แก้ไขข้อมูลนักศึกษาฝึกงานเรียบร้อยแล้ว"
+        onClose={() => setShowSuccessModal(false)}
+      />
     </Layouts>
   );
 }

@@ -31,11 +31,37 @@ export default async function handler(
     }
 
     if (req.method === "PUT") {
-      const { status } = req.body;
+      const {
+        status,
+        name,
+        email,
+        phone,
+        subject,
+        message,
+        resumeUrl,
+        portfolioUrl,
+        handledById
+      } = req.body;
+
+      const updateData: any = {};
+      if (status !== undefined) updateData.status = status;
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (subject !== undefined) updateData.subject = subject;
+      if (message !== undefined) updateData.message = message;
+      if (resumeUrl !== undefined) updateData.resumeUrl = resumeUrl;
+      if (portfolioUrl !== undefined) updateData.portfolioUrl = portfolioUrl;
+      if (handledById !== undefined) updateData.handledById = handledById;
 
       const updated = await prisma.contactMessage.update({
         where: { id },
-        data: { status },
+        data: updateData,
+        include: {
+          handledBy: {
+            select: { name: true },
+          },
+        },
       });
 
       return res.status(200).json(updated);

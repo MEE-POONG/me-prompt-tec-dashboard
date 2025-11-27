@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 
 export default function AddPartnerPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function AddPartnerPage() {
 
   const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,8 +85,7 @@ export default function AddPartnerPage() {
         return;
       }
 
-      alert("บันทึกข้อมูลพันธมิตรเรียบร้อย");
-      router.push("/manage_partners");
+      setShowSuccessModal(true);
     } catch (err) {
       console.error("Create partner error", err);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -102,7 +103,8 @@ export default function AddPartnerPage() {
               href="/manage_partners"
               className="inline-flex items-center text-gray-500 hover:text-blue-600 mb-4 transition-colors text-sm"
             >
-              <ArrowLeft size={16} className="mr-1" /> ย้อนกลับไปหน้าจัดการพันธมิตร
+              <ArrowLeft size={16} className="mr-1" />{" "}
+              ย้อนกลับไปหน้าจัดการพันธมิตร
             </Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-600 rounded-lg text-white">
@@ -174,7 +176,8 @@ export default function AddPartnerPage() {
               <div className="md:col-span-8 space-y-5">
                 <div>
                   <label className="block text-sm font-bold text-gray-900 mb-2">
-                    ชื่อหน่วยงาน / องค์กร <span className="text-red-500">*</span>
+                    ชื่อหน่วยงาน / องค์กร{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600">
@@ -273,6 +276,14 @@ export default function AddPartnerPage() {
             </div>
           </form>
         </div>
+        {/* Modal Success */}
+        <ModalSuccess
+          open={showSuccessModal}
+          href="/manage_partners"
+          message="เพิ่มพันธมิตรสำเร็จ!"
+          description="คุณได้เพิ่มข้อมูลพันธมิตรเรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
+        />
       </div>
     </Layouts>
   );
