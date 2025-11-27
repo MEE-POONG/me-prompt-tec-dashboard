@@ -4,8 +4,6 @@ import Partners_Menu_Section from "@/Container/Partners/Partners_Menu_Section";
 import Card_Partner_Section, {
   PartnerData,
 } from "@/Container/Partners/Card_Partner_Section";
-
-import { Loader2 } from "lucide-react";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
