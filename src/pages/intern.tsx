@@ -159,11 +159,11 @@ export default function InternPage() {
           {/* === Header === */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10">
             <div className="flex items-center gap-4">
-                <div className="p-3.5 bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-2xl shadow-lg shadow-orange-500/30">
+                <div className="p-3.5 bg-linear-to-br from-orange-500 to-amber-600 text-white rounded-2xl shadow-lg shadow-orange-500/30">
                     <GraduationCap size={32} strokeWidth={1.5} />
                 </div>
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-orange-900 via-amber-600 to-orange-900 bg-clip-text text-transparent py-2 leading-normal">
+                    <h1 className="text-4xl font-black tracking-tight bg-linear-to-r from-orange-900 via-amber-600 to-orange-900 bg-clip-text text-transparent py-2 leading-normal">
                         จัดการนักศึกษา
                     </h1>
                     <p className="text-slate-500 font-medium -mt-1 flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function InternPage() {
           <div className="relative z-50 bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white/50 mb-8 flex flex-col lg:flex-row gap-4 justify-between items-center">
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center flex-1">
               
-              <div className="relative min-w-[160px] w-full sm:w-auto">
+              <div className="relative min-w-40 w-full sm:w-auto">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Filter size={18} />
                 </div>
@@ -253,7 +253,7 @@ export default function InternPage() {
               <p className="text-slate-400 animate-pulse font-medium">กำลังโหลดข้อมูล...</p>
             </div>
           ) : filteredInterns.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-[2rem] border-2 border-dashed border-slate-200 text-center backdrop-blur-sm">
+            <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-4xl border-2 border-dashed border-slate-200 text-center backdrop-blur-sm">
               <div className="bg-slate-50 p-6 rounded-full mb-4 shadow-sm">
                 <UserPlus size={48} className="text-slate-300" />
               </div>
@@ -275,11 +275,11 @@ export default function InternPage() {
                   {filteredInterns.map((intern) => (
                     <div
                       key={intern.id}
-                      className={`relative bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 transition-all duration-500 group
+                      className={`relative bg-white rounded-4xl overflow-hidden shadow-sm border border-slate-100 transition-all duration-500 group
                         ${selectedIds.includes(intern.id) ? "ring-4 ring-orange-500 shadow-md scale-95" : "hover:-translate-y-2 hover:shadow-xl hover:shadow-orange-500/10"}
                       `}
                     >
-                      <div className="relative w-full aspect-[4/5] overflow-hidden bg-slate-50">
+                      <div className="relative w-full aspect-4/5 overflow-hidden bg-slate-50">
                         <Image
                           className="transition-transform duration-700 ease-out group-hover:scale-110"
                           src={intern.imageSrc || "/default-avatar.png"}
@@ -289,7 +289,7 @@ export default function InternPage() {
                         />
                         
                         {/* ✅ Gradient และ ข้อความ: เริ่มต้นซ่อนไว้ (opacity-0) แสดงตอน Hover */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-500 z-10"></div>
+                        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-500 z-10"></div>
 
                         {/* Checkbox */}
                         <div className="absolute top-4 left-4 z-20">
@@ -344,7 +344,7 @@ export default function InternPage() {
 
               {/* === LIST VIEW === */}
               {viewType === "list" && (
-                <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-sm overflow-hidden border border-white/60 relative z-0 mt-6">
+                <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-sm overflow-hidden border border-white/60 relative z-0 mt-6">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 text-slate-500 uppercase text-xs font-bold tracking-wider border-b border-slate-100">
                       <tr>
@@ -416,7 +416,7 @@ export default function InternPage() {
 
           {/* === Modal === */}
           {modalUrl && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeModal}>
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeModal}>
               <div className="relative w-full max-w-6xl h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                  <div className="flex justify-between items-center p-4 border-b bg-slate-50">
                     <div className="flex items-center gap-2 overflow-hidden">

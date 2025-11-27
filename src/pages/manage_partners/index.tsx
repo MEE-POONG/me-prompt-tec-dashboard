@@ -4,9 +4,7 @@ import Partners_Menu_Section from "@/Container/Partners/Partners_Menu_Section";
 import Card_Partner_Section, {
   PartnerData,
 } from "@/Container/Partners/Card_Partner_Section";
-import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
-import ModalError from "@/components/ui/Modals/ModalError";
-import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import { Loader2 } from "lucide-react";
 
 export default function ManagePartnersPage() {
   const [partnersList, setPartnersList] = useState<PartnerData[]>([]);
@@ -14,9 +12,6 @@ export default function ManagePartnersPage() {
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // โหลดข้อมูลจาก API
   useEffect(() => {
@@ -63,12 +58,14 @@ export default function ManagePartnersPage() {
     );
   };
 
-  const handleDeleteClick = () => {
+  const handleDelete = async () => {
     if (selectedIds.length === 0) return;
-    setShowDeleteModal(true);
-  };
 
-  const handleDeleteConfirm = async () => {
+    const ok = window.confirm(
+      `คุณต้องการลบพันธมิตรจำนวน ${selectedIds.length} รายการใช่หรือไม่?`
+    );
+    if (!ok) return;
+
     try {
       await Promise.all(
         selectedIds.map(async (id) => {
@@ -79,65 +76,55 @@ export default function ManagePartnersPage() {
 
       setPartnersList((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
       setSelectedIds([]);
-      setShowDeleteModal(false);
-      setShowSuccessModal(true);
+      alert("ลบข้อมูลเรียบร้อย");
     } catch (err) {
       console.error("Delete failed", err);
-      setShowDeleteModal(false);
-      setShowErrorModal(true);
+      alert("ลบข้อมูลบางรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
   };
 
   return (
     <Layouts>
-      <div className="p-6 md:p-8 w-full bg-gray-50 min-h-screen">
-        <Partners_Menu_Section
-          totalCount={partnersList.length}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          viewType={viewType}
-          setViewType={setViewType}
-          selectedCount={selectedIds.length}
-          onDelete={handleDeleteClick}
-        />
+      <div className="relative min-h-screen bg-[#f8f9fc] overflow-hidden font-sans text-slate-800">
+        
+        {/* --- 🌟 Background Aurora (Theme ชมพู/แดง สำหรับหน้านี้) --- */}
+        <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+             {/* สีชมพูบนซ้าย */}
+             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-pink-200/40 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
+             {/* สีแดงกุหลาบบนขวา */}
+             <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-rose-200/40 rounded-full blur-[100px] mix-blend-multiply"></div>
+             {/* สีม่วงจางๆ ล่างซ้าย */}
+             <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/30 rounded-full blur-[100px] mix-blend-multiply"></div>
+        </div>
 
-        {loading ? (
-          <div className="w-full flex items-center justify-center py-20 text-gray-400">
-            กำลังโหลดข้อมูลพันธมิตร...
-          </div>
-        ) : (
-          <Card_Partner_Section
-            partners={filteredPartners}
+        {/* Content Container */}
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 max-w-7xl py-8">
+          
+          <Partners_Menu_Section
+            totalCount={partnersList.length}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
             viewType={viewType}
-            selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
+            setViewType={setViewType}
+            selectedCount={selectedIds.length}
+            onDelete={handleDelete}
           />
-        )}
 
-        {/* Modal Delete */}
-        {showDeleteModal && (
-          <ModalDelete
-            message={`คุณต้องการลบพันธมิตรจำนวน ${selectedIds.length} รายการใช่หรือไม่?`}
-            onClose={() => setShowDeleteModal(false)}
-            onConfirm={handleDeleteConfirm}
-          />
-        )}
-
-        {/* Modal Success */}
-        <ModalSuccess
-          open={showSuccessModal}
-          message="ลบข้อมูลสำเร็จ!"
-          description="ลบข้อมูลพันธมิตรเรียบร้อยแล้ว"
-          onClose={() => setShowSuccessModal(false)}
-        />
-
-        {/* Modal Error */}
-        <ModalError
-          open={showErrorModal}
-          message="เกิดข้อผิดพลาด!"
-          description="ลบข้อมูลบางรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
-          onClose={() => setShowErrorModal(false)}
-        />
+          {loading ? (
+            <div className="w-full flex flex-col items-center justify-center py-32 gap-4">
+              {/* Spinner สีชมพู */}
+              <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
+              <p className="text-slate-400 animate-pulse font-medium">กำลังโหลดข้อมูลพันธมิตร...</p>
+            </div>
+          ) : (
+            <Card_Partner_Section
+              partners={filteredPartners}
+              viewType={viewType}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
+          )}
+        </div>
       </div>
     </Layouts>
   );
