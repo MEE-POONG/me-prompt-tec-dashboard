@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../lib/prisma";
-import { CoopType } from "../../../generated/prisma/enums";
+import { CoopType } from "@prisma/client"; // ✅ แก้ไข: Import จาก @prisma/client โดยตรง
 
 export default async function handler(
   req: NextApiRequest,
@@ -72,8 +72,8 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
       take: limitNum,
       // ✅ แก้ไขการเรียงลำดับตรงนี้
       orderBy: [
-        { gen: 'desc' },       // 1. รุ่นใหม่สุดอยู่บน (เรียงจากเลขมากไปน้อย)
-        { createdAt: 'desc' }  // 2. ในรุ่นเดียวกัน ข้อมูลใหม่สุดอยู่ก่อน
+        { gen: 'desc' },      // 1. รุ่นใหม่สุดอยู่บน (เรียงจากเลขมากไปน้อย)
+        { createdAt: 'desc' } // 2. ในรุ่นเดียวกัน ข้อมูลใหม่สุดอยู่ก่อน
       ],
       include: {
         projectLinks: {

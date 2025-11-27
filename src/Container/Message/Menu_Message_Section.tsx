@@ -17,6 +17,9 @@ import {
   ExternalLink,
   Briefcase,
 } from "lucide-react";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 // --- Type Definitions ---
 interface HandledBy {
@@ -80,6 +83,12 @@ export default function Menu_Message_Section() {
 
   // Selection State
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const selectedMessage = messages.find((m) => m.id === selectedId);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,24 +171,34 @@ export default function Menu_Message_Section() {
     }
   };
 
-  const deleteMessage = async (id: number) => {
-    if (!confirm("ต้องการลบข้อความนี้ใช่ไหม?")) return;
+  const handleDeleteClick = (id: number) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
 
     try {
-      await fetch(`/api/contact/${id}`, {
+      await fetch(`/api/contact/${deleteId}`, {
         method: "DELETE",
       });
 
       // ลบออกจาก state
-      setMessages((prev) => prev.filter((m) => m.id !== id));
+      setMessages((prev) => prev.filter((m) => m.id !== deleteId));
 
       // ถ้าข้อความที่ถูกลบคืออันที่กำลังเปิดอยู่ → รีเซ็ต
-      if (selectedId === id) {
+      if (selectedId === deleteId) {
         setSelectedId(null);
       }
+
+      setShowDeleteModal(false);
+      setShowSuccessModal(true);
+      setDeleteId(null);
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("ลบไม่สำเร็จ");
+      setShowDeleteModal(false);
+      setShowErrorModal(true);
     }
   };
 
@@ -404,7 +423,7 @@ export default function Menu_Message_Section() {
                     <Reply size={18} />
                   </button>
                   <button
-                    onClick={() => deleteMessage(selectedMessage.id)}
+                    onClick={() => handleDeleteClick(selectedMessage.id)}
                     className="p-2 hover:bg-red-50 text-gray-500 hover:text-red-600 rounded-lg"
                     title="Delete"
                   >
@@ -528,6 +547,31 @@ export default function Menu_Message_Section() {
           )}
         </div>
       </div>
+
+      {/* Modal Delete */}
+      {showDeleteModal && (
+        <ModalDelete
+          message="ต้องการลบข้อความนี้ใช่ไหม?"
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {/* Modal Success */}
+      <ModalSuccess
+        open={showSuccessModal}
+        message="ลบข้อความสำเร็จ!"
+        description="ลบข้อความเรียบร้อยแล้ว"
+        onClose={() => setShowSuccessModal(false)}
+      />
+
+      {/* Modal Error */}
+      <ModalError
+        open={showErrorModal}
+        message="เกิดข้อผิดพลาด!"
+        description="ลบข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+        onClose={() => setShowErrorModal(false)}
+      />
     </div>
   );
 }

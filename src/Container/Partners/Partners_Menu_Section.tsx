@@ -35,12 +35,12 @@ export default function Partners_Menu_Section({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
         <div className="flex items-center gap-4">
             {/* 💖 สีไอคอน: Pink -> Rose */}
-            <div className="p-3.5 bg-linear-to-br from-pink-500 to-rose-600 text-white rounded-2xl shadow-lg shadow-pink-500/30">
+            <div className="p-3.5 bg-gradient-to-br from-pink-500 to-rose-600 text-white rounded-2xl shadow-lg shadow-pink-500/30">
                 <Handshake size={32} strokeWidth={1.5} />
             </div>
             <div>
                 {/* 💖 สีข้อความ: Gradient ชมพู */}
-                <h1 className="text-4xl font-black tracking-tight bg-linear-to-r from-slate-800 via-pink-700 to-slate-800 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-slate-800 via-pink-700 to-slate-800 bg-clip-text text-transparent">
                 จัดการพันธมิตร
                 </h1>
                 <p className="text-slate-500 mt-1 font-medium">

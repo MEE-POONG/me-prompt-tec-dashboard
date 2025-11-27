@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import React, { useState, useEffect, useRef } from "react";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 export default function EditProjectPage() {
   const router = useRouter();
@@ -39,6 +41,9 @@ export default function EditProjectPage() {
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // --- Fetch Project Data ---
   useEffect(() => {
@@ -70,12 +75,14 @@ export default function EditProjectPage() {
         setLinks(project.links || []);
         setImageUrl(project.cover || "");
       } else {
-        alert("ไม่พบข้อมูลโปรเจกต์");
-        router.push("/project");
+        setErrorMessage("ไม่พบข้อมูลโปรเจกต์");
+        setShowErrorModal(true);
+        setTimeout(() => router.push("/project"), 2000);
       }
     } catch (err) {
       console.error("Error fetching project:", err);
-      alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      setErrorMessage("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      setShowErrorModal(true);
     } finally {
       setIsLoadingData(false);
     }
@@ -188,10 +195,11 @@ export default function EditProjectPage() {
         throw new Error(errorData.error || "Failed to update project");
       }
 
-      alert("อัปเดตโปรเจกต์เรียบร้อย!");
-      router.push("/project");
+      setShowSuccessModal(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
+      setErrorMessage(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการอัปเดต");
+      setShowErrorModal(true);
       console.error("Error updating project:", err);
     } finally {
       setLoading(false);
@@ -605,6 +613,23 @@ export default function EditProjectPage() {
             </div>
           </form>
         </div>
+
+        {/* Modal Success */}
+        <ModalSuccess
+          open={showSuccessModal}
+          href="/project"
+          message="อัปเดตโปรเจกต์สำเร็จ!"
+          description="บันทึกการแก้ไขเรียบร้อยแล้ว"
+          onClose={() => setShowSuccessModal(false)}
+        />
+
+        {/* Modal Error */}
+        <ModalError
+          open={showErrorModal}
+          message="เกิดข้อผิดพลาด!"
+          description={errorMessage}
+          onClose={() => setShowErrorModal(false)}
+        />
       </div>
     </Layouts>
   );

@@ -44,7 +44,7 @@ export default function Card_Partner_Section({
             <div 
               key={partner.id} 
               className={`
-                group relative flex flex-col bg-white rounded-4xl overflow-hidden transition-all duration-500 
+                group relative flex flex-col bg-white rounded-[2rem] overflow-hidden transition-all duration-500 
                 hover:-translate-y-2 hover:shadow-xl /* 💖 เงาสีชมพู */ hover:shadow-pink-500/10 border
                 /* 💖 ขอบสีชมพูเมื่อเลือก */ ${selectedIds.includes(partner.id) ? 'ring-2 ring-pink-500 shadow-md border-transparent' : 'shadow-sm border-slate-100'}
               `}
@@ -120,7 +120,7 @@ export default function Card_Partner_Section({
 
       {/* ================= LIST VIEW ================= */}
       {viewType === 'list' && (
-        <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-sm overflow-hidden border border-white/60 relative z-0">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-sm overflow-hidden border border-white/60 relative z-0">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50/50 text-slate-500 uppercase text-xs font-bold tracking-wider border-b border-slate-100">
               <tr>
