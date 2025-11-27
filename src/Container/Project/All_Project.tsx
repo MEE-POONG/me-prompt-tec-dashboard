@@ -13,7 +13,7 @@ import {
   Loader2,
   Plus,
   Briefcase, // ✅ เพิ่มไอคอนนี้
-} from "lucide-react";
+} from "lucide-react"
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
