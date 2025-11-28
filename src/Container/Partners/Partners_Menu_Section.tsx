@@ -1,14 +1,6 @@
 import React from 'react';
 import { Search, LayoutGrid, List, Trash2, Handshake, Plus } from 'lucide-react';
-
-// Mock Link 
-const Link = ({ href, children, className }: { href: string, children: React.ReactNode, className?: string }) => {
-  return (
-    <a href={href} className={className} style={{ textDecoration: 'none' }}>
-      {children}
-    </a>
-  );
-};
+import Link from "next/link"; // ใช้ Link ของ next/link โดยตรง
 
 interface PartnersMenuProps {
   totalCount: number;
@@ -49,13 +41,14 @@ export default function Partners_Menu_Section({
             </div>
         </div>
 
-        {/* ปุ่มเพิ่มพันธมิตร (ใช้สีเข้มตัดกันเหมือนเดิม แต่ Hover สีชมพู) */}
+        {/* ✅✅ แก้ไขปุ่มตรงนี้: เปลี่ยนเป็นสีชมพู (bg-pink-600) */}
         <Link 
             href="/manage_partners/add" 
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-pink-600 transition-all shadow-lg shadow-slate-900/20 hover:-translate-y-1"
         >
-            <Plus size={20} strokeWidth={3} /> 
-            <span>เพิ่มพันธมิตร</span>
+            <button className="flex items-center gap-2 bg-pink-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-pink-700 transition-all shadow-lg shadow-pink-500/30 hover:-translate-y-1">
+                <Plus size={20} strokeWidth={3} /> 
+                <span>เพิ่มพันธมิตร</span>
+            </button>
         </Link>
       </div>
 
