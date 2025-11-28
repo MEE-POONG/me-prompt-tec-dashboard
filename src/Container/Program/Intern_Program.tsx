@@ -45,7 +45,7 @@ export default function ManageInternship() {
   // --- Functions เปิด Modal ---
   const openAddModal = () => {
     setCurrentId(null);
-    setFormData({ title: "", description: "", isOpen: true });
+    setFormData({ title: "", description: "", isOpen: true });  
     setIsModalOpen(true);
   };
 

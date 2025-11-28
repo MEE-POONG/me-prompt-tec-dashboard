@@ -322,7 +322,7 @@ model ContactMessage {
   message   String
   source    String  @default("website") // website|portfolio|intern-page|other
   resumeUrl      String?
-  portfolioUrl   String? 
+  portfolioUrl   String?
 
   handledById String? @db.ObjectId
   handledBy   User?   @relation(fields: [handledById], references: [id])
