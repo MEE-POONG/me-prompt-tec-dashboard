@@ -25,13 +25,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where.OR = [
         { name: { contains: search as string, mode: "insensitive" } },
         { email: { contains: search as string, mode: "insensitive" } },
+        // แถมค้นหาจากหัวข้อ (Subject) ให้ด้วยครับ
+        { subject: { contains: search as string, mode: "insensitive" } }, 
       ];
     }
 
-    // Filter by status
+    // --- ✅ แก้ไขตรงนี้ครับ (Logic กรองดาว) ---
     if (status) {
-      where.status = status;
+      if (status === "starred") {
+        // ถ้าเลือกตัวกรอง "สำคัญ" ให้หา field isStarred = true
+        where.isStarred = true;
+      } else {
+        // ถ้าเลือกตัวกรองอื่น (new, in-progress) ให้หาตาม status ปกติ
+        where.status = status;
+      }
     }
+    // ----------------------------------------
 
     // Filter by date (yyyy-mm-dd)
     if (date) {

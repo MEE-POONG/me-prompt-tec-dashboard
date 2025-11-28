@@ -1,11 +1,11 @@
-import Layouts from '@/components/Layouts'
-import Menu_Message_Section from '@/Container/Message/Menu_Message_Section'
-import React from 'react'
+import React from 'react';
+import Layouts from '@/components/Layouts';
+import Menu_Message_Section from '@/Container/Message/Menu_Message_Section';
 
-export default function message() {
+export default function MessagePage() {
   return (
     <Layouts>
-        <Menu_Message_Section/>
+        <Menu_Message_Section />
     </Layouts>
-  )
+  );
 }

@@ -11,10 +11,10 @@ import {
   Calendar,
   RefreshCcw,
   Phone,
-  ExternalLink,
   Briefcase,
   MessageSquare,
-  ArrowLeft // ✅ เพิ่ม ArrowLeft เข้ามาแล้วครับ
+  ArrowLeft,
+  Star
 } from "lucide-react";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
@@ -26,6 +26,7 @@ interface ContactMessage {
   id: number; name: string; email: string; phone?: string; subject: string;
   content?: string; message?: string; status: string; source?: string;
   resumeUrl?: string; portfolioUrl?: string; createdAt: string; handledBy: HandledBy | null;
+  isStarred?: boolean;
 }
 interface MetaData { total: number; page: number; totalPages: number; }
 
@@ -40,7 +41,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function Menu_Message_Section() {
-  // State (เหมือนเดิม)
+  // --- State ---
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [meta, setMeta] = useState<MetaData>({ total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState<boolean>(false);
@@ -50,14 +51,17 @@ export default function Menu_Message_Section() {
   const [filterDate, setFilterDate] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const selectedMessage = messages.find((m) => m.id === selectedId);
 
+  // --- Logic ---
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); }, 500);
     return () => clearTimeout(timer);
@@ -71,8 +75,10 @@ export default function Menu_Message_Section() {
       if (statusFilter) params.append("status", statusFilter);
       if (debouncedSearch) params.append("search", debouncedSearch);
       if (filterDate) params.append("date", filterDate);
+      
       const res = await fetch(`/api/contact/contacts?${params.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+      
       const data = await res.json();
       setMessages((data.data as ContactMessage[]) || []);
       setMeta((data.meta as MetaData) || { total: 0, page: 1, totalPages: 1 });
@@ -87,6 +93,7 @@ export default function Menu_Message_Section() {
     setSelectedId(id);
     const msg = messages.find((m) => m.id === id);
     if (!msg || msg.status !== "new") return;
+    
     try {
       await fetch(`/api/contact/${id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
@@ -96,7 +103,26 @@ export default function Menu_Message_Section() {
     } catch (err) { console.error("Failed to update status", err); }
   };
 
+  const handleToggleStar = async (id: number) => {
+    const currentMsg = messages.find(m => m.id === id);
+    if (!currentMsg) return;
+    const newStatus = !currentMsg.isStarred;
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, isStarred: newStatus } : m)));
+    try {
+      const res = await fetch(`/api/contact/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isStarred: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update star");
+    } catch (err) {
+      console.error("Failed to star message", err);
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, isStarred: !newStatus } : m)));
+    }
+  };
+
   const handleDeleteClick = (id: number) => { setDeleteId(id); setShowDeleteModal(true); };
+  
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
     try {
@@ -112,12 +138,12 @@ export default function Menu_Message_Section() {
   const handleRefresh = async () => { setRefreshing(true); await fetchMessages(); setRefreshing(false); };
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col bg-[#f8f9fc] py-6 px-4 md:px-8 relative overflow-hidden">
+    <div className="h-[calc(100vh-100px)] flex flex-col bg-[#f8f9fc] py-6 px-4 md:px-8 relative overflow-hidden font-sans text-slate-800">
       
-      {/* Background Aurora (จางๆ) */}
-      <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none">
-         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-100/50 rounded-full blur-[120px]"></div>
-         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[120px]"></div>
+      {/* --- Background Aurora --- */}
+      <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
+         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
+         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-200/40 rounded-full blur-[120px] mix-blend-multiply"></div>
       </div>
 
       <div className="relative z-10 flex flex-col h-full max-w-7xl mx-auto w-full">
@@ -132,7 +158,6 @@ export default function Menu_Message_Section() {
           </div>
 
           <div className="flex gap-2 w-full md:w-auto flex-col md:flex-row items-center bg-white/60 backdrop-blur-md p-2 rounded-2xl border border-white/50 shadow-sm">
-            {/* Search */}
             <div className="relative flex-1 md:w-56 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
@@ -141,26 +166,25 @@ export default function Menu_Message_Section() {
                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {/* Date */}
             <div className="relative w-full md:w-auto">
               <input
                 type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}
                 className="w-full md:w-36 pl-3 pr-8 py-2 rounded-xl bg-white/80 border border-white focus:outline-none focus:ring-2 focus:ring-violet-200 text-slate-600 text-sm cursor-pointer"
               />
-              {filterDate && (
-                <button onClick={() => setFilterDate("")} className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={12}/></button>
-              )}
+              {filterDate && <button onClick={() => setFilterDate("")} className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={12}/></button>}
               <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
             </div>
-            {/* Filter Status */}
             <div className="flex bg-slate-100/50 rounded-xl p-1 w-full md:w-auto">
               <button onClick={() => setStatusFilter("")} className={`flex-1 md:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter==="" ? "bg-white text-violet-600 shadow-sm" : "text-slate-500"}`}>ทั้งหมด</button>
               <button onClick={() => setStatusFilter("new")} className={`flex-1 md:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter==="new" ? "bg-white text-violet-600 shadow-sm" : "text-slate-500"}`}>ใหม่</button>
+              <button onClick={() => setStatusFilter("starred")} className={`flex-1 md:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter==="starred" ? "bg-white text-yellow-500 shadow-sm" : "text-slate-500"}`}>
+                <div className="flex items-center gap-1"><Star size={12} className="fill-current" /> สำคัญ</div>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* === Main Content (Inbox Layout) === */}
+        {/* === Main Content === */}
         <div className="flex flex-1 bg-white/70 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden h-full relative">
           
           {/* --- Left Column: List --- */}
@@ -184,17 +208,27 @@ export default function Menu_Message_Section() {
                 <div
                   key={msg.id}
                   onClick={() => handleSelectMessage(msg.id)}
-                  className={`p-4 rounded-2xl cursor-pointer transition-all duration-200 group border
+                  // ✅✅ ปรับแต่งสีม่วงอ่อนและกรอบตรงนี้ตามที่ขอ
+                  className={`p-4 rounded-2xl cursor-pointer transition-all duration-200 group border relative pr-8
                     ${selectedId === msg.id 
-                      ? "bg-white shadow-md border-violet-100 scale-[1.02]" 
-                      : "bg-transparent border-transparent hover:bg-white/60 hover:border-white hover:shadow-sm"
+                      ? "bg-violet-50 border-violet-500 border-2 shadow-md scale-[1.02]" 
+                      : "bg-white border-slate-100 hover:border-violet-200 hover:shadow-sm"
                     }
                   `}
                 >
-                  <div className="flex justify-between items-start mb-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleToggleStar(msg.id); }}
+                    className={`absolute top-4 right-4 z-10 p-1 rounded-full hover:bg-slate-100 transition-colors ${msg.isStarred ? "text-yellow-400" : "text-slate-300 hover:text-yellow-400"}`}
+                  >
+                    <Star size={16} className={msg.isStarred ? "fill-yellow-400" : ""} />
+                  </button>
+
+                  <div className="flex justify-between items-start mb-1 pr-6">
                     <h4 className={`text-sm truncate pr-2 ${msg.status === "new" ? "font-bold text-slate-800" : "font-medium text-slate-600"}`}>
                       {msg.name || msg.email}
                     </h4>
+                  </div>
+                  <div className="flex justify-between items-center mb-1">
                     <span className={`text-[10px] whitespace-nowrap ${msg.status === "new" ? "text-violet-600 font-bold" : "text-slate-400"}`}>
                       {formatDate(msg.createdAt)}
                     </span>
@@ -203,7 +237,7 @@ export default function Menu_Message_Section() {
                     {msg.subject}
                   </p>
                   <p className="text-xs text-slate-400 line-clamp-1">{msg.message || msg.content}</p>
-                  {msg.status === "new" && <div className="absolute top-4 right-4 w-2 h-2 bg-violet-500 rounded-full ring-2 ring-white"></div>}
+                  {msg.status === "new" && <div className="absolute bottom-4 right-4 w-2 h-2 bg-violet-500 rounded-full ring-2 ring-white"></div>}
                 </div>
               ))}
             </div>
@@ -213,10 +247,18 @@ export default function Menu_Message_Section() {
           <div className={`w-full md:flex-1 flex flex-col bg-white/60 backdrop-blur-sm relative z-10 ${!selectedId && "hidden md:flex"}`}>
             {selectedMessage ? (
               <>
-                {/* Detail Header */}
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white/80 sticky top-0 z-20 backdrop-blur-md">
                   <div className="flex gap-2 items-center">
                     <button onClick={() => setSelectedId(null)} className="md:hidden p-2 hover:bg-slate-100 rounded-full text-slate-600 mr-2"><ArrowLeft size={20} /></button>
+                    
+                    <button 
+                        onClick={() => handleToggleStar(selectedMessage.id)}
+                        className={`p-2 rounded-xl transition-colors ${selectedMessage.isStarred ? "bg-yellow-50 text-yellow-500" : "hover:bg-slate-100 text-slate-400 hover:text-yellow-400"}`} 
+                        title="ติดดาว"
+                    >
+                        <Star size={18} className={selectedMessage.isStarred ? "fill-yellow-500" : ""} />
+                    </button>
+
                     <button className="p-2 hover:bg-slate-100 text-slate-500 rounded-xl transition-colors" title="Reply"><Reply size={18} /></button>
                     <button onClick={() => handleDeleteClick(selectedMessage.id)} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl transition-colors" title="Delete"><Trash2 size={18} /></button>
                   </div>
@@ -228,9 +270,8 @@ export default function Menu_Message_Section() {
                   </div>
                 </div>
 
-                {/* Detail Content */}
                 <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-                   <div className="flex justify-between items-start mb-8">
+                    <div className="flex justify-between items-start mb-8">
                       <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-500/30">
                              {(selectedMessage.name || selectedMessage.email || "?").charAt(0).toUpperCase()}
@@ -245,18 +286,17 @@ export default function Menu_Message_Section() {
                           <p className="text-xs font-bold text-slate-400 mb-1">RECEIVED</p>
                           <p className="text-xs text-slate-600">{formatDate(selectedMessage.createdAt)}</p>
                       </div>
-                   </div>
+                    </div>
 
-                   <div className="bg-white p-6 rounded-4xl shadow-sm border border-slate-100 mb-6 relative group">
+                    <div className="bg-white p-6 rounded-4xl shadow-sm border border-slate-100 mb-6 relative group">
                       <div className="absolute top-6 right-6 opacity-10 group-hover:opacity-20 transition-opacity"><MessageSquare size={48}/></div>
                       <h3 className="text-lg font-bold text-slate-800 mb-4 pb-4 border-b border-slate-50">{selectedMessage.subject}</h3>
                       <div className="prose max-w-none text-slate-600 text-sm leading-loose whitespace-pre-line">
                         {selectedMessage.message || selectedMessage.content}
                       </div>
-                   </div>
+                    </div>
 
-                   {/* Attachments */}
-                   {(selectedMessage.resumeUrl || selectedMessage.portfolioUrl) && (
+                    {(selectedMessage.resumeUrl || selectedMessage.portfolioUrl) && (
                       <div className="flex gap-4 mt-6">
                           {selectedMessage.resumeUrl && (
                              <a href={selectedMessage.resumeUrl.startsWith('http') ? selectedMessage.resumeUrl : `${process.env.NEXT_PUBLIC_FILE_BASE_URL || ''}${selectedMessage.resumeUrl}`} download target="_blank"
@@ -273,14 +313,15 @@ export default function Menu_Message_Section() {
                              </a>
                           )}
                       </div>
-                   )}
+                    )}
+                    
+                    {/* ❌ เอา Note ออกแล้วตามคำขอ */}
                 </div>
 
-                {/* Reply Box */}
                 <div className="p-4 border-t border-slate-100 bg-white/80 backdrop-blur-md sticky bottom-0">
                   <div className="relative">
-                     <input type="text" placeholder={`ตอบกลับถึง ${selectedMessage.name}...`} className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:bg-white transition-all text-sm"/>
-                     <Reply className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                      <input type="text" placeholder={`ตอบกลับถึง ${selectedMessage.name}...`} className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:bg-white transition-all text-sm"/>
+                      <Reply className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
                   </div>
                 </div>
               </>

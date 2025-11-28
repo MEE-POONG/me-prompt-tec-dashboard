@@ -24,7 +24,6 @@ export default function DashboardHeader() {
   // --- State สำหรับ Popup แจ้งเตือน ---
   const [showPopup, setShowPopup] = useState(false);
   const [latestMsg, setLatestMsg] = useState<ContactMessage | null>(null);
-  // ใช้ Ref เก็บ ID ล่าสุดเพื่อเปรียบเทียบ (ไม่ให้เด้งซ้ำ)
   const lastMsgIdRef = useRef<number | null>(null); 
 
   // --- Logic การดึงข้อมูล ---
@@ -42,21 +41,19 @@ export default function DashboardHeader() {
 
       // --- 🔔 Logic ตรวจจับข้อความใหม่เพื่อเด้ง Popup ---
       if (dataNew.data && dataNew.data.length > 0) {
-        const newest = dataNew.data[0]; // ข้อความล่าสุด (ตัวแรกใน array)
+        const newest = dataNew.data[0];
 
-        // ถ้าเป็นครั้งแรกที่โหลดหน้าเว็บ ให้จำ ID ไว้เฉยๆ ไม่ต้องเด้ง (กันรำคาญตอน refresh)
         if (lastMsgIdRef.current === null) {
             lastMsgIdRef.current = newest.id;
         } 
-        // ถ้ามี ID ใหม่ ที่ไม่ตรงกับอันเดิม -> แสดง Popup!
         else if (newest.id !== lastMsgIdRef.current) {
             setLatestMsg(newest);
             setShowPopup(true);
             lastMsgIdRef.current = newest.id;
             
-            // เล่นเสียงแจ้งเตือน (Optional)
-            const audio = new Audio('/notification.mp3'); // ต้องมีไฟล์เสียงใน public
-            audio.play().catch(() => {}); // กัน error ถ้า browser บล็อก
+            // เล่นเสียงแจ้งเตือน
+            const audio = new Audio('/notification.mp3'); 
+            audio.play().catch(() => {}); 
         }
       }
 
@@ -75,8 +72,8 @@ export default function DashboardHeader() {
       });
 
       setIsOpen(false);
-      setShowPopup(false); // ปิด Popup ด้วยถ้ากดอ่าน
-      router.push(`/message?id=${id}`);
+      setShowPopup(false); 
+      router.push(`/message?id=${id}`); // ลิงก์ไปหน้า message โดยตรง
       
       setUnreadCount((prev) => Math.max(prev - 1, 0));
       setNotifications((prev) =>
@@ -110,14 +107,13 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // เช็คทุก 1 นาที
+    const interval = setInterval(fetchNotifications, 3000); // เช็คทุก 3 วินาที
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
 
   return (
     <>
-      {/* --- CSS Animation --- */}
       <style>{`
         @keyframes bell-shake {
           0% { transform: rotate(0); }
@@ -142,33 +138,34 @@ export default function DashboardHeader() {
 
       {/* --- 🔔 New Message Popup (Modal) --- */}
       {showPopup && latestMsg && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-300">
+        // ✅ แก้ไข: เพิ่ม z-[999] เพื่อให้อยู่บนสุด และปรับสีพื้นหลังให้เบลอสวยขึ้น
+        <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-300">
            <div 
-             className="bg-white/90 backdrop-blur-xl border border-white/50 p-6 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden"
+             className="bg-white/95 backdrop-blur-xl border border-white/50 p-6 rounded-4xl shadow-2xl w-full max-w-md relative overflow-hidden"
              style={{ animation: 'popup-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
            >
               {/* Background Glow */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/20 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl"></div>
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl"></div>
 
               <div className="relative z-10 text-center">
-                 <div className="w-16 h-16 bg-linear-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-500/30 animate-bell">
+                 <div className="w-16 h-16 bg-linear-to-br from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-500/30 animate-bell">
                     <MessageSquare className="text-white" size={32} />
                  </div>
                  
                  <h3 className="text-2xl font-bold text-slate-800 mb-1">มีข้อความใหม่!</h3>
                  <p className="text-slate-500 text-sm mb-6">คุณได้รับการติดต่อใหม่จากหน้าเว็บไซต์</p>
 
-                 <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100 mb-6">
+                 <div className="bg-slate-50 p-4 rounded-2xl text-left border border-slate-100 mb-6 shadow-inner">
                     <p className="text-xs text-slate-400 mb-1">ผู้ส่ง: <span className="text-slate-700 font-bold">{latestMsg.name}</span></p>
                     <p className="text-xs text-slate-400 mb-1">หัวข้อ: <span className="text-slate-700 font-medium">{latestMsg.subject}</span></p>
-                    <p className="text-sm text-slate-600 mt-2 line-clamp-2 italic">"{latestMsg.message}"</p>
+                    <p className="text-sm text-slate-600 mt-2 line-clamp-2 italic bg-white p-2 rounded-lg border border-slate-100">"{latestMsg.message}"</p>
                  </div>
 
                  <div className="flex gap-3">
                     <button 
                       onClick={() => setShowPopup(false)}
-                      className="flex-1 py-3 rounded-xl text-slate-500 font-bold hover:bg-slate-100 transition-colors"
+                      className="flex-1 py-3 rounded-xl text-slate-500 font-bold hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
                     >
                       ไว้ทีหลัง
                     </button>
@@ -181,9 +178,10 @@ export default function DashboardHeader() {
                  </div>
               </div>
 
+              {/* ✅ แก้ไข: ปุ่มปิด (X) เพิ่ม z-index ให้กดได้แน่นอน */}
               <button 
                 onClick={() => setShowPopup(false)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors z-50 cursor-pointer"
               >
                 <X size={20}/>
               </button>
@@ -304,7 +302,7 @@ export default function DashboardHeader() {
               <span className="hidden sm:inline">Download Report</span>
             </button>
             
-            <Link href="/project">
+            <Link href="/project_create">
               <button className="flex items-center gap-2 bg-violet-600 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-violet-700 transition-all shadow-lg shadow-violet-600/30 hover:-translate-y-1">
                 <Plus size={18} />
                 <span>สร้างโปรเจกต์ใหม่</span>

@@ -30,6 +30,7 @@ export default async function handler(
       return res.status(200).json(message);
     }
 
+    // PUT (Update)
     if (req.method === "PUT") {
       const {
         status,
@@ -40,7 +41,8 @@ export default async function handler(
         message,
         resumeUrl,
         portfolioUrl,
-        handledById
+        handledById,
+        isStarred, // ✅ 1. เพิ่มการรับค่า isStarred
       } = req.body;
 
       const updateData: any = {};
@@ -53,6 +55,9 @@ export default async function handler(
       if (resumeUrl !== undefined) updateData.resumeUrl = resumeUrl;
       if (portfolioUrl !== undefined) updateData.portfolioUrl = portfolioUrl;
       if (handledById !== undefined) updateData.handledById = handledById;
+      
+      // ✅ 2. เพิ่ม logic อัปเดตลง Database
+      if (isStarred !== undefined) updateData.isStarred = isStarred;
 
       const updated = await prisma.contactMessage.update({
         where: { id },
@@ -81,7 +86,7 @@ export default async function handler(
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
-    console.error("DELETE/GET id error:", err);
+    console.error("DELETE/GET/PUT id error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
