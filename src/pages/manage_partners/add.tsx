@@ -9,6 +9,8 @@ import {
   Save,
   X,
   ArrowLeft,
+  Loader2, // ✅ เพิ่ม Loader
+  ImageIcon
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,17 +24,14 @@ export default function AddPartnerPage() {
   const [type, setType] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  // const [status, setStatus] = useState("active"); // ไม่ต้องใช้ state แล้วเพราะ fix ค่าเลย
-
   const [imageUrl, setImageUrl] = useState("");
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
   const [submitting, setSubmitting] = useState(false);
 
-  // ฟังก์ชันแปลงไฟล์รูปเป็น Base64
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -71,7 +70,6 @@ export default function AddPartnerPage() {
 
     try {
       setSubmitting(true);
-
       const res = await fetch("/api/partners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,15 +79,12 @@ export default function AddPartnerPage() {
           website,
           logo: imageUrl,
           description,
-          status: "active", // ✅ Fix ค่าเป็น active เสมอ
+          status: "active",
         }),
       });
 
       if (!res.ok) {
-        console.error(await res.text());
-        setErrorMessage("บันทึกข้อมูลไม่สำเร็จ");
-        setShowErrorModal(true);
-        return;
+        throw new Error(await res.text());
       }
 
       setShowSuccessModal(true);
@@ -104,44 +99,55 @@ export default function AddPartnerPage() {
 
   return (
     <Layouts>
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+      <div className="min-h-screen bg-[#f8f9fc] py-8 px-4 relative overflow-hidden font-sans text-slate-800">
+        
+        {/* --- 🌟 Background Aurora (Theme ชมพู) --- */}
+        <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
+             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-pink-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
+             <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-rose-200/40 rounded-full blur-[120px] mix-blend-multiply"></div>
+             <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/30 rounded-full blur-[120px] mix-blend-multiply"></div>
+        </div>
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          
+          {/* Header */}
+          <div className="mb-8">
             <Link
               href="/manage_partners"
-              className="inline-flex items-center text-gray-500 hover:text-blue-600 mb-4 transition-colors text-sm"
+              className="inline-flex items-center text-slate-500 hover:text-pink-600 mb-4 transition-colors text-sm font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-white/50 backdrop-blur-sm shadow-sm"
             >
-              <ArrowLeft size={16} className="mr-1" />{" "}
-              ย้อนกลับไปหน้าจัดการพันธมิตร
+              <ArrowLeft size={16} className="mr-1" /> ย้อนกลับ
             </Link>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg text-white">
-                <Building2 size={24} />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-linear-to-br from-pink-500 to-rose-600 rounded-2xl text-white shadow-lg shadow-pink-500/30">
+                <Building2 size={32} strokeWidth={1.5} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-3xl font-black tracking-tight text-slate-800">
                   เพิ่มพันธมิตรใหม่
                 </h1>
-                <p className="text-gray-500 text-sm">
+                <p className="text-slate-500 font-medium">
                   เพิ่มข้อมูลสถาบันการศึกษาหรือองค์กรที่ร่วมมือ
                 </p>
               </div>
             </div>
           </div>
 
+          {/* Form Card */}
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden p-8"
+            className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden"
           >
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Upload Logo */}
-              <div className="md:col-span-4 flex flex-col space-y-4">
-                <label className="block text-sm font-bold text-gray-900">
-                  โลโก้หน่วยงาน (Logo) <span className="text-red-500">*</span>
+            <div className="p-8 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
+              
+              {/* --- Left Column: Logo Upload --- */}
+              <div className="lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-slate-100 pb-8 lg:pb-0 lg:pr-8">
+                <label className="block text-sm font-bold text-slate-700 mb-4 self-start items-center gap-2">
+                  <ImageIcon size={18} className="text-pink-500"/> โลโก้หน่วยงาน <span className="text-red-500">*</span>
                 </label>
 
                 <div
-                  className="aspect-square w-full border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 hover:border-blue-500 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden group"
+                  className="aspect-square w-full max-w-[280px] border-2 border-dashed border-slate-300 rounded-4xl bg-slate-50 hover:bg-pink-50 hover:border-pink-300 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden group shadow-inner"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <input
@@ -158,43 +164,44 @@ export default function AddPartnerPage() {
                         src={imageUrl}
                         alt="Logo Preview"
                         fill
-                        className="object-contain p-4"
+                        className="object-contain p-6"
                       />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white font-medium flex items-center gap-2">
-                          <Upload size={18} /> เปลี่ยนรูป
-                        </span>
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
+                        <Upload size={32} className="mb-2" />
+                        <span className="text-sm font-bold">เปลี่ยนรูปภาพ</span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-center text-gray-400">
-                      <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-2">
-                        <Upload size={20} />
+                    <div className="text-center text-slate-400 group-hover:text-pink-500 transition-colors">
+                      <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-3">
+                        <Upload size={32} strokeWidth={1.5} />
                       </div>
-                      <p className="text-sm font-medium">อัปโหลดโลโก้</p>
-                      <p className="text-xs mt-1 opacity-70">
-                        ขนาดแนะนำ 500x500px
-                      </p>
+                      <p className="text-sm font-bold">คลิกเพื่ออัปโหลด</p>
+                      <p className="text-xs mt-1 opacity-70 font-medium">PNG, JPG (Max 2MB)</p>
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-slate-400 mt-4 text-center">
+                   *แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นหลังใส (Transparent)
+                </p>
               </div>
 
-              {/* Form fields */}
-              <div className="md:col-span-8 space-y-5">
+              {/* --- Right Column: Info Fields --- */}
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* Name */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    ชื่อหน่วยงาน / องค์กร{" "}
-                    <span className="text-red-500">*</span>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    ชื่อหน่วยงาน / องค์กร <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600">
-                      <Building2 size={18} />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-500">
+                      <Building2 size={20} />
                     </div>
                     <input
                       type="text"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white text-gray-900 placeholder:text-gray-500"
-                      placeholder="เช่น สาขาวิชาวิทยาการคอมพิวเตอร์ RMUTI..."
+                      className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-pink-100 focus:border-pink-400 transition-all bg-white text-slate-800 placeholder:text-slate-400 font-medium"
+                      placeholder="เช่น มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -202,37 +209,46 @@ export default function AddPartnerPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Type */}
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">
-                      ประเภทหน่วยงาน <span className="text-red-500">*</span>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      ประเภท <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-gray-50 focus:bg-white text-gray-900 cursor-pointer"
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      required
-                    >
-                      <option value="">-- เลือกประเภท --</option>
-                      <option value="สถาบันการศึกษา">สถาบันการศึกษา</option>
-                      <option value="บริษัทเอกชน">บริษัทเอกชน</option>
-                      <option value="หน่วยงานรัฐ">หน่วยงานรัฐ</option>
-                      <option value="องค์กรไม่แสวงหากำไร">
-                        องค์กรไม่แสวงหากำไร
-                      </option>
-                    </select>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Briefcase size={20} />
+                      </div>
+                      <select
+                        className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-pink-100 focus:border-pink-400 transition-all bg-white text-slate-800 font-medium cursor-pointer appearance-none"
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        required
+                      >
+                        <option value="">-- เลือกประเภท --</option>
+                        <option value="สถาบันการศึกษา">สถาบันการศึกษา</option>
+                        <option value="หน่วยงานรัฐ">หน่วยงานรัฐ</option>
+                        <option value="บริษัทเอกชน">บริษัทเอกชน</option>
+                        <option value="องค์กรไม่แสวงหากำไร">องค์กรไม่แสวงหากำไร</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                         <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Website */}
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
                       เว็บไซต์ (ถ้ามี)
                     </label>
                     <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                        <Globe size={18} />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Globe size={20} />
                       </div>
                       <input
                         type="url"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-gray-50 focus:bg-white text-gray-900 placeholder:text-gray-500"
+                        className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-pink-100 focus:border-pink-400 transition-all bg-white text-slate-800 placeholder:text-slate-400 font-medium"
                         placeholder="https://www.example.com"
                         value={website}
                         onChange={(e) => setWebsite(e.target.value)}
@@ -241,49 +257,45 @@ export default function AddPartnerPage() {
                   </div>
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
                     รายละเอียดโดยย่อ
                   </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-4 text-gray-400">
-                      <Briefcase size={18} />
-                    </div>
-                    <textarea
-                      rows={3}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-gray-50 focus:bg-white resize-none text-gray-900 placeholder:text-gray-500"
-                      placeholder="คำอธิบายเกี่ยวกับหน่วยงาน ความเชี่ยวชาญ หรือความร่วมมือ..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  </div>
+                  <textarea
+                    rows={4}
+                    className="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-pink-100 focus:border-pink-400 transition-all bg-white text-slate-800 placeholder:text-slate-400 font-medium resize-none leading-relaxed"
+                    placeholder="คำอธิบายเกี่ยวกับหน่วยงาน ความเชี่ยวชาญ หรือความร่วมมือ..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
                 </div>
+
               </div>
             </div>
 
-            {/* ✅ ลบส่วน Status ออกแล้ว */}
-
             {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 mt-8 border-t border-gray-100 pt-6">
+            <div className="p-6 md:px-10 md:py-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 backdrop-blur-md">
               <Link href="/manage_partners">
                 <button
                   type="button"
-                  className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 flex items-center gap-2"
+                  className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-white hover:shadow-sm hover:text-slate-800 transition-all flex items-center gap-2"
                 >
-                  <X size={18} /> ยกเลิก
+                  <X size={20} /> ยกเลิก
                 </button>
               </Link>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-8 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-200 transition-all flex items-center gap-2 disabled:opacity-60"
+                className="px-8 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 shadow-lg shadow-pink-500/30 hover:-translate-y-1 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Save size={18} />{" "}
+                {submitting ? <Loader2 className="animate-spin" size={20}/> : <Save size={20} />} 
                 {submitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
               </button>
             </div>
           </form>
         </div>
+
         {/* Modal Success */}
         <ModalSuccess
           open={showSuccessModal}
