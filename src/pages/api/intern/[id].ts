@@ -1,6 +1,7 @@
+import { CoopType } from "@/generated/prisma/enums";
+import { prisma } from "@/lib/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
-import { CoopType } from "../../../generated/prisma/enums";
+
 
 export default async function handler(
   req: NextApiRequest,
@@ -123,7 +124,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
   if (avatar !== undefined) updateData.avatar = avatar;
   if (portfolioSlug !== undefined) updateData.portfolioSlug = portfolioSlug;
   if (status !== undefined) updateData.status = status;
-  
+
   // ✅ 2. เพิ่ม Logic อัปเดต gen ลง Database
   if (gen !== undefined) {
     updateData.gen = String(gen);

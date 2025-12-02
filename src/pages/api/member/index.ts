@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -46,7 +46,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   if (department) {
     where.department = department as string;
   }
-  
+
   if (title) {
     where.title = { contains: title as string };
   }

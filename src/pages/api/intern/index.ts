@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
-import { CoopType } from "@prisma/client"; // ✅ แก้ไข: Import จาก @prisma/client โดยตรง
+import { prisma } from "@/lib/prisma";
+import { CoopType } from "@/generated/prisma/enums";
 
 export default async function handler(
   req: NextApiRequest,
@@ -159,9 +159,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       avatar,
       portfolioSlug,
       status: status || "published",
-      
+
       // บันทึกรุ่น
-      gen: gen || "6", 
+      gen: gen || "6",
 
       // เชื่อม projects
       projectLinks: projects?.length ? {

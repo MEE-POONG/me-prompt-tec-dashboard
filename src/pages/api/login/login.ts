@@ -1,6 +1,6 @@
 // pages/api/login.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -20,14 +20,14 @@ export default async function handler(
     // 1. ตรวจสอบว่ามี Username (Email) นี้หรือไม่
     // หมายเหตุ: อิงตาม Schema เดิมของคุณที่ใช้ email เป็น unique key
     const user = await prisma.user.findUnique({
-      where: { email: username }, 
+      where: { email: username },
     });
 
     // กรณีที่ 1: ไม่พบ Username
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: "USER_NOT_FOUND",
-        message: `ไม่เจอ username "${username}" โปรดเพิ่มเข้าระบบก่อน` 
+        message: `ไม่เจอ username "${username}" โปรดเพิ่มเข้าระบบก่อน`
       });
     }
 
@@ -36,9 +36,9 @@ export default async function handler(
     // ถ้าระบบจริงมีการ Hash ต้องใช้ bcrypt.compare(password, user.passwordHash)
     if (user.passwordHash !== password) {
       // กรณีที่ 2: Password ผิด
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: "INVALID_PASSWORD",
-        message: "Password ไม่ถูกต้อง" 
+        message: "Password ไม่ถูกต้อง"
       });
     }
 

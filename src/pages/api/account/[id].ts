@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -52,12 +52,12 @@ async function handleGet(id: string, res: NextApiResponse) {
 
 // PUT /api/account/[id] - อัปเดตข้อมูล Account
 async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) {
-  const { 
-    name, 
-    email, 
-    password, 
+  const {
+    name,
+    email,
+    password,
     role,
-    phone, 
+    phone,
     position,
     // รับ role หรือ isActive เพิ่มเติมได้ถ้าต้องการ
   } = req.body;
@@ -83,7 +83,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
 
   // 3. สร้าง object สำหรับอัปเดต
   const updateData: any = {};
-  
+
   if (name !== undefined) updateData.name = name;
   if (email !== undefined) updateData.email = email;
   if (phone !== undefined) updateData.phone = phone;
@@ -95,7 +95,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
     // ในการใช้งานจริง ควร Hash password ก่อนบันทึก เช่น:
     // const hashedPassword = await bcrypt.hash(password, 10);
     // updateData.passwordHash = hashedPassword;
-    
+
     updateData.passwordHash = password; // (แบบชั่วคราว)
   }
 

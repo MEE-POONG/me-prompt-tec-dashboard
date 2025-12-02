@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,7 +28,7 @@ export default async function handler(
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   // ดึงข้อมูลจากตาราง User
   const users = await prisma.user.findMany({
-    orderBy: { createdAt: 'desc' }, 
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       name: true, // ✅ แก้ไข: ต้องใช้ name ให้ตรงกับ Schema
@@ -72,7 +72,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   const newUser = await prisma.user.create({
     data: {
       email,
-      passwordHash: password, 
+      passwordHash: password,
       name, // ✅ แก้ไข: บันทึกลงฟิลด์ name
       phone,
       position,
