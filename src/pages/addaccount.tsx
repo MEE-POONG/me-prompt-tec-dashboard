@@ -2,60 +2,77 @@ import React, { useState, useEffect } from "react";
 import Layouts from "@/components/Layouts";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import {
+  User,
+  Mail,
+  Lock,
+  Phone,
+  Briefcase,
+  Shield,
+  CheckCircle2,
+  Save,
+  X,
+  ArrowLeft,
+  Loader2,
+  UserPlus,
+  UserCog
+} from "lucide-react";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 export default function AddOrEditAccount() {
   const router = useRouter();
   const { id } = router.query;
 
-  // --- ฟิลด์ของ User Model ---
+  // --- State ---
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState("");
-  const [role, setRole] = useState<"admin" | "staff" | "student" | "viewer">(
-    "viewer"
-  );
+  const [role, setRole] = useState<"admin" | "staff" | "student" | "viewer">("viewer");
   const [isActive, setIsActive] = useState(true);
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // --- โหลดข้อมูลเดิมกรณีแก้ไข ---
+  // --- Load Data (Edit Mode) ---
   useEffect(() => {
-    if (!router.isReady || !id) return;
+    if (!router.isReady) return;
 
-    const fetchUser = async () => {
-      try {
-        setIsEditMode(true);
-        const res = await fetch(`/api/account/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setName(data.name || "");
-          setEmail(data.email || "");
-          setPhone(data.phone || "");
-          setPosition(data.position || "");
-          setRole(data.role || "viewer");
-          setIsActive(data.isActive ?? true);
-        } else {
-          console.error("User not found");
-          router.push("/account");
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        router.push("/account");
-      }
-    };
-
-    fetchUser();
+    if (id) {
+      // Edit Mode
+      setIsEditMode(true);
+      setLoadingData(true);
+      fetch(`/api/account/${id}`)
+        .then(async (res) => {
+          if (res.ok) {
+            const data = await res.json();
+            setName(data.name || "");
+            setEmail(data.email || "");
+            setPhone(data.phone || "");
+            setPosition(data.position || "");
+            setRole(data.role || "viewer");
+            setIsActive(data.isActive ?? true);
+          } else {
+            console.error("User not found");
+            router.push("/account");
+          }
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setLoadingData(false));
+    }
   }, [router.isReady, id, router]);
 
-  // --- ฟังก์ชันบันทึกข้อมูล ---
+  // --- Submit Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
+    setIsSubmitting(true);
 
     const payload = {
       name,
@@ -64,7 +81,7 @@ export default function AddOrEditAccount() {
       position,
       role,
       isActive,
-      password: password || undefined, // ส่งเฉพาะถ้าใส่
+      password: password || undefined, // ส่งเฉพาะถ้ามีการกรอกใหม่
     };
 
     try {
@@ -87,184 +104,186 @@ export default function AddOrEditAccount() {
         setShowSuccessModal(true);
       } else {
         const data = await res.json();
-        console.error("Error:", data);
-        alert(data.error || "เกิดข้อผิดพลาด");
+        throw new Error(data.error || "เกิดข้อผิดพลาด");
       }
     } catch (error) {
       console.error("Error saving:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      setErrorMessage(error instanceof Error ? error.message : "เชื่อมต่อ Server ไม่ได้");
+      setShowErrorModal(true);
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 
+  if (loadingData) {
+    return (
+       <Layouts>
+            <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+               <div className="flex flex-col items-center gap-4">
+                   <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                   <p className="text-slate-400 font-medium">กำลังโหลดข้อมูลบัญชี...</p>
+               </div>
+            </div>
+       </Layouts>
+    )
+  }
+
   return (
     <Layouts>
-      <div className="p-6 md:p-8 w-full min-h-screen flex justify-center items-start bg-gray-50">
-        <div className="w-full max-w-5xl p-6 bg-white rounded-lg shadow-lg">
-          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-6">
-            {isEditMode ? "แก้ไข Account" : "เพิ่ม Account ใหม่"}
-          </h1>
+      <div className="min-h-screen bg-[#f8fafc] py-8 px-4 relative overflow-hidden font-sans text-slate-800">
+        
+        {/* --- 🌟 Background Aurora (Theme ฟ้า/คราม) --- */}
+        <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
+             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
+             <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[120px] mix-blend-multiply"></div>
+             <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-cyan-200/30 rounded-full blur-[120px] mix-blend-multiply"></div>
+        </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {/* Col 1 */}
-            <div className="flex flex-col space-y-4">
-              {/* ชื่อ */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  ชื่อ-นามสกุล <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="ระบุชื่อจริง นามสกุล"
-                  required
-                />
+        <div className="max-w-5xl mx-auto relative z-10">
+          
+          {/* Header */}
+          <div className="mb-8">
+             <Link
+              href="/account"
+              className="inline-flex items-center text-slate-500 hover:text-blue-600 mb-4 transition-colors text-sm font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-white/50 backdrop-blur-sm shadow-sm"
+            >
+              <ArrowLeft size={16} className="mr-1" /> ย้อนกลับ
+            </Link>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-linear-to-br from-blue-600 to-indigo-600 rounded-2xl text-white shadow-lg shadow-blue-500/30">
+                 {isEditMode ? <UserCog size={32} strokeWidth={1.5}/> : <UserPlus size={32} strokeWidth={1.5} />}
               </div>
-
-              {/* รหัสผ่าน */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  {isEditMode
-                    ? "รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)"
-                    : "รหัสผ่าน"}
-                  {!isEditMode && <span className="text-red-500"> *</span>}
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required={!isEditMode}
-                  placeholder="********"
-                />
+                <h1 className="text-3xl font-black tracking-tight text-slate-800">
+                   {isEditMode ? "แก้ไขบัญชีผู้ใช้" : "เพิ่มบัญชีผู้ใช้ใหม่"}
+                </h1>
+                <p className="text-slate-500 font-medium">
+                   {isEditMode ? `แก้ไขข้อมูลสำหรับ: ${email}` : "สร้างบัญชีสำหรับผู้ดูแลระบบหรือพนักงาน"}
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* Col 2 */}
-            <div className="flex flex-col space-y-4">
-              {/* อีเมล */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  อีเมล <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="example@company.com"
-                  required
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            
+            {/* === Card: ข้อมูลบัญชี === */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden p-8 md:p-10">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
+                    <User size={20} className="text-blue-500"/> ข้อมูลส่วนตัว & การเข้าสู่ระบบ
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    {/* ชื่อ */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><User size={18}/></div>
+                            <input type="text" className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium"
+                                value={name} onChange={(e) => setName(e.target.value)} required placeholder="สมชาย ใจดี" />
+                        </div>
+                    </div>
 
-              {/* เบอร์โทร */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  เบอร์โทร
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="08x-xxx-xxxx"
-                />
-              </div>
+                    {/* เบอร์โทร */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">เบอร์โทร</label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Phone size={18}/></div>
+                            <input type="tel" className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium"
+                                value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
+                        </div>
+                    </div>
+
+                    {/* อีเมล */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">อีเมล (ใช้สำหรับ Login) <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Mail size={18}/></div>
+                            <input type="email" className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium disabled:bg-slate-100 disabled:text-slate-500"
+                                value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@example.com" />
+                        </div>
+                    </div>
+
+                    {/* รหัสผ่าน */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                            {isEditMode ? "รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)" : "รหัสผ่าน *"}
+                        </label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Lock size={18}/></div>
+                            <input type="password" className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium"
+                                value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditMode} placeholder="••••••••" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="my-8 border-t border-slate-100"></div>
+
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <Shield size={20} className="text-blue-500"/> สิทธิ์การใช้งาน & สถานะ
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* ตำแหน่ง */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">ตำแหน่ง (Position)</label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><Briefcase size={18}/></div>
+                            <input type="text" className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium"
+                                value={position} onChange={(e) => setPosition(e.target.value)} placeholder="เช่น Developer, HR, Manager" />
+                        </div>
+                    </div>
+
+                    {/* บทบาท */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">บทบาท (Role)</label>
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><Shield size={18}/></div>
+                            <select className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium appearance-none cursor-pointer"
+                                value={role} onChange={(e) => setRole(e.target.value as any)}>
+                                <option value="admin">Admin (ดูแลระบบ)</option>
+                                <option value="staff">Staff (พนักงาน)</option>
+                                <option value="student">Student (นักศึกษา)</option>
+                                <option value="viewer">Viewer (ดูได้อย่างเดียว)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Active Status */}
+                    <div className="md:col-span-2">
+                        <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${isActive ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300 bg-white'}`}>
+                                {isActive && <CheckCircle2 size={16} className="text-white"/>}
+                            </div>
+                            <input type="checkbox" className="hidden" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+                            <div>
+                                <span className={`block text-sm font-bold ${isActive ? 'text-green-700' : 'text-slate-700'}`}>เปิดใช้งานบัญชี (Active)</span>
+                                <span className="text-xs text-slate-500">หากปิดใช้งาน ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            {/* Col 3 */}
-            <div className="flex flex-col space-y-4">
-              {/* ตำแหน่ง */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  ตำแหน่ง
-                </label>
-                <input
-                  type="text"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="เช่น Developer, HR, Manager"
-                />
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  บทบาท
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) =>
-                    setRole(
-                      e.target.value as "admin" | "staff" | "student" | "viewer"
-                    )
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
-                  <option value="student">Student</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Row ปุ่ม span full */}
-            <div className="col-span-3 flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-              {/* Active อยู่ซ้าย */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label className="text-sm text-gray-900">Active</label>
-              </div>
-
-              {/* ปุ่ม Cancel + Submit อยู่ขวา */}
-              <div className="flex space-x-4">
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 pt-4 pb-12">
                 <Link href="/account">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition font-medium"
-                    disabled={isProcessing}
-                  >
-                    ยกเลิก
-                  </button>
+                    <button type="button" className="px-8 py-3.5 rounded-2xl border border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 hover:shadow-sm transition-all flex items-center gap-2">
+                        <X size={20} /> ยกเลิก
+                    </button>
                 </Link>
-
                 <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className={`px-6 py-2 text-white rounded-md font-medium shadow-sm v
-              ${
-                isEditMode
-                  ? "bg-amber-500 hover:bg-amber-600"
-                  : "bg-green-600 hover:bg-green-700"
-              }
-              ${
-                isProcessing
-                  ? "opacity-70 cursor-wait"
-                  : "hover:-translate-y-0.5 transition-transform"
-              }
-            `}
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`px-10 py-3.5 rounded-2xl text-white font-bold shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed
+                        ${isEditMode ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"}
+                    `}
                 >
-                  {isProcessing
-                    ? "กำลังบันทึก..."
-                    : isEditMode
-                    ? "บันทึกการแก้ไข"
-                    : "สร้าง Account"}
+                    {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <Save size={20} />}
+                    {isSubmitting ? "กำลังบันทึก..." : (isEditMode ? "บันทึกการแก้ไข" : "สร้างบัญชี")}
                 </button>
-              </div>
             </div>
+
           </form>
         </div>
 
@@ -272,9 +291,17 @@ export default function AddOrEditAccount() {
         <ModalSuccess
           open={showSuccessModal}
           href="/account"
-          message="เพิ่มบัญชีสำเร็จ!"
-          description="คุณได้สร้างบัญชีผู้ใช้เรียบร้อยแล้ว"
+          message={isEditMode ? "แก้ไขข้อมูลสำเร็จ!" : "สร้างบัญชีสำเร็จ!"}
+          description={isEditMode ? "อัปเดตข้อมูลบัญชีผู้ใช้เรียบร้อยแล้ว" : "คุณได้เพิ่มบัญชีผู้ใช้ใหม่เรียบร้อยแล้ว"}
           onClose={() => setShowSuccessModal(false)}
+        />
+
+        {/* Modal Error */}
+        <ModalError
+             open={showErrorModal}
+             message="เกิดข้อผิดพลาด!"
+             description={errorMessage}
+             onClose={() => setShowErrorModal(false)}
         />
       </div>
     </Layouts>
