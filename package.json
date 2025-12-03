@@ -5,13 +5,16 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "start": "next start"
+    "start": "next start",
+    "migrate:images": "tsx scripts/migrate-images-to-cloudflare.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@types/formidable": "^3.4.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
+    "formidable": "^3.5.4",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "16.0.1",

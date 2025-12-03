@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
 import {
-  Upload,
   User,
   Briefcase,
   MapPin,
@@ -15,13 +14,13 @@ import {
   Save,
   X,
   Loader2,
-  ImageIcon,
   PenLine
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
+import ImageUpload from "@/components/ImageUpload";
+import { CloudflareImageData } from "@/lib/cloudflareImage";
 
 export default function EditMemberPage() {
   const router = useRouter();
@@ -45,13 +44,12 @@ export default function EditMemberPage() {
 
   // Image & UI
   const [imageUrl, setImageUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(true); 
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [imageData, setImageData] = useState<CloudflareImageData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Fetch Data ---
   useEffect(() => {
@@ -96,20 +94,10 @@ export default function EditMemberPage() {
   };
 
   // --- Helper Functions ---
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const base64 = await convertToBase64(file);
-      setImageUrl(base64);
+  const handleImageChange = (url: string, data?: CloudflareImageData) => {
+    setImageUrl(url);
+    if (data) {
+      setImageData(data);
     }
   };
 
@@ -219,32 +207,16 @@ export default function EditMemberPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     {/* Left: Image Upload */}
                     <div className="lg:col-span-1 flex flex-col items-center lg:items-start">
-                        <label className="block text-sm font-bold text-slate-700 mb-4">รูปโปรไฟล์</label>
-                        <div
-                            className="aspect-square w-full max-w-[250px] bg-slate-50 rounded-full border-4 border-white shadow-lg flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:brightness-95 transition-all"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                             <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageChange}
-                                className="hidden"
-                                accept="image/*"
-                            />
-                            {imageUrl ? (
-                                <>
-                                    <Image src={imageUrl} alt="Preview" fill style={{ objectFit: "cover" }} />
-                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Upload className="text-white" size={32} />
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center text-slate-400">
-                                    <ImageIcon size={48} className="mb-2 opacity-50" strokeWidth={1} />
-                                    <span className="text-sm font-semibold">อัปโหลดรูป</span>
-                                </div>
-                            )}
-                        </div>
+                        <ImageUpload
+                            relatedType="member"
+                            relatedId={id as string}
+                            fieldName="photo"
+                            label="รูปโปรไฟล์"
+                            value={imageUrl}
+                            onChange={handleImageChange}
+                            aspectRatio="square"
+                            imagefit="contain"
+                        />
                     </div>
 
                     {/* Right: Inputs */}

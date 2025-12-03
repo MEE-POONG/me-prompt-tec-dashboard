@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
+import ImageUpload from "@/components/ImageUpload";
+import { CloudflareImageData } from "@/lib/cloudflareImage";
 
 export default function EditProjectPage() {
   const router = useRouter();
@@ -51,9 +53,8 @@ export default function EditProjectPage() {
   const [linkLabel, setLinkLabel] = useState("");
 
   // --- State รูปภาพ ---
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageData, setImageData] = useState<CloudflareImageData | null>(null);
 
   // --- State สำหรับ Loading & Error ---
   const [loading, setLoading] = useState(true); // เริ่มต้นเป็น true เพื่อโหลดข้อมูล
@@ -110,13 +111,10 @@ export default function EditProjectPage() {
 
 
   // --- ฟังก์ชันจัดการรูปภาพ ---
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImageUrl(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleImageChange = (url: string, data?: CloudflareImageData) => {
+    setImageUrl(url);
+    if (data) {
+      setImageData(data);
     }
   };
 
@@ -280,36 +278,19 @@ export default function EditProjectPage() {
 
                         {/* Right: Image Upload */}
                         <div className="lg:col-span-1">
-                            <label className="block text-sm font-bold text-slate-700 mb-4">รูปภาพปก</label>
-                            <div
-                                className="aspect-video w-full border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 hover:bg-violet-50 hover:border-violet-300 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden group shadow-inner"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleImageChange}
-                                    className="hidden"
-                                    accept="image/*"
-                                />
-                                {imageUrl ? (
-                                    <>
-                                        <Image src={imageUrl} alt="Preview" fill className="object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
-                                            <Upload size={32} className="mb-2" />
-                                            <span className="text-sm font-bold">เปลี่ยนรูปภาพ</span>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center text-slate-400 group-hover:text-violet-500 transition-colors">
-                                        <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-3">
-                                            <ImageIcon size={32} strokeWidth={1.5}/>
-                                        </div>
-                                        <p className="text-sm font-bold">อัปโหลดรูปปก</p>
-                                        <p className="text-xs mt-1 opacity-70">PNG, JPG (Max 5MB)</p>
-                                    </div>
-                                )}
-                            </div>
+                            <ImageUpload
+                                value={imageUrl}
+                                onChange={handleImageChange}
+                                onImageDataChange={setImageData}
+                                relatedType="project"
+                                relatedId={typeof id === "string" ? id : undefined}
+                                fieldName="cover"
+                                label="รูปภาพปก"
+                                description="คลิกหรือลากไฟล์มาวางที่นี่"
+                                aspectRatio="square"
+                                imagefit="contain"
+                                maxSize={10}
+                            />
                         </div>
                     </div>
                 </div>

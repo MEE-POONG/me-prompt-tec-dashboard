@@ -1,21 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Upload,
   Building2,
   Globe,
   Briefcase,
   Save,
   X,
   ArrowLeft,
-  Loader2,
-  ImageIcon
+  Loader2
 } from "lucide-react";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
+import ImageUpload from "@/components/ImageUpload";
+import { CloudflareImageData } from "@/lib/cloudflareImage";
 
 export default function EditPartnerPage() {
   const router = useRouter();
@@ -27,24 +26,13 @@ export default function EditPartnerPage() {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("active");
   const [imageUrl, setImageUrl] = useState("");
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [imageData, setImageData] = useState<CloudflareImageData | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // --- Logic เดิม: แปลงไฟล์รูป ---
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
 
   // --- Logic เดิม: โหลดข้อมูล ---
   useEffect(() => {
@@ -78,22 +66,10 @@ export default function EditPartnerPage() {
   }, [id]);
 
   // --- Logic เดิม: อัปโหลดรูป ---
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 2 * 1024 * 1024) {
-        setErrorMessage("ไฟล์รูปภาพใหญ่เกินไป (ไม่ควรเกิน 2MB)");
-        setShowErrorModal(true);
-        return;
-      }
-      try {
-        const base64 = await convertToBase64(file);
-        setImageUrl(base64);
-      } catch (err) {
-        console.error("Error converting image", err);
-        setErrorMessage("ไม่สามารถอ่านไฟล์รูปภาพได้");
-        setShowErrorModal(true);
-      }
+  const handleImageChange = (url: string, data?: CloudflareImageData) => {
+    setImageUrl(url);
+    if (data) {
+      setImageData(data);
     }
   };
 
@@ -179,50 +155,19 @@ export default function EditPartnerPage() {
               className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden"
             >
               <div className="p-8 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
-                
+
                 {/* --- Left Column: Logo Upload --- */}
                 <div className="lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-slate-100 pb-8 lg:pb-0 lg:pr-8">
-                  <label className="block text-sm font-bold text-slate-700 mb-4 self-start items-center gap-2">
-                    <ImageIcon size={18} className="text-pink-500"/> โลโก้หน่วยงาน
-                  </label>
-
-                  <div
-                    className="aspect-square w-full max-w-[280px] border-2 border-dashed border-slate-300 rounded-4xl bg-slate-50 hover:bg-pink-50 hover:border-pink-300 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden group shadow-inner"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageChange}
-                      className="hidden"
-                      accept="image/*"
-                    />
-
-                    {imageUrl ? (
-                      <>
-                        <Image
-                          src={imageUrl}
-                          alt="Logo Preview"
-                          fill
-                          className="object-contain p-6"
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
-                          <Upload size={32} className="mb-2" />
-                          <span className="text-sm font-bold">เปลี่ยนรูปภาพ</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center text-slate-400 group-hover:text-pink-500 transition-colors">
-                        <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-3">
-                          <Upload size={32} strokeWidth={1.5} />
-                        </div>
-                        <p className="text-sm font-bold">คลิกเพื่ออัปโหลด</p>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-4 text-center">
-                     *แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นหลังใส
-                  </p>
+                  <ImageUpload
+                    relatedType="partner"
+                    relatedId={id as string}
+                    fieldName="logo"
+                    label="โลโก้บริษัท"
+                    value={imageUrl}
+                    onChange={handleImageChange}
+                    aspectRatio="square"
+                    imagefit="contain"
+                  />
                 </div>
 
                 {/* --- Right Column: Info Fields --- */}

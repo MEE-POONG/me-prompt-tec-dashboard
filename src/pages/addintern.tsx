@@ -1,25 +1,24 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
-import { 
-  Upload, 
-  Layers, 
-  UserPlus, 
-  User, 
-  Mail, 
-  Phone, 
-  GraduationCap, 
-  Briefcase, 
-  Link as LinkIcon, 
-  Save, 
-  X, 
-  ArrowLeft, 
-  Loader2,
-  ImageIcon
+import {
+  Layers,
+  UserPlus,
+  User,
+  Mail,
+  Phone,
+  GraduationCap,
+  Briefcase,
+  Link as LinkIcon,
+  Save,
+  X,
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ImageUpload from "@/components/ImageUpload";
+import { CloudflareImageData } from "@/lib/cloudflareImage";
 
 export default function AddInternPage() {
   const router = useRouter();
@@ -45,31 +44,18 @@ export default function AddInternPage() {
   // Default Gen = 6 หรือค่าจาก URL
   const [selectedGen, setSelectedGen] = useState(gen ? String(gen) : "6");
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [imageData, setImageData] = useState<CloudflareImageData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const genOptions = Array.from({ length: 10 }, (_, i) => String(10 - i));
 
   // --- Functions ---
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      const base64 = await convertToBase64(file);
-      setImageUrl(base64);
+  const handleImageChange = (url: string, data?: CloudflareImageData) => {
+    setImageUrl(url);
+    if (data) {
+      setImageData(data);
     }
   };
 
@@ -185,36 +171,15 @@ export default function AddInternPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     {/* Left: Image Upload */}
                     <div className="lg:col-span-1 flex flex-col">
-                        <label className="block text-sm font-bold text-slate-700 mb-4">รูปโปรไฟล์</label>
-                        <div
-                            className="aspect-3/4 w-full max-w-[280px] mx-auto lg:mx-0 border-2 border-dashed border-slate-300 rounded-4xl bg-slate-50 hover:bg-orange-50 hover:border-orange-300 transition-all cursor-pointer flex flex-col items-center justify-center relative overflow-hidden group shadow-inner"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageChange}
-                                className="hidden"
-                                accept="image/*"
-                            />
-                            {imageUrl ? (
-                                <>
-                                    <Image src={imageUrl} alt="Preview" fill className="object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
-                                        <Upload size={32} className="mb-2" />
-                                        <span className="text-sm font-bold">เปลี่ยนรูปภาพ</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="text-center text-slate-400 group-hover:text-orange-500 transition-colors">
-                                    <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-3">
-                                        <ImageIcon size={32} strokeWidth={1.5}/>
-                                    </div>
-                                    <p className="text-sm font-bold">อัปโหลดรูปภาพ</p>
-                                    <p className="text-xs mt-1 opacity-70">PNG, JPG (Max 5MB)</p>
-                                </div>
-                            )}
-                        </div>
+                        <ImageUpload
+                            relatedType="intern"
+                            fieldName="avatar"
+                            label="รูปประจำตัว"
+                            value={imageUrl}
+                            onChange={handleImageChange}
+                            aspectRatio="square"
+                            imagefit="contain"
+                        />
                     </div>
 
                     {/* Right: Inputs */}

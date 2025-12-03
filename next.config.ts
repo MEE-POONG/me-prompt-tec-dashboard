@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'placehold.co', // อนุญาตให้โหลดรูปจากเว็บ placehold.co
       },
+      {
+        protocol: 'https',
+        hostname: 'imagedelivery.net', // Cloudflare Images
+      },
     ],
   },
 };
