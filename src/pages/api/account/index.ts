@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth/password";
 
 export default async function handler(
   req: NextApiRequest,
@@ -68,16 +69,19 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
+  // Hash password ก่อนบันทึก
+  const hashedPassword = await hashPassword(password);
+
   // สร้าง User ใหม่
   const newUser = await prisma.user.create({
     data: {
       email,
-      passwordHash: password,
+      passwordHash: hashedPassword, // ✅ บันทึก password ที่ hash แล้ว
       name, // ✅ แก้ไข: บันทึกลงฟิลด์ name
       phone,
       position,
-      role: "viewer", // กำหนด Role เริ่มต้น
-      isActive: true
+      role: req.body.role || "viewer", // ✅ รองรับ role ที่ส่งมาจากหน้าบ้าน
+      isActive: req.body.isActive ?? true
     },
   });
 

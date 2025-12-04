@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth/password";
 
 export default async function handler(
   req: NextApiRequest,
@@ -89,14 +90,13 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
   if (phone !== undefined) updateData.phone = phone;
   if (position !== undefined) updateData.position = position;
   if (role !== undefined) updateData.role = role;
+  if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
 
   // อัปเดตรหัสผ่านเฉพาะเมื่อมีการกรอกมาใหม่ (ไม่ว่าง)
   if (password && password.trim() !== "") {
-    // ในการใช้งานจริง ควร Hash password ก่อนบันทึก เช่น:
-    // const hashedPassword = await bcrypt.hash(password, 10);
-    // updateData.passwordHash = hashedPassword;
-
-    updateData.passwordHash = password; // (แบบชั่วคราว)
+    // ✅ Hash password ก่อนบันทึก
+    const hashedPassword = await hashPassword(password);
+    updateData.passwordHash = hashedPassword;
   }
 
   // 4. ทำการอัปเดตใน DB

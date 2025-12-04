@@ -1,6 +1,9 @@
 // pages/api/login.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { comparePassword } from "@/lib/auth/password";
+import { signToken } from "@/lib/auth/jwt";
+import { setAuthCookie } from "@/lib/auth/cookies";
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,26 +34,45 @@ export default async function handler(
       });
     }
 
-    // 2. ตรวจสอบ Password (เทียบกับ passwordHash)
-    // หมายเหตุ: ในโค้ดเดิมของคุณเก็บ password เป็น plain text ชั่วคราว
-    // ถ้าระบบจริงมีการ Hash ต้องใช้ bcrypt.compare(password, user.passwordHash)
-    if (user.passwordHash !== password) {
-      // กรณีที่ 2: Password ผิด
+    // 2. ตรวจสอบว่า User active หรือไม่
+    if (!user.isActive) {
+      return res.status(403).json({
+        error: "ACCOUNT_DISABLED",
+        message: "บัญชีของคุณถูกปิดการใช้งาน"
+      });
+    }
+
+    // 3. ตรวจสอบ Password (ใช้ bcrypt)
+    const isPasswordValid = await comparePassword(password, user.passwordHash);
+
+    if (!isPasswordValid) {
       return res.status(401).json({
         error: "INVALID_PASSWORD",
         message: "Password ไม่ถูกต้อง"
       });
     }
 
-    // กรณีที่ 3: สำเร็จ
-    // สามารถสร้าง Token (JWT) หรือ Session ตรงนี้ได้
+    // 4. สร้าง JWT Token
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name || undefined,
+    });
+
+    // 5. ตั้งค่า httpOnly cookie
+    setAuthCookie(res, token);
+
+    // 6. ส่ง response กลับ
     return res.status(200).json({
+      success: true,
       message: "เข้าสู่ระบบสำเร็จ",
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        position: user.position,
       }
     });
 
