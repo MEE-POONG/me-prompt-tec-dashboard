@@ -14,13 +14,15 @@ export default async function handler(
         return await handlePost(req, res);
       default:
         res.setHeader("Allow", ["GET", "POST"]);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+        return res
+          .status(405)
+          .json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
     console.error("API Error:", error);
     return res.status(500).json({
       error: "Internal Server Error",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
@@ -29,7 +31,7 @@ export default async function handler(
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   // ดึงข้อมูลจากตาราง User
   const users = await prisma.user.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       name: true, // ✅ แก้ไข: ต้องใช้ name ให้ตรงกับ Schema
@@ -37,8 +39,9 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
       phone: true,
       position: true,
       role: true,
+      isVerified: true, // ✅ เพิ่มตรงนี้
       // ไม่ส่ง passwordHash กลับไปเพื่อความปลอดภัย
-    }
+    },
   });
 
   return res.status(200).json(users);
@@ -54,7 +57,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   if (!name || !email || !password) {
     return res.status(400).json({
       error: "Missing required fields",
-      required: ["name", "email", "password"]
+      required: ["name", "email", "password"],
     });
   }
 
@@ -65,7 +68,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
 
   if (existingUser) {
     return res.status(409).json({
-      error: "Email already exists"
+      error: "Email already exists",
     });
   }
 
@@ -81,12 +84,13 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       phone,
       position,
       role: req.body.role || "viewer", // ✅ รองรับ role ที่ส่งมาจากหน้าบ้าน
-      isActive: req.body.isActive ?? true
+      isActive: false,
+      isVerified: false,
     },
   });
 
   return res.status(201).json({
     message: "Account created successfully",
-    data: newUser
+    data: newUser,
   });
 }

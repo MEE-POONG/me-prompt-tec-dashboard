@@ -22,67 +22,60 @@ export default async function handler(
         return await handleDelete(id, res);
       default:
         res.setHeader("Allow", ["GET", "PUT", "DELETE"]);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+        return res
+          .status(405)
+          .json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
     console.error("API Error:", error);
     return res.status(500).json({
       error: "Internal Server Error",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
 
-// GET /api/account/[id] - ดึงข้อมูล Account ตาม ID
+// ============ GET ============
 async function handleGet(id: string, res: NextApiResponse) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
+  const user = await prisma.user.findUnique({ where: { id } });
 
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // ส่งข้อมูลกลับ (ซ่อนรหัสผ่าน)
   return res.status(200).json({
-    ...user,
-    password: "", // ส่งค่าว่างกลับไปที่หน้าฟอร์ม
-    passwordHash: undefined // ลบ field นี้ออกจาก response
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+    position: user.position,
+    role: user.role,
+    isActive: user.isActive,
+    emailVerified: user.isVerified,   // 👈 ใช้ตรงนี้
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    password: "",
   });
 }
 
-// PUT /api/account/[id] - อัปเดตข้อมูล Account
+// ============ PUT ============
 async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) {
-  const {
-    name,
-    email,
-    password,
-    role,
-    phone,
-    position,
-    // รับ role หรือ isActive เพิ่มเติมได้ถ้าต้องการ
-  } = req.body;
+  const { name, email, password, role, phone, position } = req.body;
 
-  // 1. ตรวจสอบว่ามี User นี้อยู่จริงไหม
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
-  });
-
+  const existingUser = await prisma.user.findUnique({ where: { id } });
   if (!existingUser) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // 2. ตรวจสอบว่าอีเมลซ้ำไหม (ถ้ามีการเปลี่ยนอีเมล)
+  // เช็ค email ซ้ำ
   if (email && email !== existingUser.email) {
-    const duplicateEmail = await prisma.user.findUnique({
-      where: { email },
-    });
+    const duplicateEmail = await prisma.user.findUnique({ where: { email } });
     if (duplicateEmail) {
       return res.status(409).json({ error: "Email already exists" });
     }
   }
 
-  // 3. สร้าง object สำหรับอัปเดต
+  // object สำหรับ update
   const updateData: any = {};
 
   if (name !== undefined) updateData.name = name;
@@ -90,16 +83,19 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
   if (phone !== undefined) updateData.phone = phone;
   if (position !== undefined) updateData.position = position;
   if (role !== undefined) updateData.role = role;
-  if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
 
-  // อัปเดตรหัสผ่านเฉพาะเมื่อมีการกรอกมาใหม่ (ไม่ว่าง)
+  if (req.body.isActive !== undefined)
+    updateData.isActive = req.body.isActive;
+
+  // 👇 **ตรงนี้คือของจริง** — อัปเดตค่ายืนยันอีเมล์
+  if (req.body.isVerified !== undefined)
+    updateData.isVerified = req.body.isVerified;
+
+  // อัปเดตรหัสผ่านถ้าผู้ใช้กรอกใหม่
   if (password && password.trim() !== "") {
-    // ✅ Hash password ก่อนบันทึก
-    const hashedPassword = await hashPassword(password);
-    updateData.passwordHash = hashedPassword;
+    updateData.passwordHash = await hashPassword(password);
   }
 
-  // 4. ทำการอัปเดตใน DB
   const updatedUser = await prisma.user.update({
     where: { id },
     data: updateData,
@@ -107,27 +103,19 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
 
   return res.status(200).json({
     message: "User updated successfully",
-    data: updatedUser
+    data: updatedUser,
   });
 }
 
-// DELETE /api/account/[id] - ลบ Account
+// ============ DELETE ============
 async function handleDelete(id: string, res: NextApiResponse) {
-  // 1. ตรวจสอบว่ามี User อยู่จริง
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
-  });
+  const existingUser = await prisma.user.findUnique({ where: { id } });
 
   if (!existingUser) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // 2. ลบ User
-  await prisma.user.delete({
-    where: { id },
-  });
+  await prisma.user.delete({ where: { id } });
 
-  return res.status(200).json({
-    message: "User deleted successfully"
-  });
+  return res.status(200).json({ message: "User deleted successfully" });
 }
