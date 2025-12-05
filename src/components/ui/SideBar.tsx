@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Settings,
   Power,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -166,14 +167,14 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
              <div className="w-8 h-8 bg-linear-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-violet-200">
                 M
              </div>
-             <h2 className="text-xl font-bold text-slate-700 tracking-tight">ME PROMPT</h2>
+             <h2 className="text-xl font-bold text-slate-700 tracking-tight">MENU</h2>
           </div>
           
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/60 text-slate-400 hover:text-slate-600 transition-colors lg:hidden"
+            className="p-2 rounded-full text-purple-400 hover:bg-purple-300 hover:text-purple-700 transition-all "
           >
-            <PanelLeftOpen className="w-6 h-6" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 

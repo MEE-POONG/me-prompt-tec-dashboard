@@ -37,10 +37,10 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
           <div className="flex items-center space-x-4">
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg transition-all duration-300 hover:scale-110 text-black"
+              className="p-2 rounded-lg transition-all duration-300 hover:scale-110 text-purple-800"
               aria-label="Toggle Sidebar"
             >
-              {isSidebarOpen ? <PanelLeft className="text-white"/> : <PanelLeftClose />}
+              {isSidebarOpen ? <Menu  className="text-white"/> : <Menu  />}
             </button>
 
             <Link href="/" className="flex items-center space-x-2">
