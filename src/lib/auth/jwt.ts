@@ -14,10 +14,12 @@ export interface JWTPayload {
  * สร้าง JWT Token
  */
 export function signToken(payload: JWTPayload): string {
+  // เพิ่ม as string เพื่อยืนยันกับ TypeScript ว่าค่านี้เป็น string แน่นอน
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRES_IN as any, 
   });
 }
+
 
 /**
  * ตรวจสอบและ decode JWT Token

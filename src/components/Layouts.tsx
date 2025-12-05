@@ -1,5 +1,5 @@
 import Head from "next/head";
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useEffect } from "react"; // ✅ เพิ่ม useEffect
 import NavBar from "./ui/NavBar";
 import SideBar from "./ui/SideBar";
 import { StarsBackground } from "./animate-ui/components/backgrounds/stars";
@@ -17,10 +17,30 @@ export default function Layouts({
   description = "Dashboard ใช้ในเว็บ Me-Prompt-Tec",
 }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // ✅ 1. เพิ่ม State สำหรับเก็บ Role (ค่าเริ่มต้นเป็น viewer กันเหนียว)
+  const [userRole, setUserRole] = useState<string>("viewer");
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  // ✅ 2. ดึงข้อมูล Role จาก LocalStorage เมื่อหน้าเว็บโหลดเสร็จ
+  useEffect(() => {
+    // เช็คว่ารันบน Browser (client-side)
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          // ถ้ามี role ให้ set เข้า state, ถ้าไม่มีให้เป็น viewer
+          setUserRole(userObj.role || "viewer");
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -43,9 +63,14 @@ export default function Layouts({
       <ProtectedRoute>
       <div className="flex min-h-screen bg-white">
         {/* Sidebar */}
-        <SideBar isOpen={isSidebarOpen} onClose={toggleSidebar} />
+        {/* ✅ 3. ส่ง userRole ไปให้ Sidebar */}
+        <SideBar 
+            isOpen={isSidebarOpen} 
+            onClose={toggleSidebar} 
+            userRole={userRole} 
+        />
 
-        {/* Main Content Area - จะถูกดันเมื่อ sidebar เปิด */}
+        {/* Main Content Area */}
         <div
           className={`flex flex-col min-h-screen w-full transition-all duration-300 ${
             isSidebarOpen ? 'ml-64' : 'ml-0'
