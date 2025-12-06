@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { TrendingUp, Users, Briefcase, MousePointerClick, ArrowUpRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { TrendingUp, Users, Mail, ArrowUp } from 'lucide-react'; // ✅ เปลี่ยน Briefcase เป็น Mail
 
-// --- Mock Data: Traffic ---
+// --- Mock Data: Traffic (อันเดิม) ---
 const trafficData = [
   { name: 'ม.ค.', visitors: 2000, pageViews: 4000 },
   { name: 'ก.พ.', visitors: 3000, pageViews: 5500 },
@@ -15,44 +15,50 @@ const trafficData = [
 ];
 
 export default function ProjectStatus() {
-  const [activeTab, setActiveTab] = useState<'traffic' | 'intern'>('traffic');
+  const [activeTab, setActiveTab] = useState<'traffic' | 'newsletter'>('traffic'); // ✅ เปลี่ยน state เป็น newsletter
   
   // State ข้อมูล
-  const [internGraphData, setInternGraphData] = useState<any[]>([]);
-  const [totalApplicants, setTotalApplicants] = useState(0); // ✅ เก็บยอดผู้สมัครรวม
-  const [latestGenCount, setLatestGenCount] = useState(0);
+  const [newsletterGraphData, setNewsletterGraphData] = useState<any[]>([]);
+  const [totalSubscribers, setTotalSubscribers] = useState(0); // ✅ เก็บยอดผู้ติดตามรวม
 
   const fetchGraphData = async () => {
     try {
-      const res = await fetch('/api/intern');
-      const rawData = res.ok ? await res.json() : [];
-      const interns = Array.isArray(rawData) ? rawData : (rawData.data || []);
+      // ✅ 1. ยิง API ไปที่ Newsletter แทน Intern
+      const res = await fetch('/api/newsletter');
+      const json = await res.json();
+      const subscribers = json.data || []; // รับข้อมูล subscribers
 
-      // 1. เก็บยอดรวมผู้สมัครทั้งหมด (Real Data)
-      setTotalApplicants(interns.length);
+      // 2. เก็บยอดรวม (เพื่อโชว์ในการ์ด)
+      setTotalSubscribers(subscribers.length);
 
-      // 2. Logic จัดกลุ่มกราฟ (เหมือนเดิม)
-      const groupMap: Record<string, { applied: number, accepted: number }> = {};
-      interns.forEach((intern: any) => {
-        const genName = intern.gen ? `Gen ${intern.gen}` : 'Unknown';
-        if (!groupMap[genName]) groupMap[genName] = { applied: 0, accepted: 0 };
-        groupMap[genName].applied += 1;
-        if (intern.status === 'approved' || intern.status === 'completed' || intern.status === 'active') {
-          groupMap[genName].accepted += 1;
+      // 3. Logic จัดกลุ่มกราฟตามเดือน (Group by Month)
+      const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      
+      // สร้าง Object นับจำนวนรายเดือน { "ม.ค.": 0, "ก.พ.": 0, ... }
+      const groupMap: Record<string, number> = {};
+      months.forEach(m => groupMap[m] = 0);
+
+      subscribers.forEach((sub: any) => {
+        const date = new Date(sub.createdAt);
+        const monthIndex = date.getMonth(); // 0-11
+        const monthName = months[monthIndex];
+        if (groupMap[monthName] !== undefined) {
+            groupMap[monthName] += 1;
         }
       });
 
-      const graphArray = Object.keys(groupMap).map(key => ({
-        name: key, applied: groupMap[key].applied, accepted: groupMap[key].accepted
-      }));
+      // แปลงเป็น Array สำหรับกราฟ (เอาเฉพาะเดือนที่มีข้อมูล หรือจะโชว์หมดก็ได้)
+      // อันนี้โชว์ 6 เดือนแรก หรือตามที่มีข้อมูลจริง
+      const graphArray = months.map(m => ({
+        name: m,
+        subscribers: groupMap[m]
+      })).filter(item => item.subscribers >= 0); // ปรับ filter ได้ถ้าอยากโชว์แค่เดือนที่มียอด
 
-      graphArray.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-      setInternGraphData(graphArray);
+      setNewsletterGraphData(graphArray);
 
-      if (graphArray.length > 0) {
-        setLatestGenCount(graphArray[graphArray.length - 1].applied);
-      }
-    } catch (error) { console.error("Error fetching graph data:", error); }
+    } catch (error) { 
+        console.error("Error fetching graph data:", error); 
+    }
   };
 
   useEffect(() => { fetchGraphData(); }, []);
@@ -67,7 +73,7 @@ export default function ProjectStatus() {
             <div key={index} className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
               <span className="text-gray-500 capitalize">{entry.name}:</span>
-              <span className="font-bold text-gray-800">{entry.value}</span>
+              <span className="font-bold text-gray-800">{entry.value} คน</span>
             </div>
           ))}
         </div>
@@ -90,22 +96,22 @@ export default function ProjectStatus() {
             {activeTab === 'traffic' ? (
                  <><TrendingUp className="text-blue-600"/> สถิติเว็บไซต์ (Traffic)</>
             ) : (
-                 <><Briefcase className="text-orange-500"/> สถิติรับสมัคร (Interns)</>
+                 <><Mail className="text-purple-500"/> สถิติรับข่าวสาร (Newsletter)</>
             )}
           </h3>
           <p className="text-sm text-gray-400 mt-1 font-medium">
-             ภาพรวมข้อมูลเชิงลึกและการเติบโต
+              ภาพรวมข้อมูลเชิงลึกและการเติบโต
           </p>
         </div>
 
         {/* Tab Switcher */}
         <div className="flex bg-gray-100/50 p-1.5 rounded-xl backdrop-blur-sm border border-white/50">
           <button onClick={() => setActiveTab('traffic')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'traffic' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Traffic</button>
-          <button onClick={() => setActiveTab('intern')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'intern' ? 'bg-white text-orange-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Recruitment</button>
+          <button onClick={() => setActiveTab('newsletter')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'newsletter' ? 'bg-white text-purple-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Newsletter</button>
         </div>
       </div>
 
-      {/* --- ✅✅ ส่วนการ์ดตัวเลข (ย้ายจากข้างบนมาใส่ตรงนี้) ✅✅ --- */}
+      {/* --- ส่วนการ์ดตัวเลข (Cards) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
           
           {/* Card 1: Visitors (Mock) */}
@@ -123,20 +129,21 @@ export default function ProjectStatus() {
              </div>
           </div>
 
-          {/* Card 2: Applicants (Real Data) */}
-          <div className="relative p-5 rounded-2xl bg-fuchsia-50/40 hover:shadow-[0_10px_40px_-10px_rgba(217,70,239,0.5)] transition-all duration-300 flex items-center gap-5 group">
-             <div className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm text-fuchsia-500 bg-fuchsia-100 group-hover:scale-110 transition-transform">
-                <TrendingUp size={24} />
+          {/* Card 2: Subscribers (Real Data) */}
+          {/* ✅ เปลี่ยนเป็นสีม่วง (Purple/Fuchsia) ให้เข้ากับ Newsletter */}
+          <div className="relative p-5 rounded-2xl bg-purple-50/40 hover:shadow-[0_10px_40px_-10px_rgba(168,85,247,0.5)] transition-all duration-300 flex items-center gap-5 group">
+             <div className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm text-purple-500 bg-purple-100 group-hover:scale-110 transition-transform">
+                <Mail size={24} />
              </div>
              <div>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">TOTAL APPLICANTS</p>
+                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">TOTAL SUBSCRIBERS</p>
                 <div className="flex items-baseline gap-2">
-                   <h3 className="text-3xl font-black bg-linear-to-r from-fuchsia-600 to-pink-500 bg-clip-text text-transparent animate-in fade-in">
-                      {totalApplicants}
+                   <h3 className="text-3xl font-black bg-linear-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent animate-in fade-in">
+                      {totalSubscribers}
                    </h3>
-                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-green-100 text-green-700 flex items-center gap-0.5"><ArrowUp size={10}/> +New</span>
+                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-green-100 text-green-700 flex items-center gap-0.5"><ArrowUp size={10}/> Active</span>
                 </div>
-                <p className="text-gray-500 text-xs truncate mt-0.5">ใบสมัครทั้งหมด</p>
+                <p className="text-gray-500 text-xs truncate mt-0.5">ผู้ติดตามข่าวสารทั้งหมด</p>
              </div>
           </div>
       </div>
@@ -168,17 +175,17 @@ export default function ProjectStatus() {
           </div>
         )}
 
-        {activeTab === 'intern' && (
+        {/* ✅ กราฟ Newsletter (Bar Chart สีม่วง) */}
+        {activeTab === 'newsletter' && (
           <div className="h-full animate-in fade-in zoom-in duration-500">
              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={internGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={30}>
+                <BarChart data={newsletterGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.5}/>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af', fontWeight: 500}} dy={10}/>
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af', fontWeight: 500}}/>
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af', fontWeight: 500}} allowDecimals={false}/>
                     <Tooltip content={<CustomTooltip />} cursor={{fill: '#f3f4f6', radius: 8}} />
                     <Legend verticalAlign="top" align="right" height={30} iconType="circle" wrapperStyle={{ top: -10, right: 0, fontSize: '12px', fontWeight: 600 }} />
-                    <Bar dataKey="applied" name="ผู้สมัคร" fill="#fdba74" radius={[6, 6, 6, 6]} />
-                    <Bar dataKey="accepted" name="รับจริง" fill="#f97316" radius={[6, 6, 6, 6]} />
+                    <Bar dataKey="subscribers" name="ผู้ติดตามใหม่" fill="#a855f7" radius={[8, 8, 8, 8]} />
                 </BarChart>
              </ResponsiveContainer>
           </div>

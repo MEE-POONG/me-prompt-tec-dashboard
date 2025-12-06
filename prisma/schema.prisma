@@ -441,3 +441,13 @@ model CloudflareImage {
   @@index([relatedType, relatedId])
   @@index([uploadedBy])
 }
+
+
+model NewsletterSubscriber {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  source    String   @default("website") // homepage | contact | etc.
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
