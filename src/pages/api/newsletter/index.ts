@@ -1,4 +1,3 @@
-// src/pages/api/newsletter/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
@@ -7,11 +6,13 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "GET") {
-    // GET /api/newsletter?page=1&pageSize=20&search=xxx
     try {
       const page = Number(req.query.page ?? 1);
       const pageSize = Number(req.query.pageSize ?? 20);
       const search = (req.query.search as string | undefined)?.trim();
+      
+      // ✅ รับค่าการเรียงลำดับ (ถ้าไม่ส่งมา ให้ Default เป็น 'asc' คือเก่าสุดขึ้นก่อน ตามที่คุณต้องการ)
+      const sort = (req.query.sort as string) === "desc" ? "desc" : "asc";
 
       const where = search
         ? {
@@ -26,7 +27,8 @@ export default async function handler(
         prisma.newsletterSubscriber.count({ where }),
         prisma.newsletterSubscriber.findMany({
           where,
-          orderBy: { createdAt: "desc" },
+          // ✅ ใช้ตัวแปร sort ที่รับมา
+          orderBy: { createdAt: sort },
           skip: (page - 1) * pageSize,
           take: pageSize,
         }),
@@ -48,7 +50,6 @@ export default async function handler(
   }
 
   if (req.method === "DELETE") {
-    // DELETE /api/newsletter?id=xxxx
     try {
       const id = req.query.id as string | undefined;
 
