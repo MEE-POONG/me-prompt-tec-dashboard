@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { verifyToken } from "@/lib/auth/jwt";
+import { log } from "console";
 
 // -------------------------------------------------------------------
 // 🔒 ฟังก์ชันตรวจสอบ Token
@@ -28,8 +29,8 @@ export default async function handler(
 ) {
   try {
     switch (req.method) {
-      case "GET":
-        return await handleGet(req, res);
+      // case "GET":
+      //   return await handleGet(req, res);
       case "POST":
         return await handlePost(req, res);
       default:
@@ -50,40 +51,43 @@ export default async function handler(
 // -------------------------------------------------------------------
 // 📌 GET: ดึงรายการผู้ใช้งานทั้งหมด
 // -------------------------------------------------------------------
-async function handleGet(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const user = checkAuth(req);
-    const role = ((user as any)?.role || "").toUpperCase();
+// async function handleGet(req: NextApiRequest, res: NextApiResponse) {
+//   console.log(55);
+  
+//   try {
+//     const user = checkAuth(req);
+//     const role = ((user as any)?.role || "").toUpperCase();
+//   console.log(55);
 
-    // อนุญาตเฉพาะ ADMIN / HR / STAFF
-    if (!["ADMIN", "HR", "STAFF"].includes(role)) {
-      return res
-        .status(403)
-        .json({ error: "คุณไม่มีสิทธิ์ดูรายชื่อผู้ใช้งาน" });
-    }
+//     // อนุญาตเฉพาะ ADMIN / HR / STAFF
+//     if (!["ADMIN", "HR", "STAFF"].includes(role)) {
+//       return res
+//         .status(403)
+//         .json({ error: "คุณไม่มีสิทธิ์ดูรายชื่อผู้ใช้งาน" });
+//     }
 
-    const users = await prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        position: true,
-        role: true,
-        isVerified: true, // ← มาจาก branch poom
-        isActive: true,
-      },
-    });
+//     const users = await prisma.user.findMany({
+//       orderBy: { createdAt: "desc" },
+//       select: {
+//         id: true,
+//         name: true,
+//         email: true,
+//         phone: true,
+//         position: true,
+//         role: true,
+//         isVerified: true, // ← มาจาก branch poom
+//         isActive: true,
+//       },
+//     });
 
-    return res.status(200).json(users);
-  } catch (error: any) {
-    if (error.message === "UNAUTHORIZED") {
-      return res.status(401).json({ error: "กรุณาเข้าสู่ระบบ (Token Invalid)" });
-    }
-    throw error;
-  }
-}
+//     return res.status(200).json(users);
+//   } catch (error: any) {
+//     if (error.message === "UNAUTHORIZED") {
+//       return res.status(401).json({ error: "กรุณาเข้าสู่ระบบ (Token Invalid)" });
+//     }
+//     throw error;
+//   }
+// }
 
 // -------------------------------------------------------------------
 // 📌 POST: สร้างผู้ใช้ใหม่ (เฉพาะ ADMIN เท่านั้น)

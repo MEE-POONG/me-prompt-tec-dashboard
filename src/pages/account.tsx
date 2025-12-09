@@ -16,6 +16,7 @@ type Account = {
 
 export default function AccountPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -24,13 +25,20 @@ export default function AccountPage() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/account");
-      if (res.ok) {
-        const data = await res.json();
-        setAccounts(data);
-      } else {
-        console.error("Failed to fetch accounts");
+      const res = await fetch("/api/account/all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keyword: searchTerm,
+        }),
+      });
+      const data = await res.json(); // อ่านแค่ครั้งเดียว!!!
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error fetching accounts");
       }
+
+      setAccounts(data); // ← เซ็ตเข้า state ตรงนี้
     } catch (error) {
       console.error("Error fetching accounts:", error);
     } finally {
@@ -39,8 +47,11 @@ export default function AccountPage() {
   };
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (searchTerm.length > 3||searchTerm.length === 0) {
+      fetchAccounts().catch(console.error);
+    }
+  }, [searchTerm]);
+
 
   const handleDelete = async (id: string) => {
     try {
@@ -56,12 +67,12 @@ export default function AccountPage() {
     }
   };
 
-  const filteredAccounts = accounts.filter(
-    (acc) =>
-      (acc.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (acc.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (acc.position || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // const filteredAccounts = accounts.filter(
+  //   (acc) =>
+  //     (acc.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     (acc.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     (acc.position || "").toLowerCase().includes(searchTerm.toLowerCase())
+  // );
 
   return (
     <Layouts>
@@ -142,10 +153,9 @@ export default function AccountPage() {
                         กำลังโหลดข้อมูล...
                       </td>
                     </tr>
-                  ) : filteredAccounts.length > 0 ? (
-                    filteredAccounts.map((acc) => (
-                      <tr
-                        key={acc.id}
+                  ) : accounts.length > 0 ? (
+                    accounts.map((acc) => (
+                      <tr key={acc.id}
                         className="hover:bg-blue-50/30 transition-colors group"
                       >
                         <td className="p-5 pl-8 font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
