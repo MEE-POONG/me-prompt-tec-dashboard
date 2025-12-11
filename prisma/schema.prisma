@@ -213,7 +213,8 @@ model Member {
   socials    Social?
   skills     Skill[]
   slug       String  @unique
-
+  // [NEW] งานที่ได้รับมอบหมาย
+  assignedTasks TaskAssignee[]
   // relation: Projects ผ่าน join
   projectLinks ProjectMember[]
 
@@ -453,4 +454,49 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+// [NEW] งานย่อยในโปรเจกต์ (Kanban Card)
+model Task {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  
+  // Tag ที่แสดงบนการ์ด เช่น "Design", "Backend", "Research"
+  tag         String?  @default("General")
+  
+  // สถานะใน Kanban Board (Column ID)
+  // ค่าที่แนะนำ: "todo", "inprogress", "review", "done"
+  columnId    String   @default("todo")
+  
+  // ลำดับการเรียงในการ์ด (ถ้าต้องการทำ Drag & Drop แบบจำตำแหน่งเป๊ะๆ)
+  order       Int      @default(0)
+  
+  dueDate     DateTime?
+
+  // ความสัมพันธ์กับ Project
+  projectId   String   @db.ObjectId
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // คนที่รับผิดชอบงานนี้ (Assignees)
+  assignees   TaskAssignee[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([columnId])
+}
+
+// [NEW] ตารางเชื่อมระหว่าง Task กับ Member (ใครรับผิดชอบงานไหน)
+model TaskAssignee {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  taskId   String @db.ObjectId
+  memberId String @db.ObjectId
+
+  task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@unique([taskId, memberId]) // ห้าม assign คนเดิมซ้ำในงานเดิม
 }
