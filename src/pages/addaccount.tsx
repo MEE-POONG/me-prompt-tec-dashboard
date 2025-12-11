@@ -82,7 +82,6 @@ export default function AddOrEditAccount() {
 
     try {
       setSendingVerifyEmail(true);
-
       const res = await fetch("/api/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,6 +105,16 @@ export default function AddOrEditAccount() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const token = localStorage.getItem("token"); // 👈 ดึง token
+
+    // ตรวจสอบว่ามี token หรือไม่
+    if (!token) {
+      setErrorMessage("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+      setShowErrorModal(true);
+      setIsSubmitting(false);
+      return;
+    }
+
     const payload = {
       name,
       email,
@@ -113,21 +122,28 @@ export default function AddOrEditAccount() {
       position,
       role,
       isActive,
-      password: password || undefined, // ส่งเฉพาะถ้ามีการกรอกใหม่
+      password: password || undefined,
     };
 
     try {
       let res;
+
       if (isEditMode) {
         res = await fetch(`/api/account/${id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // 👈 ส่ง token
+          },
           body: JSON.stringify(payload),
         });
       } else {
         res = await fetch("/api/account", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // 👈 ส่ง token
+          },
           body: JSON.stringify(payload),
         });
       }
@@ -147,6 +163,7 @@ export default function AddOrEditAccount() {
     } finally {
       setIsSubmitting(false);
     }
+    console.log("Authorization:", `Bearer ${token}`);
   };
 
   if (loadingData) {
@@ -274,7 +291,7 @@ export default function AddOrEditAccount() {
                       />
                     </div>
 
-                    {isEditMode  && (
+                    {isEditMode && (
                       <button
                         type="button"
                         className="px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 whitespace-nowrap flex items-center gap-2 disabled:opacity-50"

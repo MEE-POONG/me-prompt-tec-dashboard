@@ -30,7 +30,7 @@ export default async function handler(
     if (!user) {
       return res.status(404).json({
         error: "USER_NOT_FOUND",
-        message: `ไม่เจอ username "${username}" โปรดเพิ่มเข้าระบบก่อน`
+        message: `ไม่เจอ username "${username}" โปรดเพิ่มเข้าระบบก่อน`,
       });
     }
 
@@ -38,7 +38,7 @@ export default async function handler(
     if (!user.isActive) {
       return res.status(403).json({
         error: "ACCOUNT_DISABLED",
-        message: "บัญชีของคุณถูกปิดการใช้งาน"
+        message: "บัญชีของคุณถูกปิดการใช้งาน",
       });
     }
 
@@ -48,7 +48,7 @@ export default async function handler(
     if (!isPasswordValid) {
       return res.status(401).json({
         error: "INVALID_PASSWORD",
-        message: "Password ไม่ถูกต้อง"
+        message: "Password ไม่ถูกต้อง",
       });
     }
 
@@ -63,19 +63,19 @@ export default async function handler(
     // 5. ตั้งค่า httpOnly cookie
     setAuthCookie(res, token);
 
-    // 6. ส่ง response กลับ
+    // 6. ส่ง response กลับ (พร้อม token)
     return res.status(200).json({
       success: true,
       message: "เข้าสู่ระบบสำเร็จ",
+      token, // 👈 เพิ่ม token ในการ response
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         position: user.position,
-      }
+      },
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ error: "Internal Server Error" });

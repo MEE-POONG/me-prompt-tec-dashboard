@@ -8,14 +8,32 @@ import { log } from "console";
 // 🔒 ฟังก์ชันตรวจสอบ Token
 // -------------------------------------------------------------------
 function checkAuth(req: NextApiRequest) {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) throw new Error("UNAUTHORIZED");
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.error("Missing or invalid Authorization header:", authHeader);
+    throw new Error("UNAUTHORIZED");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    console.error("Token is empty after splitting");
+    throw new Error("UNAUTHORIZED");
+  }
+
+  console.log(
+    "Verifying token (first 20 chars):",
+    token.substring(0, 20) + "..."
+  );
   const decoded = verifyToken(token);
 
   if (!decoded || typeof decoded !== "object") {
+    console.error("Token verification failed or returned invalid data");
     throw new Error("UNAUTHORIZED");
   }
+  console.log("authHeader:", authHeader);
+  console.log("token extracted:", token);
 
   return decoded;
 }
@@ -53,7 +71,7 @@ export default async function handler(
 // -------------------------------------------------------------------
 // async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 //   console.log(55);
-  
+
 //   try {
 //     const user = checkAuth(req);
 //     const role = ((user as any)?.role || "").toUpperCase();
@@ -144,9 +162,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     });
   } catch (error: any) {
     if (error.message === "UNAUTHORIZED") {
-      return res
-        .status(401)
-        .json({ error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" });
+      return res.status(401).json({ error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" });
     }
     throw error;
   }
