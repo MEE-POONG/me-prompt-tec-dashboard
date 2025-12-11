@@ -1,23 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth/jwt";
-
-// -------------------------------------------------------------------
-// 🔒 ฟังก์ชันตรวจสอบ Token
-// -------------------------------------------------------------------
-function checkAuth(req: NextApiRequest) {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) throw new Error("UNAUTHORIZED");
-
-  const decoded = verifyToken(token);
-
-  if (!decoded || typeof decoded !== "object") {
-    throw new Error("UNAUTHORIZED");
-  }
-
-  return decoded;
-}
-
 // -------------------------------------------------------------------
 // API Handler
 // -------------------------------------------------------------------
@@ -27,8 +9,6 @@ export default async function handler(
 ) {
   try {
     switch (req.method) {
-      // case "GET":
-      //   return await handleGet(req, res);
       case "POST":
         return await handlePost(req, res);
       default:
@@ -51,30 +31,20 @@ export default async function handler(
 // -------------------------------------------------------------------
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // 1. ตรวจสอบ JWT Token
-    // const user = checkAuth(req);
-    // const role = ((user as any)?.role || "").toUpperCase();
-
-    // // 2. ตรวจสอบสิทธิ์ - อนุญาตเฉพาะ ADMIN / HR / STAFF
-    // if (!["ADMIN", "HR", "STAFF"].includes(role)) {
-    //   return res
-    //     .status(403)
-    //     .json({ error: "คุณไม่มีสิทธิ์ดูรายชื่อผู้ใช้งาน" });
-    // }
     const where: any = {};
-    // 3. ตรวจสอบ keyword ที่ส่งมาใน body (เพิ่มความปลอดภัย)
     const { keyword } = req.body;
-    // const SECRET_KEYWORD = process.env.ACCOUNT_ACCESS_KEYWORD || "fetch_all_users_2025";
-    if (keyword) {
+    if (keyword && keyword.trim() !== "") {
+      const key = keyword.trim();
       where.OR = [
-        { name: { first: { contains: keyword as string } } },
-        { name: { last: { contains: keyword as string } } },
-        { name: { display: { contains: keyword as string } } },
+        { name: { contains: keyword, mode: "insensitive" } },
+        { email: { contains: keyword, mode: "insensitive" } },
+        { position: { contains: keyword, mode: "insensitive" } },
+        { phone: { contains: keyword, mode: "insensitive" } },
       ];
     }
-    // 4. ดึงข้อมูลผู้ใช้ทั้งหมด
+
     const users = await prisma.user.findMany({
-        where,
+      where,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -87,7 +57,6 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         isActive: true,
       },
     });
-console.log(users);
 
     return res.status(200).json(users);
   } catch (error: any) {
