@@ -92,7 +92,7 @@ export default function ProjectDetail() {
                       </span>
                     </div>
 
-                    <div className="space-y-3 mb-4 max-h-[240px] overflow-y-auto">
+                    <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
                       {members.map((member) => (
                         <div
                           key={member.id}
