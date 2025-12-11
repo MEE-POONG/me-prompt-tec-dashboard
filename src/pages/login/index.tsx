@@ -39,15 +39,20 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/login/login", {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // สำคัญ!
         body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
 
       if (res.status === 200) {
+        // เก็บ token และ user data ใน localStorage
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         localStorage.setItem("user", JSON.stringify(data.user));
 
         // --- กรณีสำเร็จ ---

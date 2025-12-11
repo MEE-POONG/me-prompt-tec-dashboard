@@ -415,7 +415,7 @@ model Partner {
   updatedAt DateTime @updatedAt
 }
 
-// Model สำหรับเก็บข้อมูลรูปภาพที่อัพโหลดไปยัง Cloudflare Images
+// Model สำหรับเก็บข้อมูลรูปภาพที่อัพโหลดไปยัง  udflare Images
 model CloudflareImage {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
   cloudflareId     String   @unique // ID ที่ Cloudflare ส่งกลับมา

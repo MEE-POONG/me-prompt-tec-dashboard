@@ -13,6 +13,8 @@ export default async function handler(
   }
 
   try {
+    console.log("🔍 Verifying token for user...");
+
     const user = await prisma.user.findFirst({
       where: {
         verifyToken: token,
@@ -21,6 +23,7 @@ export default async function handler(
     });
 
     if (!user) {
+      console.log("❌ Token not found or expired");
       return res
         .status(400)
         .json({ success: false, message: "Token not found or expired" });
@@ -36,6 +39,8 @@ export default async function handler(
         tokenExpire: null,
       },
     });
+
+    console.log("✅ User verified successfully:", user.email);
 
     return res.json({ success: true });
   } catch (e) {

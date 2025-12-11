@@ -40,7 +40,9 @@ export default async function handler(
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    console.log("✅ Verification email sent to:", email);
+    console.log("🔗 Verification link:", `${baseUrl}/verify?token=${token}`);
 
     // 🔧 ส่งอีเมล
     await sendEmail({
