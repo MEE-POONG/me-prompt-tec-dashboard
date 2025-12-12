@@ -8,7 +8,7 @@ import { useWorkspaceBoard } from "@/hooks/useWorkspaceBoard";
 import { INITIAL_WORKSPACE_COLUMNS, WORKSPACE_INFO } from "@/constants/workspaceData";
 import WorkspaceTaskCard from "./Board/WorkspaceTaskCard";
 import WorkspaceBoardColumn from "./Board/WorkspaceBoardColumn";
-import WorkspaceSidebar from "./Sidebar/WorkspaceSidebar";
+import WorkspaceSidebar from "./Modal/WorkspaceSidebar";
 import { WorkspaceBoardProps } from "@/types/workspace";
 
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
