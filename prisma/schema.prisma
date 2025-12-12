@@ -1,11 +1,8 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -49,6 +46,13 @@ enum MediaType {
   file
 }
 
+// [NEW] Enum for Kanban Task Priority
+enum TaskPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 // ---------------- Composite Types (Embedded) ----------------
 type Name {
   first   String
@@ -88,7 +92,7 @@ type Education {
   school    String
   faculty   String?
   major     String?
-  degree    String? // "Diploma" | "Bachelor" | "Master" | "PhD" | "Other"
+  degree    String?   // "Diploma" | "Bachelor" | "Master" | "PhD" | "Other"
   startDate DateTime?
   endDate   DateTime?
   gpa       Float?
@@ -153,20 +157,22 @@ type ResumeProject {
 
 // ---------------- Core Models ----------------
 
-// ผู้ใช้งานหลังบ้าน
+// ผู้ใช้งานหลังบ้าน (Backend Users)
 model User {
-  id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  email        String  @unique
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  email        String    @unique
   passwordHash String
-  role         Role    @default(viewer)
-  isActive     Boolean @default(false)
-  verifyToken   String?
-  tokenExpire   DateTime?
-  isVerified   Boolean  @default(false)
+  role         Role      @default(viewer)
+  isActive     Boolean   @default(false)
+  verifyToken  String?
+  tokenExpire  DateTime?
+  isVerified   Boolean   @default(false)
 
   name     String? // ชื่อ-นามสกุล (ใช้แทน fullName)
   phone    String? // เบอร์โทร
   position String? // ตำแหน่ง
+  avatar   String? // [NEW] รูปโปรไฟล์สำหรับแสดงใน Board
+
   // ------------------------
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
   memberId String? @db.ObjectId
@@ -177,6 +183,13 @@ model User {
 
   // relation: Contact messages handled by this user
   handledMessages ContactMessage[]
+
+  // [NEW] Relations for Workspace / Kanban Board
+  collaboratingProjects ProjectCollaborator[] // โปรเจกต์ที่ User นี้เข้าร่วม (Internal)
+  assignedTasks         Task[]                @relation(fields: [assignedTaskIds], references: [id]) // Task ที่ได้รับมอบหมาย
+  assignedTaskIds       String[]              @db.ObjectId
+  taskComments          TaskComment[] // คอมเมนต์ใน Task
+  boardActivities       BoardActivity[] // Log การกระทำใน Board
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,7 +215,7 @@ model Company {
   updatedAt DateTime @updatedAt
 }
 
-// สมาชิกทีม/พนักงาน
+// สมาชิกทีม/พนักงาน (Public Profile)
 model Member {
   id         String  @id @default(auto()) @map("_id") @db.ObjectId
   name       Name
@@ -213,9 +226,8 @@ model Member {
   socials    Social?
   skills     Skill[]
   slug       String  @unique
-  // [NEW] งานที่ได้รับมอบหมาย
-  assignedTasks TaskAssignee[]
-  // relation: Projects ผ่าน join
+
+  // relation: Projects ผ่าน join (Public Credits)
   projectLinks ProjectMember[]
 
   // relation: Users that link to this member
@@ -229,7 +241,7 @@ model Member {
   updatedAt DateTime @updatedAt
 }
 
-// นักศึกษา Coop/ฝึกงาน (มีหน้า portfolio ของตัวเอง)
+// นักศึกษา Coop/ฝึกงาน (Public Profile)
 model Intern {
   id         String  @id @default(auto()) @map("_id") @db.ObjectId
   name       Name
@@ -238,7 +250,6 @@ model Intern {
   major      String? @default("สารสนเทศทางคอมพิวเตอร์")
   studentId  String?
 
-  // ✅ เพิ่มฟิลด์รุ่น (Generation) ตรงนี้ครับ
   gen String @default("6")
 
   coopType      CoopType     @default(coop)
@@ -258,7 +269,7 @@ model Intern {
   updatedAt DateTime @updatedAt
 }
 
-// ผลงาน/โปรเจกต์บริษัท (หน้า Portfolio)
+// ผลงาน/โปรเจกต์บริษัท (Shared Model: Used for Portfolio & Workspace)
 model Project {
   id           String        @id @default(auto()) @map("_id") @db.ObjectId
   title        String
@@ -277,9 +288,20 @@ model Project {
   links        Link[]
   featured     Boolean       @default(false)
 
-  // relations via join
+  // [NEW] Fields for Internal Workspace
+  color            String  @default("#3B82F6") // Hex or Tailwind Class
+  isCustomColor    Boolean @default(false)
+  internalProgress Int     @default(0) // 0-100
+  internalDueDate  String? // String display format ex "Nov 24" or use endDate
+
+  // relations via join (Public Portfolio)
   memberLinks ProjectMember[]
   internLinks ProjectIntern[]
+
+  // [NEW] Relations for Kanban Board (Internal)
+  collaborators   ProjectCollaborator[] // ทีมงานหลังบ้านที่จัดการโปรเจกต์นี้
+  columns         Column[] // Kanban Columns
+  boardActivities BoardActivity[] // Recent Activity Widget
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -288,6 +310,90 @@ model Project {
   @@index([featured])
   @@index([title])
 }
+
+// ---------------- Workspace / Kanban Models (NEW) ----------------
+
+// ตารางเชื่อม User (Backend) กับ Project เพื่อระบุ Role ภายใน Workspace และการปักหมุด
+model ProjectCollaborator {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
+  projectId String @db.ObjectId
+
+  role        String  @default("Viewer") // PM, Dev, Design, Viewer
+  isImportant Boolean @default(false) // User กดปักหมุดโปรเจกต์นี้หรือไม่
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+// Kanban Column (e.g., To Do, In Progress)
+model Column {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  color     String? // แถบสีหัวข้อ
+  order     Int // ลำดับการเรียง Column
+  projectId String  @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+}
+
+// Kanban Task Card
+model Task {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  columnId    String   @db.ObjectId
+
+  // Task Metadata
+  tag      String? // e.g. "Research", "DevOps"
+  tagColor String? // e.g. "bg-purple-50 text-purple-600"
+  priority TaskPriority @default(MEDIUM)
+  date     String? // Display date string (e.g. "Nov 24")
+  dueDate  DateTime?
+  isDone   Boolean      @default(false) // สำหรับ Widget My Tasks
+  order    Int // ลำดับการเรียง Task ใน Column
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  column   Column        @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  comments TaskComment[]
+
+  // Assignees (Users)
+  assigneeIds String[] @db.ObjectId
+  assignees   User[]   @relation(fields: [assigneeIds], references: [id])
+}
+
+// Comments on Tasks
+model TaskComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  taskId    String   @db.ObjectId
+  userId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Activity Log for Project Board
+model BoardActivity {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String // "moved task", "uploaded", "commented"
+  target    String // "Homepage", "Wireframes v2"
+  userId    String   @db.ObjectId
+  projectId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ---------------- Existing Models Continue ----------------
 
 // ความร่วมมือ/MOU
 model MOU {
@@ -331,9 +437,7 @@ model ContactMessage {
   handledById String? @db.ObjectId
   handledBy   User?   @relation(fields: [handledById], references: [id])
 
-  status String @default("new") // new|in-progress|done
-
-  // ✅ เพิ่ม isStarred ตรงนี้
+  status    String  @default("new") // new|in-progress|done
   isStarred Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -360,8 +464,8 @@ model MediaAsset {
 }
 
 // ---------------- Join Models (Many-to-Many) ----------------
-// Prisma + MongoDB ยังไม่มี implicit M2M; ใช้ join collection แทน
 
+// สำหรับ Public Profile (Credit ผลงาน)
 model ProjectMember {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   projectId String @db.ObjectId
@@ -373,7 +477,7 @@ model ProjectMember {
   role String? // บทบาทในโปรเจกต์ (PM, Dev, Designer)
   note String?
 
-  @@unique([projectId, memberId]) // ไม่ซ้ำในโปรเจกต์เดียวกัน
+  @@unique([projectId, memberId])
 }
 
 model ProjectIntern {
@@ -415,37 +519,36 @@ model Partner {
   updatedAt DateTime @updatedAt
 }
 
-// Model สำหรับเก็บข้อมูลรูปภาพที่อัพโหลดไปยัง  udflare Images
+// Model สำหรับเก็บข้อมูลรูปภาพที่อัพโหลดไปยัง Cloudflare Images
 model CloudflareImage {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  cloudflareId     String   @unique // ID ที่ Cloudflare ส่งกลับมา
-  filename         String // ชื่อไฟล์ต้นฉบับ
-  uploadedBy       String? // อาจเชื่อมกับ User ID ถ้าต้องการ
-  publicUrl        String // URL สำหรับเข้าถึงรูปภาพ
-  variants         String[] // URL ของ variants ต่างๆ (thumbnail, medium, large)
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  cloudflareId String   @unique // ID ที่ Cloudflare ส่งกลับมา
+  filename     String // ชื่อไฟล์ต้นฉบับ
+  uploadedBy   String? // อาจเชื่อมกับ User ID ถ้าต้องการ
+  publicUrl    String // URL สำหรับเข้าถึงรูปภาพ
+  variants     String[] // URL ของ variants ต่างๆ (thumbnail, medium, large)
 
   // Metadata
-  width            Int?
-  height           Int?
-  format           String? // jpg, png, webp, etc.
-  size             Int? // ขนาดไฟล์ (bytes)
+  width  Int?
+  height Int?
+  format String? // jpg, png, webp, etc.
+  size   Int? // ขนาดไฟล์ (bytes)
 
   // Reference ไปยัง entity ที่ใช้รูปนี้
-  relatedType      String? // "project" | "member" | "intern" | "partner" | etc.
-  relatedId        String? @db.ObjectId
-  fieldName        String? // "cover" | "avatar" | "logo" | "gallery" etc.
+  relatedType String? // "project" | "member" | "intern" | "partner" | etc.
+  relatedId   String? @db.ObjectId
+  fieldName   String? // "cover" | "avatar" | "logo" | "gallery" etc.
 
   // จัดการ
-  isActive         Boolean  @default(true)
-  tags             String[] // tags สำหรับจัดการรูป
+  isActive Boolean  @default(true)
+  tags     String[] // tags สำหรับจัดการรูป
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([relatedType, relatedId])
   @@index([uploadedBy])
 }
-
 
 model NewsletterSubscriber {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -454,49 +557,4 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
-}
-// [NEW] งานย่อยในโปรเจกต์ (Kanban Card)
-model Task {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String?
-  
-  // Tag ที่แสดงบนการ์ด เช่น "Design", "Backend", "Research"
-  tag         String?  @default("General")
-  
-  // สถานะใน Kanban Board (Column ID)
-  // ค่าที่แนะนำ: "todo", "inprogress", "review", "done"
-  columnId    String   @default("todo")
-  
-  // ลำดับการเรียงในการ์ด (ถ้าต้องการทำ Drag & Drop แบบจำตำแหน่งเป๊ะๆ)
-  order       Int      @default(0)
-  
-  dueDate     DateTime?
-
-  // ความสัมพันธ์กับ Project
-  projectId   String   @db.ObjectId
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  // คนที่รับผิดชอบงานนี้ (Assignees)
-  assignees   TaskAssignee[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([columnId])
-}
-
-// [NEW] ตารางเชื่อมระหว่าง Task กับ Member (ใครรับผิดชอบงานไหน)
-model TaskAssignee {
-  id       String @id @default(auto()) @map("_id") @db.ObjectId
-  taskId   String @db.ObjectId
-  memberId String @db.ObjectId
-
-  task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  assignedAt DateTime @default(now())
-
-  @@unique([taskId, memberId]) // ห้าม assign คนเดิมซ้ำในงานเดิม
 }
