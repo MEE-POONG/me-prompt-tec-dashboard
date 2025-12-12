@@ -223,7 +223,7 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
                 }
               }}
               placeholder="แสดงความคิดเห็น หรือ @mention..."
-              className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400 resize-none min-h-[80px] text-base px-3 py-2"
+              className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400 resize-none min-h-20 text-base px-3 py-2"
             />
             <div className="flex justify-between items-center px-2 pb-1">
               <div className="flex gap-2">

@@ -977,7 +977,7 @@ export default function ModalsWorkflow({
                   >
                     คอมเมนต์
                     {activeTab === "comment" && (
-                      <div className="absolute bottom-[-2px] left-0 w-full h-[4px] bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
+                      <div className="absolute -bottom-0.5 left-0 w-full h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
                     )}
                   </button>
                   <button
@@ -993,7 +993,7 @@ export default function ModalsWorkflow({
                       {activities.length}
                     </span>
                     {activeTab === "activity" && (
-                      <div className="absolute bottom-[-2px] left-0 w-full h-[4px] bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
+                      <div className="absolute -bottom-0.5 left-0 w-full h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
                     )}
                   </button>
                 </div>

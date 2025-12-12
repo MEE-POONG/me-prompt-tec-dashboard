@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
-import ProjectBoard from "@/Container/WorkSpace/ProjectBoard";
+import ProjectBoard from "@/Container/WorkSpace/WorkspaceBoard";
+const ProjectBoardAny = ProjectBoard as any;
 import { ArrowLeft, Settings, Users, Filter, Plus, X } from "lucide-react";
 import Link from "next/link";
 
@@ -145,7 +146,7 @@ export default function ProjectDetail() {
 
         {/* Kanban Board Area */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 bg-gray-50">
-          <ProjectBoard projectId={typeof id === "string" ? id : ""} />
+          <ProjectBoardAny projectId={typeof id === "string" ? id : ""} />
         </div>
       </div>
     </Layouts>
