@@ -1,30 +1,65 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Folder,
   MoreVertical,
-  Clock,
   Users,
   Trash2,
-  Palette,
   Star,
   CheckCircle2,
   Calendar as CalendarIcon,
   MessageSquare,
-  ArrowRight,
   X,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Plus
 } from "lucide-react";
 
-// --- Mock Data: โปรเจกต์ของฉัน ---
-const myProjectsData = [
+// --- Types ---
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  members: number;
+  updated: string;
+  createdAt: string; // Format: YYYY-MM-DD
+  color: string;
+  status: string;
+  isImportant: boolean;
+  progress: number;
+  owner?: string;
+}
+
+interface Task {
+  id: number;
+  title: string;
+  project: string;
+  due: string;
+  isDone: boolean;
+  color: string;
+}
+
+interface Comment {
+  id: number;
+  user: string;
+  avatar: string;
+  text: string;
+  project: string;
+  time: string;
+}
+
+// --- Mock Data ---
+const myProjectsData: Project[] = [
   {
     id: "PROJ-001",
     name: "Website Redesign",
     description: "Redesigning the corporate website for better UX/UI.",
     members: 5,
     updated: "2h ago",
-    createdAt: "2025-11-10", // วันที่สร้าง (สำหรับ Test ปฏิทิน)
+    createdAt: "2025-11-10",
     color: "bg-blue-100 text-blue-600",
     status: "In Progress",
     isImportant: false,
@@ -56,8 +91,7 @@ const myProjectsData = [
   },
 ];
 
-// --- Mock Data: แผนงานที่มีส่วนร่วม ---
-const sharedProjectsData = [
+const sharedProjectsData: Project[] = [
   {
     id: "PROJ-003",
     name: "Marketing Campaign Q4",
@@ -86,15 +120,13 @@ const sharedProjectsData = [
   },
 ];
 
-// --- Mock Data: งานของฉัน (รวมจากทุกโปรเจกต์) ---
-const initialMyTasks = [
+const initialMyTasks: Task[] = [
   { id: 1, title: "ตรวจแก้ Wireframe หน้า Home", project: "Website Redesign", due: "Today", isDone: false, color: "text-red-500 bg-red-50" },
   { id: 2, title: "อัปเดตเอกสาร API", project: "Mobile App", due: "Tomorrow", isDone: false, color: "text-orange-500 bg-orange-50" },
   { id: 3, title: "เตรียมสไลด์ประชุมทีม", project: "General", due: "Nov 28", isDone: true, color: "text-blue-500 bg-blue-50" },
 ];
 
-// --- Mock Data: คอมเมนต์ล่าสุด (Recent Comments) ---
-const recentComments = [
+const recentComments: Comment[] = [
   { id: 1, user: "Alex", avatar: "A", text: "ตรงส่วน Header น่าจะปรับสีให้อ่อนลงหน่อยนะครับ", project: "Website Redesign", time: "10m ago" },
   { id: 2, user: "Sarah", avatar: "S", text: "ไฟล์ Logo ตัวล่าสุดอัปโหลดให้แล้วนะ อยู่ใน Folder Assets", project: "Marketing Campaign", time: "1h ago" },
   { id: 3, user: "Mike", avatar: "M", text: "บั๊กตรงหน้า Login แก้ไขเรียบร้อยแล้วครับ ฝากเทสด้วย", project: "Client Portal", time: "2h ago" },
@@ -110,13 +142,14 @@ export default function WorkList({
   searchItem = "",
 }: WorkListProps) {
   // --- State ---
-  const [myProjects, setMyProjects] = useState(myProjectsData);
-  const [sharedProjects, setSharedProjects] = useState(sharedProjectsData);
-  const [myTasks, setMyTasks] = useState(initialMyTasks);
+  const [myProjects, setMyProjects] = useState<Project[]>(myProjectsData);
+  const [sharedProjects, setSharedProjects] = useState<Project[]>(sharedProjectsData);
+  const [myTasks, setMyTasks] = useState<Task[]>(initialMyTasks);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   
   // Calendar State
-  const [selectedDate, setSelectedDate] = useState<string | null>(null); // เก็บวันที่ถูกเลือก เช่น "2025-11-10"
+  const [selectedDate, setSelectedDate] = useState<string | null>(null); 
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date(2025, 10, 1)); // Default Nov 2025 for demo
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -145,44 +178,32 @@ export default function WorkList({
   };
 
   const handleToggleImportant = (id: string, isShared: boolean) => {
-    if (isShared) {
-      setSharedProjects((prev) =>
-        prev.map((p) => p.id === id ? { ...p, isImportant: !p.isImportant } : p)
-      );
-    } else {
-      setMyProjects((prev) =>
-        prev.map((p) => p.id === id ? { ...p, isImportant: !p.isImportant } : p)
-      );
-    }
+    const updater = (prev: Project[]) => prev.map((p) => p.id === id ? { ...p, isImportant: !p.isImportant } : p);
+    if (isShared) setSharedProjects(updater);
+    else setMyProjects(updater);
     setActiveDropdownId(null);
   };
 
-  // --- Filtering Logic (Search + Date) ---
-  const filterFn = (p: any) => {
+  // --- Filtering Logic ---
+  const filterFn = (p: Project) => {
     const matchesSearch = p.name.toLowerCase().includes(searchItem.toLowerCase()) ||
                           p.description.toLowerCase().includes(searchItem.toLowerCase());
-    
-    // ถ้ามีการเลือกวันที่ ต้องดูว่า Project นี้ created ตรงกับวันที่เลือกไหม (หรือ updated ก็ได้ตาม Logic ที่ต้องการ)
     const matchesDate = selectedDate ? p.createdAt === selectedDate : true;
-
     return matchesSearch && matchesDate;
   };
 
   const filteredMyProjects = myProjects.filter(filterFn);
   const filteredSharedProjects = sharedProjects.filter(filterFn);
-
-  // Stats Logic
-  const totalProjects = filteredMyProjects.length + filteredSharedProjects.length;
   const pendingTasks = myTasks.filter(t => !t.isDone).length;
 
   // --- Helper Components ---
-  const ProjectCard = ({ project, isShared }: { project: any, isShared: boolean }) => (
+  const ProjectCard = ({ project, isShared }: { project: Project, isShared: boolean }) => (
     <div className={`relative group block h-full transition-all duration-200 ${activeDropdownId === project.id ? "z-50" : "z-0"}`}>
       <Link href={`/workspace/${project.id}`} className="absolute inset-0 z-0" />
       
       <div className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid" ? "flex flex-col" : "flex flex-row items-center gap-6"}`}>
         {project.isImportant && (
-          <div className="absolute top-0 right-0 -mt-2 -mr-2 text-yellow-400 drop-shadow-sm bg-white rounded-full p-0.5">
+          <div className="absolute top-0 right-0 -mt-2 -mr-2 text-yellow-400 drop-shadow-sm bg-white rounded-full p-0.5 animate-in zoom-in">
             <Star size={20} fill="currentColor" />
           </div>
         )}
@@ -208,7 +229,7 @@ export default function WorkList({
               <MoreVertical size={20} />
             </button>
             {activeDropdownId === project.id && (
-              <div ref={dropdownRef} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default">
+              <div ref={dropdownRef} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50">
                 <button className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" onClick={() => handleToggleImportant(project.id, isShared)}>
                   <Star size={16} className={project.isImportant ? "text-yellow-500 fill-yellow-500" : "text-gray-400"} />
                   <span>{project.isImportant ? "Unmark" : "Mark as Important"}</span>
@@ -229,8 +250,8 @@ export default function WorkList({
               <h3 className="text-lg font-bold text-gray-900 truncate">{project.name}</h3>
               <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">{project.description}</p>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4">
-               <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${project.progress}%` }}></div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
+               <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${project.progress}%` }}></div>
             </div>
             <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 mt-auto w-full">
               <div className="flex items-center gap-1.5">
@@ -243,8 +264,8 @@ export default function WorkList({
 
         {viewType === "list" && (
           <div className="flex items-center gap-8 ml-auto text-xs text-gray-500 whitespace-nowrap">
-             <div className="w-24 bg-gray-100 rounded-full h-1.5">
-               <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${project.progress}%` }}></div>
+             <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+               <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${project.progress}%` }}></div>
             </div>
             <div className="flex items-center gap-1.5">
               <Users size={14} />
@@ -261,12 +282,12 @@ export default function WorkList({
       {/* === Left Content (Main) === */}
       <div className="flex-1 w-full space-y-8 min-w-0">
         
-        {/* Banner แจ้งเตือนเมื่อมีการกรองวันที่ */}
+        {/* Banner Filter */}
         {selectedDate && (
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-2 text-blue-700 text-sm">
               <Filter size={18} />
-              <span>กำลังแสดงโปรเจกต์ที่สร้างวันที่ <strong>{selectedDate}</strong></span>
+              <span>Filtering projects created on <strong>{selectedDate}</strong></span>
             </div>
             <button 
               onClick={() => setSelectedDate(null)}
@@ -277,10 +298,10 @@ export default function WorkList({
           </div>
         )}
 
-        {/* Section: โปรเจกต์ของฉัน */}
+        {/* My Projects */}
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-             โปรเจกต์ของฉัน <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{filteredMyProjects.length}</span>
+              My Projects <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{filteredMyProjects.length}</span>
           </h2>
           
           <div className={viewType === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "space-y-3"}>
@@ -289,16 +310,17 @@ export default function WorkList({
                     <ProjectCard key={project.id} project={project} isShared={false} />
                 ))
             ) : (
-                <div className="col-span-full py-8 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
-                    ไม่พบโปรเจกต์{selectedDate ? ` ในวันที่ ${selectedDate}` : ""}
+                <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                    No projects found{selectedDate ? ` on ${selectedDate}` : ""}
                 </div>
             )}
             
+            {/* Create New Project Card */}
             {!selectedDate && (
-                <Link href="/workspace/add">
+                <Link href="/workspace/add" className="block h-full">
                 <div className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${viewType === "grid" ? "flex-col justify-center min-h-[220px]" : "flex-row gap-4 min-h-[100px]"}`}>
                     <div className="rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors w-12 h-12 mb-3">
-                    <Folder size={24} className="group-hover:text-blue-600" />
+                    <Plus size={24} className="group-hover:text-blue-600" />
                     </div>
                     <span className="font-semibold">Create New Project</span>
                 </div>
@@ -307,10 +329,10 @@ export default function WorkList({
           </div>
         </div>
 
-        {/* Section: แผนงานที่มีส่วนร่วม */}
+        {/* Shared Projects */}
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-             แผนงานที่มีส่วนร่วม <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">{filteredSharedProjects.length}</span>
+              Shared Projects <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">{filteredSharedProjects.length}</span>
           </h2>
           
           {filteredSharedProjects.length > 0 ? (
@@ -321,7 +343,7 @@ export default function WorkList({
             </div>
           ) : (
              <div className="text-center py-10 border border-gray-100 rounded-2xl bg-gray-50/50">
-               <p className="text-gray-400">ยังไม่มีแผนงานที่ถูกเชิญเข้าร่วม {selectedDate ? `ในวันที่ ${selectedDate}` : ""}</p>
+               <p className="text-gray-400">No shared projects found {selectedDate ? `on ${selectedDate}` : ""}</p>
              </div>
           )}
         </div>
@@ -333,56 +355,55 @@ export default function WorkList({
          {/* Widget 1: Interactive Calendar */}
          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-800">November 2025</h3>
-                <div className="flex gap-1">
-                     <button 
-                        onClick={() => setSelectedDate(null)} 
-                        className="text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                        title="Show all projects"
-                    >
-                        Reset
-                    </button>
+                <h3 className="font-bold text-gray-800">
+                  {currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </h3>
+                <div className="flex items-center gap-1">
+                     <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1)))} className="p-1 hover:bg-gray-100 rounded text-gray-600"><ChevronLeft size={16}/></button>
+                     <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1)))} className="p-1 hover:bg-gray-100 rounded text-gray-600"><ChevronRight size={16}/></button>
                 </div>
             </div>
             <div className="grid grid-cols-7 text-center text-xs text-gray-400 font-medium mb-2">
-                <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+               {['S','M','T','W','T','F','S'].map((d,i) => <span key={i}>{d}</span>)}
             </div>
             <div className="grid grid-cols-7 text-center gap-y-3 text-sm text-gray-700">
-               <span className="text-gray-300">26</span><span className="text-gray-300">27</span><span className="text-gray-300">28</span><span className="text-gray-300">29</span><span className="text-gray-300">30</span><span className="text-gray-300">31</span>
+               {/* Padding for empty days */}
+               {[...Array(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1).getDay())].map((_, i) => <span key={`empty-${i}`} />)}
                
-               {/* Mock Days Generation for Nov 1-30 */}
-               {[...Array(30)].map((_, i) => {
+               {/* Days */}
+               {[...Array(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0).getDate())].map((_, i) => {
                    const day = i + 1;
-                   const dateStr = `2025-11-${day.toString().padStart(2, '0')}`;
+                   const dateStr = `${currentCalendarDate.getFullYear()}-${(currentCalendarDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                    const isSelected = selectedDate === dateStr;
-                   // สมมติว่าวันที่ 10, 15, 20, 23 มี Event
-                   const hasEvent = ["10", "15", "20", "23"].includes(day.toString()); 
+                   // Logic check if any project exists on this date
+                   const hasEvent = [...myProjects, ...sharedProjects].some(p => p.createdAt === dateStr);
 
                    return (
                        <div key={day} className="relative flex justify-center">
                            <button 
-                                onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                                className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${
-                                    isSelected 
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-300" 
-                                        : "hover:bg-gray-100"
-                                } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""}`}
+                               onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                               className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${
+                                   isSelected ? "bg-blue-600 text-white shadow-lg shadow-blue-300 scale-110" : "hover:bg-gray-100"
+                               } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""}`}
                            >
                                {day}
                            </button>
-                           {hasEvent && !isSelected && (
-                               <div className="absolute bottom-0 w-1 h-1 bg-blue-500 rounded-full"></div>
-                           )}
+                           {hasEvent && !isSelected && <div className="absolute bottom-0 w-1 h-1 bg-blue-500 rounded-full"></div>}
                        </div>
                    )
                })}
             </div>
-            <p className="text-xs text-gray-400 mt-4 text-center">
-                * Click a date to filter projects created on that day
-            </p>
+            {selectedDate && (
+                <button 
+                    onClick={() => setSelectedDate(null)} 
+                    className="w-full mt-4 text-xs text-blue-600 hover:bg-blue-50 py-2 rounded transition-colors border border-dashed border-blue-200"
+                >
+                    Clear Filter
+                </button>
+            )}
          </div>
 
-         {/* Widget 2: My Tasks (Checkable) */}
+         {/* Widget 2: My Tasks */}
          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-800 flex items-center gap-2">
@@ -394,10 +415,8 @@ export default function WorkList({
                 {myTasks.map(task => (
                     <div 
                         key={task.id} 
-                        className={`group flex items-start gap-3 p-3 rounded-xl transition-all border cursor-pointer ${
-                            task.isDone 
-                                ? "bg-gray-50 border-transparent opacity-60" 
-                                : "bg-white border-transparent hover:border-gray-200 hover:shadow-sm"
+                        className={`group flex items-start gap-3 p-3 rounded-xl transition-all border cursor-pointer select-none ${
+                            task.isDone ? "bg-gray-50 border-transparent opacity-60" : "bg-white border-transparent hover:border-gray-200 hover:shadow-sm"
                         }`}
                         onClick={() => handleToggleTask(task.id)}
                     >
@@ -407,22 +426,15 @@ export default function WorkList({
                             {task.isDone && <CheckCircle2 size={14} className="text-white" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h4 className={`text-sm font-semibold leading-tight truncate ${task.isDone ? "text-gray-500 line-through" : "text-gray-800"}`}>
-                                {task.title}
-                            </h4>
+                            <h4 className={`text-sm font-semibold leading-tight truncate ${task.isDone ? "text-gray-500 line-through" : "text-gray-800"}`}>{task.title}</h4>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[10px] text-gray-500 truncate max-w-20">{task.project}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${task.color} whitespace-nowrap`}>
-                                    {task.due}
-                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${task.color} whitespace-nowrap`}>{task.due}</span>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
-            <button className="w-full mt-4 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition-colors border border-dashed border-blue-200 hover:border-blue-300">
-                + Add Personal Task
-            </button>
          </div>
 
          {/* Widget 3: Recent Comments */}
@@ -435,27 +447,17 @@ export default function WorkList({
                     <div key={comment.id} className="group relative pl-4 border-l-2 border-gray-100 hover:border-orange-300 transition-colors cursor-pointer">
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-2 mb-1">
-                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600">
-                                    {comment.avatar}
-                                </div>
+                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600">{comment.avatar}</div>
                                 <span className="text-xs font-bold text-gray-700">{comment.user}</span>
                             </div>
                             <span className="text-[10px] text-gray-400">{comment.time}</span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 group-hover:text-gray-900 transition-colors">
-                            "{comment.text}"
-                        </p>
-                        <p className="text-[10px] text-blue-500 mt-1 font-medium">
-                            in {comment.project}
-                        </p>
+                        <p className="text-sm text-gray-600 line-clamp-2 group-hover:text-gray-900 transition-colors">"{comment.text}"</p>
+                        <p className="text-[10px] text-blue-500 mt-1 font-medium">in {comment.project}</p>
                     </div>
                 ))}
             </div>
-            <button className="w-full mt-4 py-2 text-xs text-gray-400 hover:text-gray-600 font-medium transition-colors">
-                View all notifications
-            </button>
          </div>
-
       </div>
     </div>
   );

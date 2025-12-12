@@ -27,6 +27,9 @@ import {
   Archive,
   Check,
   ArrowLeft,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // --- Types ---
@@ -173,7 +176,7 @@ const projectInfo = {
 };
 
 export default function ProjectBoard({ projectId }: ProjectBoardProps) {
-  const router = useRouter(); // Use Next.js router for back button
+  const router = useRouter();
 
   // --- State ---
   const [columns, setColumns] = useState<Column[]>(initialData);
@@ -190,6 +193,11 @@ export default function ProjectBoard({ projectId }: ProjectBoardProps) {
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<"details" | "team" | "activity">(
+    "details"
+  );
+  const [isTabBarCollapsed, setIsTabBarCollapsed] = useState(false);
 
   // Editing State
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
@@ -333,12 +341,7 @@ export default function ProjectBoard({ projectId }: ProjectBoardProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {" "}
-      {/* ใช้ h-full เพื่อให้เต็มพื้นที่ Container พ่อ */}
-      {/* ส่วน Header เดิมที่ซ้ำซ้อน ถูกลบออกแล้ว */}
-      {/* --- Filter Bar (Expandable) --- */}
-      {/* หมายเหตุ: ปุ่มเปิด Filter หายไปพร้อมกับ Header ถ้าต้องการใช้ต้องย้ายปุ่มมาไว้ส่วนอื่น */}
+    <div className="flex flex-col h-full relative">
       {isFilterOpen && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-4 animate-in slide-in-from-top-2 shrink-0 z-20">
           <div className="relative w-full max-w-md">
@@ -364,8 +367,8 @@ export default function ProjectBoard({ projectId }: ProjectBoardProps) {
           )}
         </div>
       )}
-      {/* --- Main Content (Board + Sidebar) --- */}
-      <div className="flex flex-col lg:flex-row gap-8 py-6 items-start flex-1 overflow-hidden bg-white">
+
+      <div className="flex flex-col lg:flex-row gap-0 py-6 items-start flex-1 overflow-hidden bg-white relative">
         {/* === Left: Kanban Board === */}
         <div className="flex-1 w-full min-w-0 h-full">
           <DragDropContext onDragEnd={onDragEnd}>
@@ -614,114 +617,205 @@ export default function ProjectBoard({ projectId }: ProjectBoardProps) {
           </DragDropContext>
         </div>
 
-        {/* === Right: Sidebar Widgets === */}
-        <div className="w-full lg:w-80 space-y-6 shrink-0 h-full overflow-y-auto pr-6 pb-10 custom-scrollbar">
-          {/* Widget 1: Project Overview */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <PieChart size={18} className="text-blue-500" /> Project Details
-            </h3>
-            <p className="text-sm text-gray-500 leading-relaxed mb-4">
-              {projectInfo.description}
-            </p>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-                  <span>Progress</span>
-                  <span>{projectInfo.progress}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${projectInfo.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar size={16} />
-                  <span className="text-xs font-semibold">Due Date</span>
-                </div>
-                <span className="text-xs font-bold text-gray-800">
-                  {projectInfo.dueDate}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* === Toggle Sidebar Button (Mobile) === */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden fixed bottom-6 right-6 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg z-30 transition-all"
+          >
+            <Menu size={20} />
+          </button>
+        )}
 
-          {/* Widget 2: Team Members */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <Users size={18} className="text-purple-500" /> Team
-              </h3>
-              <button className="text-xs text-blue-600 font-medium hover:underline">
-                Manage
-              </button>
-            </div>
-            <div className="space-y-3">
-              {projectInfo.members.map((member, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${member.color}`}
-                  >
-                    {member.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-gray-800">
-                      {member.name}
-                    </h4>
-                    <p className="text-xs text-gray-500">{member.role}</p>
-                  </div>
-                </div>
-              ))}
-              <button className="w-full mt-2 py-2 text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                + Invite Member
-              </button>
-            </div>
-          </div>
+        {/* === Overlay (Mobile) === */}
+        {isSidebarOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/20 z-20"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
 
-          {/* Widget 3: Project Activity */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Activity size={18} className="text-orange-500" /> Recent Activity
-            </h3>
-            <div className="space-y-4">
-              {projectInfo.activities.map((act, idx) => (
-                <div
-                  key={idx}
-                  className="flex gap-3 text-sm relative pl-4 border-l-2 border-gray-100"
+        {/* === Right: Sidebar with Tabs (Collapsible) === */}
+        <div
+          className={`fixed lg:relative inset-y-0 right-0 h-full flex flex-col bg-white border-l border-gray-200 transition-all duration-300 z-20 ${
+            isSidebarOpen
+              ? "translate-x-0 opacity-100 visible"
+              : "translate-x-full opacity-0 invisible lg:translate-x-0 lg:opacity-100 lg:visible"
+          } ${isTabBarCollapsed ? "lg:w-16 w-full" : "w-full lg:w-80"}`}
+        >
+          {/* Tab Navigation */}
+          <div className="flex border-b border-gray-200 sticky top-0 z-10 bg-white items-center">
+            {!isTabBarCollapsed ? (
+              <>
+                <button
+                  onClick={() => setActiveTab("details")}
+                  className={`flex-1 py-3 px-4 text-sm font-semibold text-center transition-all whitespace-nowrap ${
+                    activeTab === "details"
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
                 >
+                  Details
+                </button>
+                <button
+                  onClick={() => setActiveTab("team")}
+                  className={`flex-1 py-3 px-4 text-sm font-semibold text-center transition-all whitespace-nowrap ${
+                    activeTab === "team"
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Team
+                </button>
+                <button
+                  onClick={() => setActiveTab("activity")}
+                  className={`flex-1 py-3 px-4 text-sm font-semibold text-center transition-all whitespace-nowrap ${
+                    activeTab === "activity"
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Activity
+                </button>
+              </>
+            ) : null}
+
+            <button
+              onClick={() => setIsTabBarCollapsed(!isTabBarCollapsed)}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors hidden lg:flex"
+              title={isTabBarCollapsed ? "Expand" : "Collapse"}
+            >
+              {isTabBarCollapsed ? (
+                <ChevronLeft size={18} />
+              ) : (
+                <ChevronRight size={18} />
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div
+            className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-300 ${
+              isTabBarCollapsed ? "hidden lg:block p-0" : "p-5 space-y-6"
+            }`}
+          >
+            {/* Project Details Tab */}
+            {activeTab === "details" && !isTabBarCollapsed && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <PieChart size={18} className="text-blue-500" /> Project
+                  Details
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                  {projectInfo.description}
+                </p>
+                <div className="space-y-4">
                   <div>
-                    <p className="text-gray-800 text-xs">
-                      <span className="font-bold">{act.user}</span> {act.action}{" "}
-                      <span className="font-medium text-blue-600">
-                        {act.target}
-                      </span>
-                    </p>
-                    <span className="text-[10px] text-gray-400">
-                      {act.time}
+                    <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
+                      <span>Progress</span>
+                      <span>{projectInfo.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${projectInfo.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar size={16} />
+                      <span className="text-xs font-semibold">Due Date</span>
+                    </div>
+                    <span className="text-xs font-bold text-gray-800">
+                      {projectInfo.dueDate}
                     </span>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Team Tab */}
+            {activeTab === "team" && !isTabBarCollapsed && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <Users size={18} className="text-purple-500" /> Team
+                  </h3>
+                  <button className="text-xs text-blue-600 font-medium hover:underline">
+                    Manage
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {projectInfo.members.map((member, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${member.color}`}
+                      >
+                        {member.avatar}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-gray-800">
+                          {member.name}
+                        </h4>
+                        <p className="text-xs text-gray-500">{member.role}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <button className="w-full mt-2 py-2 text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                    + Invite Member
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Activity Tab */}
+            {activeTab === "activity" && !isTabBarCollapsed && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Activity size={18} className="text-orange-500" /> Recent
+                  Activity
+                </h3>
+                <div className="space-y-4">
+                  {projectInfo.activities.map((act, idx) => (
+                    <div
+                      key={idx}
+                      className="flex gap-3 text-sm relative pl-4 border-l-2 border-gray-100"
+                    >
+                      <div>
+                        <p className="text-gray-800 text-xs">
+                          <span className="font-bold">{act.user}</span>{" "}
+                          {act.action}{" "}
+                          <span className="font-medium text-blue-600">
+                            {act.target}
+                          </span>
+                        </p>
+                        <span className="text-[10px] text-gray-400">
+                          {act.time}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
       {/* Modal */}
       {selectedTask && (
         <ModalsWorkflow
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          task={{
-            id: selectedTask.id,
-            title: selectedTask.title,
-            tag: selectedTask.tag,
-            description: `งาน ${selectedTask.title} มีสมาชิก ${selectedTask.members} คน`,
-            startDate: new Date(),
-            endDate: new Date(),
-          }}
+          task={selectedTask}
         />
       )}
     </div>
