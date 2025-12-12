@@ -99,7 +99,7 @@ export default function AddWorkspacePage() {
 
   return (
     <Layouts>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-12 px-4 relative overflow-hidden font-sans text-slate-800">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 py-12 px-4 relative overflow-hidden font-sans text-slate-800">
         
         {/* Background Aurora */}
         <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none opacity-60">
