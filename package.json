@@ -9,6 +9,7 @@
     "migrate:images": "tsx scripts/migrate-images-to-cloudflare.ts"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@prisma/client": "6.19.0",
     "@types/formidable": "^3.4.6",
     "bcryptjs": "^3.0.3",

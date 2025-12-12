@@ -1,0 +1,38 @@
+import ModalsWorkflow from "@/components/ui/workspace/ModalsWorkflow";
+
+
+ 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+ 
+ 
+  const handleOpenTaskModal = (task: Task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+div
+                key={task.id}
+                draggable
+                onDragStart={(e) => onDragStart(e, task.id, col.id)}
+                onClick={() => handleOpenTaskModal(task)}
+                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group"
+              >
+
+
+      {/* Modal */}
+      {selectedTask && (
+        <ModalsWorkflow
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          task={{
+            id: selectedTask.id,
+            title: selectedTask.title,
+            tag: selectedTask.tag,
+            description: `งาน ${selectedTask.title} มีสมาชิก ${selectedTask.members} คน`,
+            startDate: new Date(),
+            endDate: new Date(),
+          }}
+        />
+      )}
