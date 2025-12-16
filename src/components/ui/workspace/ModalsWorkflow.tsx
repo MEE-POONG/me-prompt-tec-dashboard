@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   X,
   AlignLeft,
@@ -30,17 +30,8 @@ import {
   Tag,
   AttachmentItem,
   Member,
+  ModalWorkflowProps,
 } from "./container/types";
-
-// --- 1. เพิ่ม Import Type นี้เข้ามาเพื่อให้ Type ตรงกันกับไฟล์ Board ---
-import { WorkspaceTask } from "@/types/workspace"; 
-
-// --- 2. กำหนด Interface Props ใหม่ที่นี่ ---
-interface ModalWorkflowProps {
-  isOpen: boolean;
-  onClose: () => void;
-  task: WorkspaceTask | null;
-}
 
 // Mock Data Source for Members
 const ALL_MEMBERS: Member[] = [
@@ -82,19 +73,11 @@ export default function ModalsWorkflow({
   const [isChecklistPopoverOpen, setIsChecklistPopoverOpen] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-  
-  // Initialize assigned members based on task data if available, otherwise mock
-  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>(
-    task?.members ? [] : ["1", "2", "3"] 
-  );
-
-  // Sync state when task changes (Open Modal)
-  useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      // Map member names to IDs if needed, or stick to mock logic
-    }
-  }, [task]);
+  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([
+    "1",
+    "2",
+    "3",
+  ]); // Initial mock assigned
 
   const assignedMembers = ALL_MEMBERS.filter((m) =>
     assignedMemberIds.includes(m.id)
