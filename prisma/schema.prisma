@@ -288,7 +288,6 @@ model Project {
   // relations via join (Public Portfolio)
   memberLinks     ProjectMember[]
   internLinks     ProjectIntern[]
-  boardActivities BoardActivity[] // Recent Activity Widget
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
