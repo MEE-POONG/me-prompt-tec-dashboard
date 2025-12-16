@@ -272,7 +272,7 @@ export default function AddWorkspacePage() {
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />}
                 {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-              </button>
+              </button>  
             </div>
           </form>
          </div>

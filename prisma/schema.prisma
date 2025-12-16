@@ -318,7 +318,7 @@ model ProjectCollaborator {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   userId    String @db.ObjectId
   projectId String @db.ObjectId
-
+  
   role        String  @default("Viewer") // PM, Dev, Design, Viewer
   isImportant Boolean @default(false) // User กดปักหมุดโปรเจกต์นี้หรือไม่
 
