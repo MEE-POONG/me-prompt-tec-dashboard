@@ -1,26 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   AlignLeft,
   CheckCircle2,
   Users,
-  User,
   CheckSquare,
   Tag as TagIcon,
   Calendar,
   Paperclip,
   Plus,
-  Clock,
-  FileText,
   MoveRight,
-  MessageSquare,
-  Settings,
+  Monitor,
+  MoreHorizontal,
   ChevronLeft,
   Search,
   Trash2,
   Link as LinkIcon,
-  Monitor,
-  MoreHorizontal,
+  FileText,
+  Settings
 } from "lucide-react";
 
 import { ActivitySection } from "./container/ActivitySection";
@@ -32,9 +29,18 @@ import {
   CardContentBlock,
   Tag,
   AttachmentItem,
-  ModalWorkflowProps,
   Member,
 } from "./container/types";
+
+// --- 1. เพิ่ม Import Type นี้เข้ามาเพื่อให้ Type ตรงกันกับไฟล์ Board ---
+import { WorkspaceTask } from "@/types/workspace"; 
+
+// --- 2. กำหนด Interface Props ใหม่ที่นี่ ---
+interface ModalWorkflowProps {
+  isOpen: boolean;
+  onClose: () => void;
+  task: WorkspaceTask | null;
+}
 
 // Mock Data Source for Members
 const ALL_MEMBERS: Member[] = [
@@ -43,8 +49,6 @@ const ALL_MEMBERS: Member[] = [
   { id: "3", name: "Toon", role: "Viewer", color: "bg-pink-500" },
   { id: "4", name: "Korn", role: "Viewer", color: "bg-orange-500" },
 ];
-
-// Mock Member Data
 
 const TAG_COLORS = [
   "bg-amber-400",
@@ -66,21 +70,31 @@ export default function ModalsWorkflow({
   onClose,
   task,
 }: ModalWorkflowProps) {
+  // Use task prop to initialize state if available
   const [title, setTitle] = useState(task?.title || "ชื่อหัวข้อ");
-  const [description, setDescription] = useState(task?.description || "");
+  // หมายเหตุ: ใน WorkspaceTask ปกติอาจไม่มี description ถ้าไม่มีให้ใส่ string ว่าง
+  const [description, setDescription] = useState(""); 
+  
   const [activeTab, setActiveTab] = useState<"comment" | "activity">("comment");
-  const [newComment, setNewComment] = useState("");
   const [isAccepted, setIsAccepted] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [contentBlocks, setContentBlocks] = useState<CardContentBlock[]>([]);
   const [isChecklistPopoverOpen, setIsChecklistPopoverOpen] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([
-    "1",
-    "2",
-    "3",
-  ]); // Initial mock assigned
+  
+  // Initialize assigned members based on task data if available, otherwise mock
+  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>(
+    task?.members ? [] : ["1", "2", "3"] 
+  );
+
+  // Sync state when task changes (Open Modal)
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title);
+      // Map member names to IDs if needed, or stick to mock logic
+    }
+  }, [task]);
 
   const assignedMembers = ALL_MEMBERS.filter((m) =>
     assignedMemberIds.includes(m.id)
@@ -95,11 +109,10 @@ export default function ModalsWorkflow({
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
   const [availableTags, setAvailableTags] = useState<Tag[]>([
-    { id: "1", name: "", color: "bg-amber-400" },
-    { id: "2", name: "", color: "bg-red-500" },
-    { id: "3", name: "", color: "bg-purple-600" },
-    { id: "4", name: "", color: "bg-blue-600" },
-    { id: "5", name: "", color: "bg-green-500" },
+    { id: "1", name: "High Priority", color: "bg-red-500" },
+    { id: "2", name: "Design", color: "bg-purple-600" },
+    { id: "3", name: "Dev", color: "bg-blue-600" },
+    { id: "4", name: "Marketing", color: "bg-green-500" },
   ]);
 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -111,21 +124,10 @@ export default function ModalsWorkflow({
   const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
-  // Mock Data for Activities
   // Mock Data for Activities
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -136,7 +138,7 @@ export default function ModalsWorkflow({
   ) => {
     const newActivity: ActivityItem = {
       id: Date.now().toString(),
-      user: "Poom", // Using hardcoded user
+      user: "Poom", 
       action,
       target,
       type,
@@ -144,8 +146,6 @@ export default function ModalsWorkflow({
     };
     setActivities((prev) => [newActivity, ...prev]);
   };
-
-  // Comment logic moved to CommentSection component
 
   const addContentBlock = (type: CardContentBlock["type"], data?: any) => {
     setContentBlocks([
@@ -250,7 +250,6 @@ export default function ModalsWorkflow({
 
   // Tag Logic
   const handleTagToggle = (tagId: string) => {
-    // Check if we need to add the 'tags' block if it doesn't exist
     const hasTagsBlock = contentBlocks.some((b) => b.type === "tags");
 
     let newSelectedIds: string[];
@@ -261,11 +260,9 @@ export default function ModalsWorkflow({
     }
     setSelectedTagIds(newSelectedIds);
 
-    // Sync with content blocks
     if (!hasTagsBlock && newSelectedIds.length > 0) {
       addContentBlock("tags", { selectedTags: newSelectedIds });
     } else {
-      // Update existing block
       setContentBlocks((blocks) =>
         blocks.map((b) =>
           b.type === "tags" ? { ...b, selectedTags: newSelectedIds } : b
@@ -273,7 +270,6 @@ export default function ModalsWorkflow({
       );
     }
 
-    // Log Activity
     const tag = availableTags.find((t) => t.id === tagId);
     if (tag) {
       if (selectedTagIds.includes(tagId)) {
@@ -331,14 +327,12 @@ export default function ModalsWorkflow({
     const year = date.getFullYear();
     const month = date.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Sunday
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
 
     const days = [];
-    // Add empty slots for previous month days
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push(null);
     }
-    // Add actual days
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
@@ -347,11 +341,9 @@ export default function ModalsWorkflow({
 
   const handleDateClick = (date: Date) => {
     if (!tempStartDate || (tempStartDate && tempEndDate)) {
-      // Start new selection
       setTempStartDate(date);
       setTempEndDate(null);
     } else {
-      // Complete selection
       if (date < tempStartDate) {
         setTempEndDate(tempStartDate);
         setTempStartDate(date);
@@ -435,7 +427,7 @@ export default function ModalsWorkflow({
   );
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddLink = () => {
     if (!linkUrl.trim()) return;
@@ -507,12 +499,11 @@ export default function ModalsWorkflow({
   };
 
   // Effect to remove tags block if empty
-  React.useEffect(() => {
+  useEffect(() => {
     const tagsBlock = contentBlocks.find((b) => b.type === "tags");
     if (tagsBlock && selectedTagIds.length === 0) {
       removeContentBlock(tagsBlock.id);
     } else if (tagsBlock) {
-      // ensure block data is up to date if selectedTagIds changes externally (though here it's local)
       setContentBlocks((blocks) =>
         blocks.map((b) =>
           b.type === "tags" ? { ...b, selectedTags: selectedTagIds } : b
@@ -631,7 +622,6 @@ export default function ModalsWorkflow({
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             {/* --- Left Column (Main) --- */}
             <div className="lg:col-span-3 space-y-10">
-              {/* Title Section */}
               {/* Title Section */}
               <div className="group relative">
                 <input
@@ -845,7 +835,6 @@ export default function ModalsWorkflow({
                               <Calendar className="w-6 h-6 text-blue-600" />
                               <h3 className="text-xl font-bold">Dates</h3>
                             </div>
-                            {/* Redundant close button removed to use the global card hover button */}
                           </div>
                           <div
                             className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 w-full"
@@ -1305,7 +1294,6 @@ export default function ModalsWorkflow({
                           <h4 className="font-bold text-gray-800 text-lg">
                             Start/End Date
                           </h4>
-                          {/* Duplicate close button removed */}
                         </div>
 
                         <div className="p-4">
@@ -1331,14 +1319,16 @@ export default function ModalsWorkflow({
                           </div>
 
                           <div className="grid grid-cols-7 mb-2 text-center">
-                            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-                              <div
-                                key={i}
-                                className="text-xs font-bold text-blue-400"
-                              >
-                                {d}
-                              </div>
-                            ))}
+                            {["S", "M", "T", "W", "T", "F", "S"].map(
+                              (d, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs font-bold text-blue-400"
+                                >
+                                  {d}
+                                </div>
+                              )
+                            )}
                           </div>
 
                           <div className="grid grid-cols-7 gap-y-1">
@@ -1385,16 +1375,16 @@ export default function ModalsWorkflow({
                                   key={i}
                                   onClick={() => handleDateClick(date)}
                                   className={`
-                                                        h-9 w-9 text-sm font-medium flex items-center justify-center transition-all relative
-                                                        ${rangeClass}
-                                                        ${
-                                                          isToday &&
-                                                          !isSelected &&
-                                                          !inRange
-                                                            ? "text-blue-600 font-bold"
-                                                            : ""
-                                                        } 
-                                                    `}
+                                                                h-9 w-9 text-sm font-medium flex items-center justify-center transition-all relative
+                                                                ${rangeClass}
+                                                                ${
+                                                                  isToday &&
+                                                                  !isSelected &&
+                                                                  !inRange
+                                                                    ? "text-blue-600 font-bold"
+                                                                    : ""
+                                                                } 
+                                                            `}
                                 >
                                   {date.getDate()}
                                   {isToday && !isSelected && !inRange && (

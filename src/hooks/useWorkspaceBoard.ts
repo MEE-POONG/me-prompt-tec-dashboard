@@ -4,24 +4,30 @@ import { DropResult } from "@hello-pangea/dnd";
 
 export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
   const [columns, setColumns] = useState<WorkspaceColumn[]>(initialData);
+  
+  // State เดิม
   const [isAddingTask, setIsAddingTask] = useState<string | number | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedTask, setSelectedTask] = useState<WorkspaceTask | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingColumnId, setEditingColumnId] = useState<string | number | null>(null);
   const [tempColumnTitle, setTempColumnTitle] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeMenuColumnId, setActiveMenuColumnId] = useState<string | number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
 
+  // ✅ เพิ่ม State ใหม่สำหรับ Add Column
+  const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+
+  // ... (ฟังก์ชัน onDragEnd, handleRename, handleDelete, handleClear เก็บไว้เหมือนเดิม) ...
   const onDragEnd = (result: DropResult) => {
+    // (ใช้โค้ดเดิมของคุณตรงนี้)
     const { destination, source } = result;
     if (!destination) return;
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    )
-      return;
-
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+    
     const startColIndex = columns.findIndex((c) => c.id === source.droppableId);
     const endColIndex = columns.findIndex((c) => c.id === destination.droppableId);
     const startCol = columns[startColIndex];
@@ -55,11 +61,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
 
   const handleRenameColumnSave = (colId: string | number) => {
     if (tempColumnTitle.trim())
-      setColumns(
-        columns.map((c) =>
-          c.id === colId ? { ...c, title: tempColumnTitle } : c
-        )
-      );
+      setColumns(columns.map((c) => c.id === colId ? { ...c, title: tempColumnTitle } : c));
     setEditingColumnId(null);
   };
 
@@ -72,9 +74,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
 
   const handleClearColumn = (colId: string | number) => {
     if (confirm("Clear all tasks?"))
-      setColumns(
-        columns.map((c) => (c.id === colId ? { ...c, tasks: [] } : c))
-      );
+      setColumns(columns.map((c) => (c.id === colId ? { ...c, tasks: [] } : c)));
     setActiveMenuColumnId(null);
   };
 
@@ -91,34 +91,20 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
       attachments: 0,
       date: "Today",
     };
-    setColumns(
-      columns.map((col) =>
-        col.id === columnId ? { ...col, tasks: [...(col.tasks || []), newTask] } : col
-      )
-    );
+    setColumns(columns.map((col) => col.id === columnId ? { ...col, tasks: [...(col.tasks || []), newTask] } : col));
     setNewTaskTitle("");
     setIsAddingTask(null);
   };
 
   const handleDeleteTask = (columnId: string | number, taskId: string | number) => {
     if (confirm("Delete this task?")) {
-      setColumns(
-        columns.map((col) =>
-          col.id === columnId
-            ? { ...col, tasks: (col.tasks || []).filter((t) => t.id !== taskId) }
-            : col
-        )
-      );
+      setColumns(columns.map((col) => col.id === columnId ? { ...col, tasks: (col.tasks || []).filter((t) => t.id !== taskId) } : col));
     }
   };
 
   const filterTasks = (tasks: WorkspaceTask[] | undefined) => {
     if (!tasks || !searchQuery) return tasks || [];
-    return tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.tag.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.tag.toLowerCase().includes(searchQuery.toLowerCase()));
   };
 
   const handleOpenTaskModal = (task: WorkspaceTask) => {
@@ -126,33 +112,41 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
     setIsModalOpen(true);
   };
 
+  // ✅ ฟังก์ชันใหม่: เพิ่ม Column
+  const handleAddColumn = () => {
+    if (!newColumnTitle.trim()) return;
+    const newCol: WorkspaceColumn = {
+      id: `col-${Date.now()}`,
+      title: newColumnTitle,
+      tasks: [],
+      color: "bg-gray-400", // สี Default ของจุดหน้าชื่อ
+    };
+    setColumns([...columns, newCol]);
+    setNewColumnTitle("");
+    setIsAddingColumn(false);
+  };
+
   return {
-    columns,
-    setColumns,
-    isAddingTask,
-    setIsAddingTask,
-    newTaskTitle,
-    setNewTaskTitle,
-    selectedTask,
-    setSelectedTask,
-    isModalOpen,
-    setIsModalOpen,
-    editingColumnId,
-    setEditingColumnId,
-    tempColumnTitle,
-    setTempColumnTitle,
-    searchQuery,
-    setSearchQuery,
-    activeMenuColumnId,
-    setActiveMenuColumnId,
-    onDragEnd,
-    handleRenameColumnStart,
-    handleRenameColumnSave,
-    handleDeleteColumn,
-    handleClearColumn,
-    handleAddTask,
-    handleDeleteTask,
-    filterTasks,
-    handleOpenTaskModal,
+    columns, setColumns,
+    isAddingTask, setIsAddingTask,
+    newTaskTitle, setNewTaskTitle,
+    selectedTask, setSelectedTask,
+    isModalOpen, setIsModalOpen,
+    editingColumnId, setEditingColumnId,
+    tempColumnTitle, setTempColumnTitle,
+    activeMenuColumnId, setActiveMenuColumnId,
+    searchQuery, setSearchQuery,
+    isSettingsOpen, setIsSettingsOpen,
+    isMembersOpen, setIsMembersOpen,
+    
+    // Exports เดิม
+    onDragEnd, handleRenameColumnStart, handleRenameColumnSave,
+    handleDeleteColumn, handleClearColumn, handleAddTask,
+    handleDeleteTask, handleOpenTaskModal, filterTasks,
+
+    // ✅ Exports ใหม่สำหรับ Add Column
+    isAddingColumn, setIsAddingColumn,
+    newColumnTitle, setNewColumnTitle,
+    handleAddColumn
   };
 }
