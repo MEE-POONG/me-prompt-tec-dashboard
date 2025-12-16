@@ -46,13 +46,6 @@ enum MediaType {
   file
 }
 
-// [NEW] Enum for Kanban Task Priority
-enum TaskPriority {
-  HIGH
-  MEDIUM
-  LOW
-}
-
 // ---------------- Composite Types (Embedded) ----------------
 type Name {
   first   String
@@ -92,7 +85,7 @@ type Education {
   school    String
   faculty   String?
   major     String?
-  degree    String?   // "Diploma" | "Bachelor" | "Master" | "PhD" | "Other"
+  degree    String? // "Diploma" | "Bachelor" | "Master" | "PhD" | "Other"
   startDate DateTime?
   endDate   DateTime?
   gpa       Float?
@@ -173,6 +166,9 @@ model User {
   position String? // ตำแหน่ง
   avatar   String? // [NEW] รูปโปรไฟล์สำหรับแสดงใน Board
 
+  // ✅ tasks ที่ user ถูก assign
+  tasks BoardTask[] @relation("TaskAssignees")
+
   // ------------------------
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
   memberId String? @db.ObjectId
@@ -184,15 +180,10 @@ model User {
   // relation: Contact messages handled by this user
   handledMessages ContactMessage[]
 
-  // [NEW] Relations for Workspace / Kanban Board
-  collaboratingProjects ProjectCollaborator[] // โปรเจกต์ที่ User นี้เข้าร่วม (Internal)
-  assignedTasks         Task[]                @relation(fields: [assignedTaskIds], references: [id]) // Task ที่ได้รับมอบหมาย
-  assignedTaskIds       String[]              @db.ObjectId
-  taskComments          TaskComment[] // คอมเมนต์ใน Task
-  boardActivities       BoardActivity[] // Log การกระทำใน Board
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  boardTask   BoardTask? @relation(fields: [boardTaskId], references: [id])
+  boardTaskId String?    @db.ObjectId
 
   @@index([role])
 }
@@ -295,12 +286,8 @@ model Project {
   internalDueDate  String? // String display format ex "Nov 24" or use endDate
 
   // relations via join (Public Portfolio)
-  memberLinks ProjectMember[]
-  internLinks ProjectIntern[]
-
-  // [NEW] Relations for Kanban Board (Internal)
-  collaborators   ProjectCollaborator[] // ทีมงานหลังบ้านที่จัดการโปรเจกต์นี้
-  columns         Column[] // Kanban Columns
+  memberLinks     ProjectMember[]
+  internLinks     ProjectIntern[]
   boardActivities BoardActivity[] // Recent Activity Widget
 
   createdAt DateTime @default(now())
@@ -310,90 +297,6 @@ model Project {
   @@index([featured])
   @@index([title])
 }
-
-// ---------------- Workspace / Kanban Models (NEW) ----------------
-
-// ตารางเชื่อม User (Backend) กับ Project เพื่อระบุ Role ภายใน Workspace และการปักหมุด
-model ProjectCollaborator {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String @db.ObjectId
-  projectId String @db.ObjectId
-
-  role        String  @default("Viewer") // PM, Dev, Design, Viewer
-  isImportant Boolean @default(false) // User กดปักหมุดโปรเจกต์นี้หรือไม่
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, projectId])
-}
-
-// Kanban Column (e.g., To Do, In Progress)
-model Column {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  color     String? // แถบสีหัวข้อ
-  order     Int // ลำดับการเรียง Column
-  projectId String  @db.ObjectId
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks   Task[]
-}
-
-// Kanban Task Card
-model Task {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String?
-  columnId    String   @db.ObjectId
-
-  // Task Metadata
-  tag      String? // e.g. "Research", "DevOps"
-  tagColor String? // e.g. "bg-purple-50 text-purple-600"
-  priority TaskPriority @default(MEDIUM)
-  date     String? // Display date string (e.g. "Nov 24")
-  dueDate  DateTime?
-  isDone   Boolean      @default(false) // สำหรับ Widget My Tasks
-  order    Int // ลำดับการเรียง Task ใน Column
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  column   Column        @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  comments TaskComment[]
-
-  // Assignees (Users)
-  assigneeIds String[] @db.ObjectId
-  assignees   User[]   @relation(fields: [assigneeIds], references: [id])
-}
-
-// Comments on Tasks
-model TaskComment {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  text      String
-  taskId    String   @db.ObjectId
-  userId    String   @db.ObjectId
-  createdAt DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// Activity Log for Project Board
-model BoardActivity {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  action    String // "moved task", "uploaded", "commented"
-  target    String // "Homepage", "Wireframes v2"
-  userId    String   @db.ObjectId
-  projectId String   @db.ObjectId
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id])
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-// ---------------- Existing Models Continue ----------------
 
 // ความร่วมมือ/MOU
 model MOU {
@@ -557,4 +460,136 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/**
+ * =========================
+ * บอร์ดหลัก (ของเดิม)
+ * =========================
+ */
+model ProjectBoard {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String  @unique
+  description String?
+  color       String  @default("#3B82F6")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  columns    BoardColumn[]
+  members    BoardMember[]
+  activities BoardActivity[]
+}
+
+/**
+ * =========================
+ * คอลัมน์ (To Do / Done)
+ * =========================
+ */
+model BoardColumn {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+  order Int
+  color String?
+
+  boardId String       @db.ObjectId
+  board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  tasks BoardTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * =========================
+ * การ์ดงาน (Task)
+ * =========================
+ */
+model BoardTask {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+
+  tag      String?
+  tagColor String?
+  priority TaskPriority @default(Medium)
+
+  order   Int
+  dueDate DateTime?
+
+  comments    Int @default(0)
+  attachments Int @default(0)
+
+  columnId String      @db.ObjectId
+  column   BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  // ✅ ผู้รับผิดชอบ (Users)
+  assignees User[] @relation("TaskAssignees")
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  taskMembers TaskMember[]
+  users       User[]
+}
+
+/**
+ * =========================
+ * สมาชิกใน Task
+ * =========================
+ */
+model TaskMember {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  avatar String?
+
+  taskId String    @db.ObjectId
+  task   BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * =========================
+ * สมาชิกใน Project
+ * =========================
+ */
+model BoardMember {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  role   String
+  avatar String?
+  color  String?
+
+  boardId String       @db.ObjectId
+  board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * =========================
+ * Activity Log
+ * =========================
+ */
+model BoardActivity {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  user   String
+  action String
+  target String
+
+  boardId String       @db.ObjectId
+  board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  project   Project? @relation(fields: [projectId], references: [id])
+  projectId String?  @db.ObjectId
+}
+
+/**
+ * =========================
+ * Enum
+ * =========================
+ */
+enum TaskPriority {
+  High
+  Medium
+  Low
 }

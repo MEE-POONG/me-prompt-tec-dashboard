@@ -1,63 +1,63 @@
+// pages/api/workspace/board/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@/generated/prisma";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { method } = req;
-  const { projectId } = req.query; // Or body, depending on request type
-
-  if (!projectId && method === "GET") {
-    return res.status(400).json({ error: "Project ID is required" });
-  }
-
-  switch (method) {
-    case "GET":
-      try {
-        const columns = await prisma.taskColumn.findMany({
-          where: { projectId: projectId as string },
-          include: {
-            tasks: {
-              orderBy: { order: "asc" },
+  try {
+    if (req.method === "GET") {
+      const boards = await prisma.projectBoard.findMany({
+        include: {
+          columns: {
+            include: {
+              tasks: {
+                include: {
+                  assignees: true,
+                  taskMembers: true,
+                },
+              },
             },
+            orderBy: { order: "asc" },
           },
-          orderBy: { order: "asc" },
-        });
-        res.status(200).json(columns);
-      } catch (error) {
-        console.error("Error fetching board:", error);
-        res.status(500).json({ error: "Failed to fetch board data" });
-      }
-      break;
-
-    case "POST":
-      try {
-        const { title, projectId: pid, color } = req.body;
-        // Logic to create a new column
-        const count = await prisma.taskColumn.count({
-          where: { projectId: pid },
-        });
-        const newColumn = await prisma.taskColumn.create({
-          data: {
-            title,
-            projectId: pid,
-            order: count,
-            color: color || "bg-gray-100",
+          members: true,
+          activities: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
           },
-          include: { tasks: true }, // Return empty tasks array for consistency
-        });
-        res.status(201).json(newColumn);
-      } catch (error) {
-        console.error("Error creating column:", error);
-        res.status(500).json({ error: "Failed to create column" });
-      }
-      break;
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      return res.status(200).json(boards);
+    }
 
-    default:
-      res.setHeader("Allow", ["GET", "POST"]);
-      res.status(405).end(`Method ${method} Not Allowed`);
+    if (req.method === "POST") {
+      const { name, description, color } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+
+      const board = await prisma.projectBoard.create({
+        data: {
+          name,
+          description,
+          color: color || "#3B82F6",
+        },
+        include: {
+          columns: true,
+          members: true,
+          activities: true,
+        },
+      });
+
+      return res.status(201).json(board);
+    }
+
+    return res.status(405).json({ message: "Method Not Allowed" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
   }
 }

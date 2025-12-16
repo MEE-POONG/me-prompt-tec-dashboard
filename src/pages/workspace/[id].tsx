@@ -1,29 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Layouts from "@/components/Layouts";
 import ProjectBoard from "@/Container/WorkSpace/WorkspaceBoard";
 const ProjectBoardAny = ProjectBoard as any;
 import { ArrowLeft, Settings, Users, Filter, Plus, X } from "lucide-react";
 import Link from "next/link";
+import { getBoard, getMembers } from "@/lib/api/workspace";
 
 export default function ProjectDetail() {
   const router = useRouter();
   const { id } = router.query;
 
   const [isMembersOpen, setIsMembersOpen] = useState(false);
-  const [members, setMembers] = useState([
-    {
-      id: "1",
-      name: "John Doe",
-      role: "Owner",
-      avatar: "JD",
-      color: "bg-blue-100 text-blue-600",
-    },
-  ]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [boardData, setBoardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch board data and members
+  useEffect(() => {
+    if (!id || typeof id !== "string") return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [board, boardMembers] = await Promise.all([
+          getBoard(id),
+          getMembers(id),
+        ]);
+        setBoardData(board);
+        setMembers(boardMembers);
+      } catch (error) {
+        console.error("Failed to fetch board data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
 
   const handleRemoveMember = (memberId: string) => {
     setMembers(members.filter((m) => m.id !== memberId));
   };
+
+  if (loading) {
+    return (
+      <Layouts>
+        <div className="h-[calc(100vh-64px)] flex items-center justify-center">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </Layouts>
+    );
+  }
 
   return (
     <Layouts>
@@ -39,12 +67,14 @@ export default function ProjectDetail() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                Project {id}
+                {boardData?.name || `Project ${id}`}
                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                   In Progress
                 </span>
               </h1>
-              <p className="text-sm text-gray-500">Last updated 2 hours ago</p>
+              <p className="text-sm text-gray-500">
+                {boardData?.description || "Last updated 2 hours ago"}
+              </p>
             </div>
           </div>
 
@@ -53,10 +83,12 @@ export default function ProjectDetail() {
               {members.slice(0, 3).map((member) => (
                 <div
                   key={member.id}
-                  className={`w-8 h-8 rounded-full ${member.color} border-2 border-white flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm`}
+                  className={`w-8 h-8 rounded-full ${
+                    member.color || "bg-blue-100 text-blue-600"
+                  } border-2 border-white flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm`}
                   title={member.name}
                 >
-                  {member.avatar}
+                  {member.avatar || member.name?.substring(0, 2).toUpperCase()}
                 </div>
               ))}
               {members.length > 3 && (
@@ -101,9 +133,12 @@ export default function ProjectDetail() {
                         >
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm`}
+                              className={`w-8 h-8 rounded-full ${
+                                member.color || "bg-blue-100 text-blue-600"
+                              } flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm`}
                             >
-                              {member.avatar}
+                              {member.avatar ||
+                                member.name?.substring(0, 2).toUpperCase()}
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">

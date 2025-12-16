@@ -61,7 +61,12 @@ export interface ModalWorkflowProps {
     title: string;
     description?: string;
     tag?: string;
+    tagColor?: string;
+    priority?: string;
     startDate?: Date;
     endDate?: Date;
+    assignees?: any[];
+    comments?: number;
+    attachments?: number;
   };
 }

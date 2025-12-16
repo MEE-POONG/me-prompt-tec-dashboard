@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   AlignLeft,
@@ -35,6 +35,7 @@ import {
   ModalWorkflowProps,
   Member,
 } from "./container/types";
+import { updateTask, createActivity } from "@/lib/api/workspace";
 
 // Mock Data Source for Members
 const ALL_MEMBERS: Member[] = [
@@ -76,11 +77,49 @@ export default function ModalsWorkflow({
   const [isChecklistPopoverOpen, setIsChecklistPopoverOpen] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([
-    "1",
-    "2",
-    "3",
-  ]); // Initial mock assigned
+  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([]);
+
+  // Sync with task data when modal opens
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title || "ชื่อหัวข้อ");
+      setDescription(task.description || "");
+      // If task has assignees, set them
+      if (task.assignees) {
+        setAssignedMemberIds(task.assignees.map((a: any) => a.id));
+      }
+    }
+  }, [task]);
+
+  // Auto-save title changes
+  useEffect(() => {
+    if (!task?.id || title === task.title) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await updateTask(task.id, { title });
+      } catch (error) {
+        console.error("Failed to update task title:", error);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [title, task]);
+
+  // Auto-save description changes
+  useEffect(() => {
+    if (!task?.id || description === task.description) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await updateTask(task.id, { description });
+      } catch (error) {
+        console.error("Failed to update task description:", error);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [description, task]);
 
   const assignedMembers = ALL_MEMBERS.filter((m) =>
     assignedMemberIds.includes(m.id)
