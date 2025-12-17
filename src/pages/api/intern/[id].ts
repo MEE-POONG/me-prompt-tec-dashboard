@@ -1,4 +1,5 @@
-import { CoopType } from "@/generated/prisma/enums";
+
+import { CoopType } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
 
