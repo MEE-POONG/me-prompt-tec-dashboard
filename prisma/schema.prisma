@@ -166,8 +166,9 @@ model User {
   position String? // ตำแหน่ง
   avatar   String? // [NEW] รูปโปรไฟล์สำหรับแสดงใน Board
 
+  taskAssignees TaskAssignee[]
   // ✅ tasks ที่ user ถูก assign
-  tasks BoardTask[] @relation("TaskAssignees")
+  // tasks BoardTask[] @relation("TaskAssignees")
 
   // ------------------------
   // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
@@ -182,8 +183,6 @@ model User {
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  boardTask   BoardTask? @relation(fields: [boardTaskId], references: [id])
-  boardTaskId String?    @db.ObjectId
 
   @@index([role])
 }
@@ -286,11 +285,12 @@ model Project {
   internalDueDate  String? // String display format ex "Nov 24" or use endDate
 
   // relations via join (Public Portfolio)
-  memberLinks     ProjectMember[]
-  internLinks     ProjectIntern[]
+  memberLinks ProjectMember[]
+  internLinks ProjectIntern[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  boardActivities BoardActivity[]
 
   @@index([status])
   @@index([featured])
@@ -524,13 +524,11 @@ model BoardTask {
   columnId String      @db.ObjectId
   column   BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
-  // ✅ ผู้รับผิดชอบ (Users)
-  assignees User[] @relation("TaskAssignees")
+  assignees TaskAssignee[]
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  taskMembers TaskMember[]
-  users       User[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  taskMembers   TaskMember[]
 }
 
 /**
@@ -591,4 +589,16 @@ enum TaskPriority {
   High
   Medium
   Low
+}
+
+model TaskAssignee {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  taskId String @db.ObjectId
+  userId String @db.ObjectId
+
+  task BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
 }

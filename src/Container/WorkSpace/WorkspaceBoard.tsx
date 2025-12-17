@@ -1,11 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { DragDropContext, Droppable } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import { Search, X, Plus, LayoutDashboard, KanbanSquare, CalendarDays, FileBarChart } from "lucide-react";
 import ModalsWorkflow from "@/components/ui/workspace/ModalsWorkflow";
 import { useWorkspaceBoard } from "@/hooks/useWorkspaceBoard";
-import { INITIAL_WORKSPACE_COLUMNS, WORKSPACE_INFO } from "@/constants/workspaceData";
+import { INITIAL_WORKSPACE_COLUMNS } from "@/constants/workspaceData";
 import { WorkspaceBoardProps } from "@/types/workspace";
+
+// API helpers
+import {
+  getBoard,
+  createColumn,
+  updateColumn,
+  deleteColumn,
+  createTask,
+  updateTask,
+  deleteTask,
+  getMembers,
+  getActivities,
+  createActivity,
+} from "@/lib/api/workspace";
 
 // Imports Components
 import WorkspaceTaskCard from "./Board/WorkspaceTaskCard";
@@ -23,16 +37,213 @@ import ProjectReport from "./Views/ProjectReport";
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const router = useRouter();
   const board = useWorkspaceBoard(INITIAL_WORKSPACE_COLUMNS);
-  
+
+  const [loading, setLoading] = useState(true);
+  const [workspaceInfo, setWorkspaceInfo] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+
   // State สำหรับ Filter และ View
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentView, setCurrentView] = useState<"board" | "dashboard" | "timeline" | "report">("board");
+
+  // Helper: map API task -> WorkspaceTask
+  const mapApiTaskToWorkspaceTask = (task: any) => ({
+    id: task.id,
+    title: task.title,
+    tag: task.tag || "General",
+    tagColor: task.tagColor || "bg-gray-100 text-gray-600",
+    priority: task.priority || "Medium",
+    members:
+      task.assignees?.map((a: any) =>
+        // support both shapes (assignee.user or direct fields)
+        a?.user?.avatar || a?.avatar || a?.user?.name?.substring(0, 2) || a?.name?.substring(0, 2) || "?"
+      ) || [],
+    comments: task.comments || 0,
+    attachments: task.attachments || 0,
+    date: task.dueDate
+      ? new Date(task.dueDate).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      : "No date",
+  });
+
+  // Fetch board details and populate local state
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    const fetchBoard = async () => {
+      setLoading(true);
+      try {
+        const data = await getBoard(workspaceId);
+
+        // map columns/tasks to workspace shape
+        const transformedColumns = data.columns?.map((col: any) => ({
+          id: col.id,
+          title: col.title,
+          color: col.color || "bg-gray-500",
+          tasks: (col.tasks || []).map(mapApiTaskToWorkspaceTask),
+        })) || [];
+
+        board.setColumns(transformedColumns);
+        setWorkspaceInfo({ name: data.name, description: data.description, progress: data.progress || 0, dueDate: data.dueDate || "", members: data.members || [], activities: data.activities || [] });
+        setMembers(data.members || []);
+        setActivities(data.activities || []);
+      } catch (error) {
+        console.error("Failed to fetch board data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBoard();
+  }, [workspaceId]);
+
+  // -----------------------
+  // API-backed handlers
+  // -----------------------
+  const handleAddTaskApi = async (columnId: string | number) => {
+    if (!board.newTaskTitle?.trim()) return;
+    const title = board.newTaskTitle;
+
+    // optimistic UI
+    const tempId = `temp-${Date.now()}`;
+    const tempTask = { id: tempId, title, tag: "General", tagColor: "bg-gray-100 text-gray-600", priority: "Medium" as "Medium", members: [], comments: 0, attachments: 0, date: "Today" };
+    board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: [...(c.tasks || []), tempTask] } : c)));
+    board.setNewTaskTitle("");
+    board.setIsAddingTask(null);
+
+    try {
+      const created = await createTask({ columnId: String(columnId), title, order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0 });
+      const mapped = mapApiTaskToWorkspaceTask(created);
+      board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: (c.tasks || []).map((t) => (t.id === tempId ? mapped : t)) } : c)));
+
+      // activity
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "created task", target: created.title, projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to create task", err);
+      // rollback
+      board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== tempId) } : c)));
+    }
+  };
+
+  const handleDeleteTaskApi = async (columnId: string | number, taskId: string | number) => {
+    if (!confirm("Delete this task?")) return;
+    const prev = board.columns;
+    board.setColumns(board.columns.map((c) => c.id === columnId ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== taskId) } : c));
+
+    try {
+      await deleteTask(String(taskId));
+    } catch (err) {
+      console.error("Failed to delete task", err);
+      board.setColumns(prev);
+    }
+  };
+
+  const handleAddColumnApi = async () => {
+    if (!board.newColumnTitle?.trim()) return;
+    const title = board.newColumnTitle;
+    board.setNewColumnTitle("");
+    board.setIsAddingColumn(false);
+
+    const tempId = `temp-col-${Date.now()}`;
+    const tempCol = { id: tempId, title, tasks: [], color: "bg-gray-400" };
+    board.setColumns((prev) => [...prev, tempCol]);
+
+    try {
+      const created = await createColumn({ boardId: String(workspaceId), title, order: board.columns.length });
+      const mappedCol = { id: created.id, title: created.title, tasks: (created.tasks || []).map(mapApiTaskToWorkspaceTask), color: created.color };
+
+      board.setColumns((prev) => {
+        const found = prev.some((c) => c.id === tempId);
+        if (found) return prev.map((c) => (c.id === tempId ? mappedCol : c));
+        // fallback: append if temp not found
+        return [...prev, mappedCol];
+      });
+
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "created list", target: created.title, projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to create column", err);
+      board.setColumns((prev) => prev.filter((c) => c.id !== tempId));
+    }
+  };
+
+  const handleRenameColumnSaveApi = async (colId: string | number) => {
+    const title = board.tempColumnTitle;
+    board.setEditingColumnId(null);
+    if (!title?.trim()) return;
+    const prev = board.columns;
+    board.setColumns(board.columns.map((c) => c.id === colId ? { ...c, title } : c));
+
+    try {
+      await updateColumn(String(colId), { title });
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "renamed list", target: title, projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to rename column", err);
+      board.setColumns(prev);
+    }
+  };
+
+  const handleDeleteColumnApi = async (colId: string | number) => {
+    if (!confirm("Delete this list?")) return;
+    const prev = board.columns;
+    board.setColumns(board.columns.filter((c) => c.id !== colId));
+
+    try {
+      await deleteColumn(String(colId));
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "deleted list", target: String(colId), projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to delete column", err);
+      board.setColumns(prev);
+    }
+  };
+
+  const handleClearColumnApi = async (colId: string | number) => {
+    if (!confirm("Clear all tasks?")) return;
+    const prev = board.columns;
+    const column = board.columns.find((c) => c.id === colId);
+    board.setColumns(board.columns.map((c) => c.id === colId ? { ...c, tasks: [] } : c));
+
+    try {
+      await Promise.all((column?.tasks || []).map((t) => deleteTask(String(t.id))));
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "cleared list", target: String(colId), projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to clear column", err);
+      board.setColumns(prev);
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    // Optimistic UI update
+    board.onDragEnd(result);
+
+    try {
+      await updateTask(String(draggableId), { columnId: String(destination.droppableId), order: destination.index });
+      await createActivity({ boardId: String(workspaceId), user: "System", action: "moved task", target: String(draggableId), projectId: String(workspaceId) });
+    } catch (err) {
+      console.error("Failed to move task", err);
+      // revert by refetching
+      try {
+        const data = await getBoard(workspaceId);
+        const transformedColumns = data.columns?.map((col: any) => ({ id: col.id, title: col.title, color: col.color || "bg-gray-500", tasks: (col.tasks || []).map(mapApiTaskToWorkspaceTask) })) || [];
+        board.setColumns(transformedColumns);
+      } catch (e) {
+        console.error("Failed to refresh board", e);
+      }
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-full relative bg-white">
       {/* 1. Header ด้านบนสุด */}
       <WorkspaceHeader 
-        workspaceInfo={WORKSPACE_INFO}
+        workspaceInfo={workspaceInfo || { name: "", description: "", progress: 0, dueDate: "", members: [], activities: [] }}
         isFilterOpen={isFilterOpen}
         onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
         onOpenSettings={() => board.setIsSettingsOpen(true)}
@@ -92,7 +303,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             {/* VIEW: BOARD */}
             {currentView === "board" && (
                 <div className="h-full pt-6">
-                    <DragDropContext onDragEnd={board.onDragEnd}>
+                    <DragDropContext onDragEnd={handleDragEnd}>
                         <div className="flex h-full overflow-x-auto gap-6 px-6 items-start pb-4 custom-scrollbar">
                         {board.columns.map((col) => (
                             <div
@@ -102,13 +313,14 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                 <WorkspaceBoardColumn
                                     column={col}
                                     onAddTask={board.setIsAddingTask}
+                                    onCreateTask={handleAddTaskApi}
                                     onRenameStart={board.handleRenameColumnStart}
-                                    onClearColumn={board.handleClearColumn}
-                                    onDeleteColumn={board.handleDeleteColumn}
+                                    onClearColumn={() => handleClearColumnApi(col.id)}
+                                    onDeleteColumn={() => handleDeleteColumnApi(col.id)}
                                     editingId={board.editingColumnId}
                                     tempTitle={board.tempColumnTitle}
                                     onTitleChange={board.setTempColumnTitle}
-                                    onSaveTitle={board.handleRenameColumnSave}
+                                    onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
                                     activeMenuId={board.activeMenuColumnId}
                                     onMenuToggle={board.setActiveMenuColumnId}
                                 >
@@ -123,13 +335,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                                 : ""
                                             }`}
                                         >
-                                            {board.filterTasks(col.tasks).map((task, index) => (
+                                                                    {board.filterTasks(col.tasks).map((task, index) => (
                                             <WorkspaceTaskCard
                                                 key={task.id}
                                                 task={task}
                                                 columnId={col.id}
                                                 index={index}
-                                                onDelete={board.handleDeleteTask}
+                                                onDelete={(cid, tid) => handleDeleteTaskApi(cid, tid)}
                                                 onClick={board.handleOpenTaskModal}
                                             />
                                             ))}
@@ -147,13 +359,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                                 onKeyDown={(e) => {
                                                     if (e.key === "Enter" && !e.shiftKey) {
                                                     e.preventDefault();
-                                                    board.handleAddTask(col.id);
+                                                    handleAddTaskApi(col.id);
                                                     }
                                                 }}
                                                 />
                                                 <div className="flex items-center justify-between gap-2 mt-2">
                                                 <button
-                                                    onClick={() => board.handleAddTask(col.id)}
+                                                    onClick={() => handleAddTaskApi(col.id)}
                                                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm shadow-blue-200 transition-all active:scale-95"
                                                 >
                                                     Add Card
@@ -193,13 +405,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                         value={board.newColumnTitle}
                                         onChange={(e) => board.setNewColumnTitle(e.target.value)}
                                         onKeyDown={(e) => {
-                                            if (e.key === "Enter") board.handleAddColumn();
+                                            if (e.key === "Enter") handleAddColumnApi();
                                             if (e.key === "Escape") board.setIsAddingColumn(false);
                                         }}
                                     />
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={board.handleAddColumn}
+                                            onClick={handleAddColumnApi}
                                             className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all"
                                         >
                                             Add List
@@ -242,20 +454,20 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         <ModalsWorkflow
           isOpen={board.isModalOpen}
           onClose={() => board.setIsModalOpen(false)}
-        //   task={board.selectedTask} 
+          task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
         />
       )}
 
       <WorkspaceSettingsSidebar 
         isOpen={board.isSettingsOpen}
         onClose={() => board.setIsSettingsOpen(false)}
-        workspaceInfo={WORKSPACE_INFO}
+        workspaceInfo={workspaceInfo || { name: "", description: "", progress: 0, dueDate: "", members: [], activities: [] }}
       />
       
       <MembersManageModal 
         isOpen={board.isMembersOpen}
         onClose={() => board.setIsMembersOpen(false)}
-        members={WORKSPACE_INFO.members}
+        members={members}
       />
     </div>
   );

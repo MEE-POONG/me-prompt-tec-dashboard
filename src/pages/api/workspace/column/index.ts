@@ -22,10 +22,17 @@ export default async function handler(
               assignees: {
                 select: {
                   id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
-                  position: true,
+                  userId: true,
+                  assignedAt: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      avatar: true,
+                      position: true,
+                    },
+                  },
                 },
               },
               taskMembers: true,

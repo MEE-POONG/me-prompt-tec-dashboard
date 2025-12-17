@@ -35,7 +35,7 @@ export default function WorkspaceHeader({
 
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-800">ME PROMPT {workspaceInfo.name}</h1>
+            <h1 className="text-xl font-bold text-gray-800">{workspaceInfo.name}</h1>
             <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">
               In Progress
             </span>

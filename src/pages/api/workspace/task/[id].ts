@@ -20,10 +20,17 @@ export default async function handler(
           assignees: {
             select: {
               id: true,
-              name: true,
-              email: true,
-              avatar: true,
-              position: true,
+              userId: true,
+              assignedAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatar: true,
+                  position: true,
+                },
+              },
             },
           },
           taskMembers: true,
@@ -33,6 +40,7 @@ export default async function handler(
             },
           },
         },
+
       });
 
       if (!task) {
@@ -97,15 +105,23 @@ export default async function handler(
           assignees: {
             select: {
               id: true,
-              name: true,
-              email: true,
-              avatar: true,
-              position: true,
+              userId: true,
+              assignedAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatar: true,
+                  position: true,
+                },
+              },
             },
           },
           taskMembers: true,
           column: true,
         },
+
       });
 
       return res.status(200).json(task);
