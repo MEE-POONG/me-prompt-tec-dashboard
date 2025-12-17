@@ -16,6 +16,7 @@ interface Props {
   onSaveTitle: (id: string | number) => void;
   activeMenuId: string | number | null;
   onMenuToggle: (id: string | number | null) => void;
+  isAdding?: boolean; // ✅ เพิ่มตัวแปรนี้เข้ามาครับ
 }
 
 export default function WorkspaceBoardColumn({
@@ -32,6 +33,7 @@ export default function WorkspaceBoardColumn({
   onSaveTitle,
   activeMenuId,
   onMenuToggle,
+  isAdding, // ✅ รับค่า
 }: Props) {
   
   const menuRef = useRef<HTMLDivElement>(null);
@@ -50,7 +52,6 @@ export default function WorkspaceBoardColumn({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onMenuToggle]);
 
-  // focus inline input when opened
   useEffect(() => {
     if (isCreating) {
       const t = setTimeout(() => inputRef.current?.focus(), 50);
@@ -59,7 +60,6 @@ export default function WorkspaceBoardColumn({
   }, [isCreating]);
 
   return (
-    // ✅ Remove backdrop-blur and use a solid background color to fix z-index issues
     <div className="flex flex-col h-full max-h-full bg-slate-100 rounded-2xl border border-slate-200/60 shadow-sm"> 
       
       {/* Header */}
@@ -104,7 +104,7 @@ export default function WorkspaceBoardColumn({
                        }
                      }}
                      placeholder="Add task..."
-                     className="text-sm px-2 py-1 rounded border border-slate-200 outline-none"
+                     className="text-sm px-2 py-1 rounded border border-slate-300 outline-none text-slate-800 placeholder:text-slate-500 bg-white shadow-sm w-32 focus:w-48 transition-all"
                    />
                    <button
                      onClick={async () => {
@@ -113,13 +113,13 @@ export default function WorkspaceBoardColumn({
                        setNewTitle("");
                        setIsCreating(false);
                      }}
-                     className="text-xs px-2 py-1 rounded bg-blue-600 text-white"
+                     className="text-xs px-2 py-1 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-sm"
                    >
                      Add
                    </button>
                    <button
                      onClick={() => { setNewTitle(""); setIsCreating(false); }}
-                     className="text-xs px-2 py-1 rounded bg-slate-100"
+                     className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-600 font-bold hover:bg-slate-300 transition-colors"
                    >
                      Cancel
                    </button>
@@ -161,14 +161,15 @@ export default function WorkspaceBoardColumn({
 
       {children}
 
-      {!editingId && (
+      {/* ✅ แก้ไข: ซ่อนปุ่มนี้ถ้ากำลังกรอกข้อมูลอยู่ (!isAdding) */}
+      {!editingId && !isAdding && (
         <div className="p-2 pt-0">
              <button 
                 onClick={() => onAddTask(column.id)}
-                className="w-full py-2 flex items-center justify-start px-3 gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-all text-sm font-medium group"
+                className="w-full py-2 flex items-center justify-start px-3 gap-2 text-slate-600 hover:text-black hover:bg-slate-200 rounded-xl transition-all text-sm font-bold group"
             >
-                <Plus size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-                <span className="opacity-80 group-hover:opacity-100">Add Task</span>
+                <Plus size={16} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                <span className="group-hover:translate-x-0.5 transition-transform">Add Task</span>
             </button>
         </div>
       )}
