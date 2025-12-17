@@ -36,7 +36,10 @@ import ProjectReport from "./Views/ProjectReport";
 
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const router = useRouter();
-  const board = useWorkspaceBoard(INITIAL_WORKSPACE_COLUMNS);
+  
+  // --- แก้ไขจุดที่ 1: เปลี่ยนค่าเริ่มต้นจาก INITIAL_WORKSPACE_COLUMNS เป็น [] 
+  // เพื่อป้องกันไม่ให้เห็นข้อมูล Mockup แวบขึ้นมาก่อน
+  const board = useWorkspaceBoard([]);
 
   const [loading, setLoading] = useState(true);
   const [workspaceInfo, setWorkspaceInfo] = useState<any>(null);
@@ -238,6 +241,15 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     }
   };
 
+  // --- แก้ไขจุดที่ 2: แสดง Loading Spinner ระหว่างรอข้อมูล ---
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-white">
+        <div className="w-10 h-10 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-500 font-semibold text-sm">Loading Workspace...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full relative bg-white">
