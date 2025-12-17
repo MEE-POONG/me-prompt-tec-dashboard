@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { CoopType } from "@/generated/prisma";
+import { CoopType } from "@prisma/client";
+// import { CoopType } from "@/generated/prisma";
 
 
 export default async function handler(

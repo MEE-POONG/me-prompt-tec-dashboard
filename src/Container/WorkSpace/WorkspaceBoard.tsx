@@ -335,7 +335,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                                 : ""
                                             }`}
                                         >
-                                                                    {board.filterTasks(col.tasks).map((task, index) => (
+                                                                                {board.filterTasks(col.tasks).map((task, index) => (
                                             <WorkspaceTaskCard
                                                 key={task.id}
                                                 task={task}
@@ -399,15 +399,15 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                             {board.isAddingColumn ? (
                                 <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
                                     <input
-                                        autoFocus
-                                        placeholder="Enter list title..."
-                                        className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
-                                        value={board.newColumnTitle}
-                                        onChange={(e) => board.setNewColumnTitle(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") handleAddColumnApi();
-                                            if (e.key === "Escape") board.setIsAddingColumn(false);
-                                        }}
+                                            autoFocus
+                                            placeholder="Enter list title..."
+                                            className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
+                                            value={board.newColumnTitle}
+                                            onChange={(e) => board.setNewColumnTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") handleAddColumnApi();
+                                                if (e.key === "Escape") board.setIsAddingColumn(false);
+                                            }}
                                     />
                                     <div className="flex items-center gap-2">
                                         <button
@@ -454,7 +454,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         <ModalsWorkflow
           isOpen={board.isModalOpen}
           onClose={() => board.setIsModalOpen(false)}
-          task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
+          task={{ ...board.selectedTask, id: String(board.selectedTask.id) } as any}
         />
       )}
 

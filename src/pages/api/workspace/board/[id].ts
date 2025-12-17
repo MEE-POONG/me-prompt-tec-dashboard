@@ -25,7 +25,7 @@ export default async function handler(
                     select: {
                       id: true,
                       userId: true,
-                      assignedAt: true,
+                      // assignedAt: true, <--- ลบบรรทัดที่เคย error ออกแล้ว
                       user: {
                         select: {
                           id: true,

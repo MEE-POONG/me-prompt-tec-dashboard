@@ -21,7 +21,7 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              assignedAt: true,
+              // assignedAt: true, <--- ลบออกแล้ว
               user: {
                 select: {
                   id: true,
@@ -40,7 +40,6 @@ export default async function handler(
             },
           },
         },
-
       });
 
       if (!task) {
@@ -106,7 +105,7 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              assignedAt: true,
+              // assignedAt: true, <--- ลบออกแล้ว
               user: {
                 select: {
                   id: true,
@@ -121,7 +120,6 @@ export default async function handler(
           taskMembers: true,
           column: true,
         },
-
       });
 
       return res.status(200).json(task);

@@ -1,1528 +1,579 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-  X,
-  AlignLeft,
-  CheckCircle2,
-  Users,
-  CheckSquare,
-  Tag as TagIcon,
-  Calendar,
-  Paperclip,
-  Plus,
-  MoveRight,
-  Monitor,
-  MoreHorizontal,
-  ChevronLeft,
-  Search,
-  Trash2,
-  Link as LinkIcon,
-  FileText,
-  Settings
+  X, CheckCircle2, CheckSquare, Tag as TagIcon, Calendar, Paperclip,
+  Plus, MoreHorizontal, Layout, Trash2, ChevronRight, ChevronLeft,
+  Link as LinkIcon, FileText, AlignLeft, MessageSquare, Activity, Send,
+  Edit2, Smile, UploadCloud, User, Monitor, Search, Clock, GripVertical
 } from "lucide-react";
+import { format } from "date-fns";
+import { DayPicker, DateRange } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
-import { ActivitySection } from "./container/ActivitySection";
-import { CommentSection } from "./container/CommentSection";
-import { TaskActionButton } from "./container/TaskActionButton";
-import { MemberModal } from "./container/MemberModal";
-import {
-  ActivityItem,
-  CardContentBlock,
-  Tag,
-  AttachmentItem,
-  Member,
-  ModalWorkflowProps,
-} from "./container/types";
+// --- 1. CSS Styles ---
+const customStyles = `
+  .rdp { --rdp-cell-size: 40px; --rdp-accent-color: #2563eb; margin: 0; }
+  .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #f1f5f9; }
+  .rdp-day { color: #0f172a !important; font-weight: 600; font-size: 0.9rem; }
+  .rdp-day_outside { opacity: 0.3; }
+  .rdp-day_selected:not(.rdp-day_range_middle) { 
+      background-color: #2563eb !important; 
+      color: white !important; 
+      border-radius: 50%;
+  }
+  .rdp-day_range_middle { 
+      background-color: #dbeafe !important; 
+      color: #1e40af !important;
+      border-radius: 0 !important;
+  }
+  .rdp-day_range_start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .rdp-day_range_end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .rdp-caption_label { color: #1e293b; font-weight: 800; font-size: 1rem; }
+  .rdp-head_cell { color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+`;
 
-// Mock Data Source for Members
+// --- 2. Types ---
+interface Member { id: string; name: string; color: string; short: string; }
+interface TagItem { id: string; name: string; color: string; bgColor: string; textColor: string; }
+interface CheckItem { id: string; text: string; isChecked: boolean; }
+interface AttachmentItem { id: string; type: 'file' | 'link'; name: string; url?: string; date: string; }
+interface ActivityLog { id: string; user: string; action: string; time: string; }
+interface Comment { id: number; user: string; text: string; time: string; color: string; isEdited?: boolean; }
+
+interface ContentBlock {
+    id: string;
+    type: 'checklist' | 'attachment';
+    title?: string;
+    items?: CheckItem[];
+    attachments?: AttachmentItem[];
+}
+
+// --- 3. Mock Data ---
 const ALL_MEMBERS: Member[] = [
-  { id: "1", name: "Poom", role: "Admin", color: "bg-blue-500" },
-  { id: "2", name: "Jame", role: "Editor", color: "bg-green-500" },
-  { id: "3", name: "Toon", role: "Viewer", color: "bg-pink-500" },
-  { id: "4", name: "Korn", role: "Viewer", color: "bg-orange-500" },
+  { id: "1", name: "Poom", color: "bg-blue-600", short: "P" },
+  { id: "2", name: "Jame", color: "bg-emerald-600", short: "J" },
 ];
 
 const TAG_COLORS = [
-  "bg-amber-400",
-  "bg-orange-400",
-  "bg-red-500",
-  "bg-pink-500",
-  "bg-purple-600",
-  "bg-indigo-600",
-  "bg-blue-600",
-  "bg-cyan-500",
-  "bg-teal-500",
-  "bg-green-500",
-  "bg-lime-500",
-  "bg-slate-500",
+    { name: "green", bg: "bg-green-500", text: "text-white", labelBg: "bg-green-100", labelText: "text-green-700" },
+    { name: "yellow", bg: "bg-yellow-500", text: "text-white", labelBg: "bg-yellow-100", labelText: "text-yellow-700" },
+    { name: "orange", bg: "bg-orange-500", text: "text-white", labelBg: "bg-orange-100", labelText: "text-orange-700" },
+    { name: "red", bg: "bg-red-500", text: "text-white", labelBg: "bg-red-100", labelText: "text-red-700" },
+    { name: "purple", bg: "bg-purple-500", text: "text-white", labelBg: "bg-purple-100", labelText: "text-purple-700" },
+    { name: "blue", bg: "bg-blue-500", text: "text-white", labelBg: "bg-blue-100", labelText: "text-blue-700" },
 ];
 
-export default function ModalsWorkflow({
-  isOpen,
-  onClose,
-  task,
-}: ModalWorkflowProps) {
-  // Use task prop to initialize state if available
-  const [title, setTitle] = useState(task?.title || "ชื่อหัวข้อ");
-  // หมายเหตุ: ใน WorkspaceTask ปกติอาจไม่มี description ถ้าไม่มีให้ใส่ string ว่าง
-  const [description, setDescription] = useState(""); 
-  
-  const [activeTab, setActiveTab] = useState<"comment" | "activity">("comment");
+const INITIAL_TAGS: TagItem[] = [
+    { id: "1", name: "High Priority", color: "red", bgColor: "bg-red-100", textColor: "text-red-700" },
+    { id: "2", name: "Design", color: "purple", bgColor: "bg-purple-100", textColor: "text-purple-700" },
+    { id: "3", name: "Dev", color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-700" },
+];
+
+// --- 4. Main Component ---
+// แก้ไขตรงนี้: เพิ่ม task?: any เข้าไปใน Props
+export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: boolean; onClose: () => void; task?: any }) {
+  // State
+  const [title, setTitle] = useState("Website Redesign");
+  const [desc, setDesc] = useState("");
+  const [activeTab, setActiveTab] = useState<'comments' | 'activity'>('comments');
   const [isAccepted, setIsAccepted] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [contentBlocks, setContentBlocks] = useState<CardContentBlock[]>([]);
-  const [isChecklistPopoverOpen, setIsChecklistPopoverOpen] = useState(false);
-  const [newChecklistTitle, setNewChecklistTitle] = useState("");
-  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-  const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([
-    "1",
-    "2",
-    "3",
-  ]); // Initial mock assigned
-
-  const assignedMembers = ALL_MEMBERS.filter((m) =>
-    assignedMemberIds.includes(m.id)
-  );
-
-  // Tags State
-  const [isTagsPopoverOpen, setIsTagsPopoverOpen] = useState(false);
-  const [tagPopoverView, setTagPopoverView] = useState<
-    "list" | "create" | "edit"
-  >("list");
-  const [searchTag, setSearchTag] = useState("");
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
-
-  const [availableTags, setAvailableTags] = useState<Tag[]>([
-    { id: "1", name: "High Priority", color: "bg-red-500" },
-    { id: "2", name: "Design", color: "bg-purple-600" },
-    { id: "3", name: "Dev", color: "bg-blue-600" },
-    { id: "4", name: "Marketing", color: "bg-green-500" },
-  ]);
-
+  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  
+  // Metadata State
+  const [assignedMembers, setAssignedMembers] = useState<string[]>(["1"]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [availableTags, setAvailableTags] = useState<TagItem[]>(INITIAL_TAGS);
 
-  // Date Picker State
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [tempStartDate, setTempStartDate] = useState<Date | null>(null);
-  const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
+  // Activities & Comments State
+  const [comments, setComments] = useState<Comment[]>([
+    { id: 1, user: "Jame", text: "Design looks great! 👍", time: "2h ago", color: "bg-emerald-600" }
+  ]);
+  const [activities, setActivities] = useState<ActivityLog[]>([
+    { id: "1", user: "System", action: "created this task", time: "Yesterday" }
+  ]);
+  const [commentInput, setCommentInput] = useState("");
 
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-  ];
+  // Popover State
+  const [activePopover, setActivePopover] = useState<string | null>(null);
 
-  // Mock Data for Activities
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  // Temporary Inputs for Popovers
+  const [newChecklistTitle, setNewChecklistTitle] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const [attachmentTab, setAttachmentTab] = useState<'file' | 'link'>('file');
 
-  const logActivity = (
-    action: string,
-    target?: string,
-    type: ActivityItem["type"] = "topci"
-  ) => {
-    const newActivity: ActivityItem = {
-      id: Date.now().toString(),
-      user: "Poom", 
-      action,
-      target,
-      type,
-      timestamp: new Date(),
-    };
-    setActivities((prev) => [newActivity, ...prev]);
-  };
+  // Tag Editing State
+  const [tagView, setTagView] = useState<'list' | 'create' | 'edit'>('list');
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
 
-  const addContentBlock = (type: CardContentBlock["type"], data?: any) => {
-    setContentBlocks([
-      ...contentBlocks,
-      { id: Date.now().toString(), type, ...data },
-    ]);
-  };
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFileRef = useRef<HTMLInputElement>(null);
 
-  const addChecklist = () => {
-    if (!newChecklistTitle.trim()) return;
-
-    const existingChecklistIndex = contentBlocks.findIndex(
-      (b) => b.type === "checklist"
-    );
-
-    if (existingChecklistIndex >= 0) {
-      const updatedBlocks = [...contentBlocks];
-      const block = updatedBlocks[existingChecklistIndex];
-      updatedBlocks[existingChecklistIndex] = {
-        ...block,
-        items: [
-          ...(block.items || []),
-          {
-            id: Date.now().toString(),
-            text: newChecklistTitle,
-            isChecked: false,
-          },
-        ],
-      };
-      setContentBlocks(updatedBlocks);
-    } else {
-      addContentBlock("checklist", {
-        title: "Checklist",
-        items: [
-          {
-            id: Date.now().toString(),
-            text: newChecklistTitle,
-            isChecked: false,
-          },
-        ],
-      });
+  // --- Effect: Sync Data from Task Prop ---
+  useEffect(() => {
+    if (task) {
+        setTitle(task.title || "Untitled Task");
+        // ถ้า task มี field อื่นๆ ที่อยากให้ update ก็ใส่เพิ่มตรงนี้ได้ครับ
+        // เช่น setDesc(task.description || "");
     }
+  }, [task]);
 
-    logActivity("เพิ่ม Checklist", newChecklistTitle, "topci");
 
-    setNewChecklistTitle("");
-    setIsChecklistPopoverOpen(false);
+  // --- Handlers ---
+  const logActivity = (action: string) => {
+    setActivities(prev => [{ 
+        id: Date.now().toString(), user: "You", action, 
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+    }, ...prev]);
   };
 
-  const addChecklistItem = (blockId: string, text: string) => {
-    setContentBlocks(
-      contentBlocks.map((block) => {
-        if (block.id === blockId) {
-          return {
-            ...block,
-            items: [
-              ...(block.items || []),
-              { id: Date.now().toString(), text, isChecked: false },
-            ],
-          };
-        }
-        return block;
-      })
-    );
-  };
-
-  const toggleChecklistItem = (blockId: string, itemId: string) => {
-    setContentBlocks(
-      contentBlocks.map((block) => {
-        if (block.id === blockId) {
-          return {
-            ...block,
-            items: block.items?.map((item) =>
-              item.id === itemId
-                ? { ...item, isChecked: !item.isChecked }
-                : item
-            ),
-          };
-        }
-        return block;
-      })
-    );
-  };
-
-  const removeChecklistItem = (blockId: string, itemId: string) => {
-    setContentBlocks(
-      contentBlocks.map((block) => {
-        if (block.id === blockId) {
-          return {
-            ...block,
-            items: block.items?.filter((item) => item.id !== itemId),
-          };
-        }
-        return block;
-      })
-    );
-  };
-
-  const removeContentBlock = (id: string) => {
-    setContentBlocks(contentBlocks.filter((b) => b.id !== id));
-  };
-
-  // Tag Logic
-  const handleTagToggle = (tagId: string) => {
-    const hasTagsBlock = contentBlocks.some((b) => b.type === "tags");
-
-    let newSelectedIds: string[];
-    if (selectedTagIds.includes(tagId)) {
-      newSelectedIds = selectedTagIds.filter((id) => id !== tagId);
-    } else {
-      newSelectedIds = [...selectedTagIds, tagId];
-    }
-    setSelectedTagIds(newSelectedIds);
-
-    if (!hasTagsBlock && newSelectedIds.length > 0) {
-      addContentBlock("tags", { selectedTags: newSelectedIds });
-    } else {
-      setContentBlocks((blocks) =>
-        blocks.map((b) =>
-          b.type === "tags" ? { ...b, selectedTags: newSelectedIds } : b
-        )
-      );
-    }
-
-    const tag = availableTags.find((t) => t.id === tagId);
-    if (tag) {
-      if (selectedTagIds.includes(tagId)) {
-        logActivity("ลบป้ายกำกับ", tag.name, "topci");
-      } else {
-        logActivity("เพิ่มป้ายกำกับ", tag.name, "topci");
-      }
-    }
-  };
-
+  // Tag Handlers
   const handleCreateTag = () => {
-    if (editingTag) {
-      const newTag: Tag = {
-        id: Date.now().toString(),
-        name: editingTag.name,
-        color: editingTag.color || "bg-blue-500",
+      if(!newTagName.trim()) return;
+      const newTag: TagItem = {
+          id: Date.now().toString(),
+          name: newTagName,
+          color: newTagColor.name,
+          bgColor: newTagColor.labelBg,
+          textColor: newTagColor.labelText
       };
-      setAvailableTags([...availableTags, newTag]);
-      setTagPopoverView("list");
-      setEditingTag(null);
-    }
+      setAvailableTags(prev => [...prev, newTag]);
+      setSelectedTagIds(prev => [...prev, newTag.id]);
+      setTagView('list');
+      setNewTagName("");
+      logActivity(`created label "${newTagName}"`);
   };
 
   const handleUpdateTag = () => {
-    if (editingTag) {
-      setAvailableTags((tags) =>
-        tags.map((t) => (t.id === editingTag.id ? editingTag : t))
-      );
-      setTagPopoverView("list");
-      setEditingTag(null);
-    }
+      if(editingTagId && newTagName.trim()) {
+          const updatedTag = {
+              id: editingTagId,
+              name: newTagName,
+              color: newTagColor.name,
+              bgColor: newTagColor.labelBg,
+              textColor: newTagColor.labelText
+          };
+          setAvailableTags(prev => prev.map(t => t.id === editingTagId ? updatedTag : t));
+          setTagView('list');
+          setEditingTagId(null);
+          setNewTagName("");
+          logActivity(`updated label "${newTagName}"`);
+      }
   };
 
   const handleDeleteTag = () => {
-    if (editingTag) {
-      setAvailableTags((tags) => tags.filter((t) => t.id !== editingTag.id));
-      setSelectedTagIds((ids) => ids.filter((id) => id !== editingTag.id));
-      setTagPopoverView("list");
-      setEditingTag(null);
-    }
-  };
-
-  const openEditTag = (tag: Tag) => {
-    setEditingTag(tag);
-    setTagPopoverView("edit");
-  };
-
-  const openCreateTag = () => {
-    setEditingTag({ id: "", name: "", color: TAG_COLORS[0] });
-    setTagPopoverView("create");
-  };
-
-  // Date Logic
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
-
-    const days = [];
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i));
-    }
-    return days;
-  };
-
-  const handleDateClick = (date: Date) => {
-    if (!tempStartDate || (tempStartDate && tempEndDate)) {
-      setTempStartDate(date);
-      setTempEndDate(null);
-    } else {
-      if (date < tempStartDate) {
-        setTempEndDate(tempStartDate);
-        setTempStartDate(date);
-      } else {
-        setTempEndDate(date);
+      if(editingTagId) {
+          const tagToDelete = availableTags.find(t => t.id === editingTagId);
+          setAvailableTags(prev => prev.filter(t => t.id !== editingTagId));
+          setSelectedTagIds(prev => prev.filter(id => id !== editingTagId));
+          setTagView('list');
+          setEditingTagId(null);
+          setNewTagName("");
+          logActivity(`deleted label "${tagToDelete?.name}"`);
       }
-    }
   };
 
-  const handleSaveDate = () => {
-    if (!tempStartDate) return;
-
-    const existingBlockIndex = contentBlocks.findIndex(
-      (b) => b.type === "date"
-    );
-    if (existingBlockIndex >= 0) {
-      const updatedBlocks = [...contentBlocks];
-      updatedBlocks[existingBlockIndex] = {
-        ...updatedBlocks[existingBlockIndex],
-        startDate: tempStartDate,
-        endDate: tempEndDate || tempStartDate,
-      };
-      setContentBlocks(updatedBlocks);
-    } else {
-      addContentBlock("date", {
-        startDate: tempStartDate,
-        endDate: tempEndDate || tempStartDate,
-      });
-    }
-
-    logActivity(
-      "กำหนดวันที่",
-      `${formatDateShort(tempStartDate)} - ${
-        tempEndDate ? formatDateShort(tempEndDate) : ""
-      }`,
-      "topci"
-    );
-    setIsDatePopoverOpen(false);
+  const startEditTag = (tag: TagItem) => {
+      setEditingTagId(tag.id);
+      setNewTagName(tag.name);
+      setNewTagColor(TAG_COLORS.find(c => c.name === tag.color) || TAG_COLORS[0]);
+      setTagView('edit');
   };
 
-  const removeDateBlock = () => {
-    const dateBlock = contentBlocks.find((b) => b.type === "date");
-    if (dateBlock) removeContentBlock(dateBlock.id);
-    setIsDatePopoverOpen(false);
-    setTempStartDate(null);
-    setTempEndDate(null);
+  const startCreateTag = () => {
+      setEditingTagId(null);
+      setNewTagName("");
+      setNewTagColor(TAG_COLORS[0]);
+      setTagView('create');
   };
 
-  const changeMonth = (offset: number) => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(newDate.getMonth() + offset);
-    setCurrentMonth(newDate);
+  const toggleTag = (tagId: string) => {
+      if (selectedTagIds.includes(tagId)) {
+          setSelectedTagIds(prev => prev.filter(id => id !== tagId));
+      } else {
+          setSelectedTagIds(prev => [...prev, tagId]);
+      }
   };
 
-  const isDateSelected = (date: Date) => {
-    if (!date) return false;
-    if (tempStartDate && date.toDateString() === tempStartDate.toDateString())
-      return true;
-    if (tempEndDate && date.toDateString() === tempEndDate.toDateString())
-      return true;
-    return false;
+  // Checklist Handlers
+  const addChecklistBlock = () => {
+      const titleText = newChecklistTitle.trim() || "Checklist";
+      setBlocks(prev => [...prev, { id: Date.now().toString(), type: 'checklist', title: titleText, items: [] }]);
+      logActivity(`added checklist "${titleText}"`);
+      setNewChecklistTitle("");
+      setActivePopover(null);
   };
-
-  const isDateInRange = (date: Date) => {
-    if (!date || !tempStartDate || !tempEndDate) return false;
-    return date > tempStartDate && date < tempEndDate;
+  const addChecklistItem = (blockId: string, text: string) => {
+      if(!text.trim()) return;
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: [...(b.items || []), { id: Date.now().toString(), text, isChecked: false }] } : b));
   };
-
-  const formatDateShort = (date: Date) => {
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+  const toggleCheckItem = (blockId: string, itemId: string) => {
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { ...i, isChecked: !i.isChecked } : i) } : b));
   };
-
-  // Attachment Logic
-  const [isAttachmentPopoverOpen, setIsAttachmentPopoverOpen] = useState(false);
-  const [attachmentView, setAttachmentView] = useState<"select" | "link">(
-    "select"
-  );
-  const [linkUrl, setLinkUrl] = useState("");
-  const [linkText, setLinkText] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAddLink = () => {
-    if (!linkUrl.trim()) return;
-
-    const newAttachment: AttachmentItem = {
-      id: Date.now().toString(),
-      type: "link",
-      name: linkText.trim() || linkUrl,
-      url: linkUrl,
-      dateAdded: new Date(),
-    };
-
-    addAttachmentToBlock(newAttachment);
-    setLinkUrl("");
-    setLinkText("");
-    setIsAttachmentPopoverOpen(false);
-    setAttachmentView("select");
+  const deleteCheckItem = (blockId: string, itemId: string) => {
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.filter(i => i.id !== itemId) } : b));
   };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const newAttachment: AttachmentItem = {
-      id: Date.now().toString(),
-      type: "file",
-      name: file.name,
-      dateAdded: new Date(),
-    };
-
-    addAttachmentToBlock(newAttachment);
-    setIsAttachmentPopoverOpen(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const updateCheckItem = (blockId: string, itemId: string, text: string) => {
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { ...i, text } : i) } : b));
   };
-
-  const addAttachmentToBlock = (item: AttachmentItem) => {
-    const existingBlockIndex = contentBlocks.findIndex(
-      (b) => b.type === "attachment"
-    );
-    if (existingBlockIndex >= 0) {
-      const updated = [...contentBlocks];
-      updated[existingBlockIndex] = {
-        ...updated[existingBlockIndex],
-        attachments: [...(updated[existingBlockIndex].attachments || []), item],
-      };
-      setContentBlocks(updated);
-    } else {
-      addContentBlock("attachment", { attachments: [item] });
-    }
-
-    logActivity("แนบไฟล์", item.name, "upload");
+  const deleteBlock = (blockId: string) => {
+      if(confirm("Delete this section?")) { setBlocks(prev => prev.filter(b => b.id !== blockId)); logActivity("removed a block"); }
   };
-
-  const removeAttachmentItem = (blockId: string, attachmentId: string) => {
-    const blockIndex = contentBlocks.findIndex((b) => b.id === blockId);
-    if (blockIndex < 0) return;
-
-    const block = contentBlocks[blockIndex];
-    const newAttachments =
-      block.attachments?.filter((a) => a.id !== attachmentId) || [];
-
-    if (newAttachments.length === 0) {
-      removeContentBlock(blockId);
-    } else {
-      const updated = [...contentBlocks];
-      updated[blockIndex] = { ...block, attachments: newAttachments };
-      setContentBlocks(updated);
-    }
+  
+  const handleSaveDate = () => { if(dateRange?.from) { logActivity("updated dates"); setActivePopover(null); } };
+  const handleAddAttachment = (type: 'link' | 'file', val1: string, val2?: string) => {
+    const newItem: AttachmentItem = { id: Date.now().toString(), type, name: val2 || val1, url: type === 'link' ? val1 : undefined, date: new Date().toLocaleDateString() };
+    const existing = blocks.find(b => b.type === 'attachment');
+    if (existing) { setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, attachments: [...(b.attachments || []), newItem] } : b)); } 
+    else { setBlocks(prev => [...prev, { id: Date.now().toString(), type: 'attachment', attachments: [newItem] }]); }
+    logActivity(`attached ${type}`); setActivePopover(null); setLinkUrl(""); setLinkText("");
   };
-
-  // Effect to remove tags block if empty
-  useEffect(() => {
-    const tagsBlock = contentBlocks.find((b) => b.type === "tags");
-    if (tagsBlock && selectedTagIds.length === 0) {
-      removeContentBlock(tagsBlock.id);
-    } else if (tagsBlock) {
-      setContentBlocks((blocks) =>
-        blocks.map((b) =>
-          b.type === "tags" ? { ...b, selectedTags: selectedTagIds } : b
-        )
-      );
-    }
-  }, [selectedTagIds]);
+  const sendComment = () => { if (!commentInput.trim()) return; setComments(prev => [{ id: Date.now(), user: "You", text: commentInput, time: "Just now", color: "bg-blue-600" }, ...prev]); setCommentInput(""); logActivity("commented"); };
+  const deleteComment = (id: number) => { if(confirm("Delete this comment?")) setComments(prev => prev.filter(c => c.id !== id)); };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-sans animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl h-auto max-h-[90vh] overflow-hidden flex flex-col transform transition-all scale-100">
-        {/* === Header === */}
-        <div className="bg-white text-gray-900 px-6 py-4 flex items-center justify-between shrink-0 border-b border-gray-100 z-10">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const newStatus = !isAccepted;
-                setIsAccepted(newStatus);
-                logActivity(
-                  newStatus ? "รับงานนี้แล้ว" : "ยกเลิกการรับงาน",
-                  undefined,
-                  "topci"
-                );
-              }}
-              className={`
-                    text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1.5 transition-all duration-300 shadow-sm
-                    hover:shadow-md active:scale-95
-                    ${
-                      isAccepted
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5"
-                    }
-                `}
-            >
-              {isAccepted ? "รับงานแล้ว" : "รับงาน"}
-              <CheckCircle2
-                size={16}
-                strokeWidth={3}
-                className={isAccepted ? "scale-110" : ""}
-              />
-            </button>
-            <div className="flex -space-x-2 ml-2">
-              {assignedMembers.map((member) => (
-                <div
-                  key={member.id}
-                  title={member.name}
-                  className={`w-8 h-8 rounded-full border-2 border-white shadow-sm ${member.color}`}
-                />
-              ))}
-            </div>
+    <>
+      <style>{customStyles}</style>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="bg-white w-full max-w-6xl h-[90vh] rounded-[20px] shadow-2xl overflow-hidden flex flex-col ring-1 ring-slate-200 font-sans relative">
+          
+          {/* Header */}
+          <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 shrink-0 shadow-sm z-10">
+             <div className="flex items-center gap-3">
+                 <button 
+                   onClick={() => setIsAccepted(!isAccepted)}
+                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${isAccepted ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                 >
+                      <CheckCircle2 size={16} className={isAccepted ? "fill-green-600 text-white" : "text-slate-400"} />
+                      {isAccepted ? "รับงานแล้ว" : "รับงาน"}
+                 </button>
+                 <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                 <div className="flex -space-x-1">
+                     {assignedMembers.map(id => {
+                         const m = ALL_MEMBERS.find(mem => mem.id === id);
+                         return m ? <div key={id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm ${m.color}`}>{m.short}</div> : null;
+                     })}
+                     <button onClick={() => setActivePopover('members')} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"><Plus size={14}/></button>
+                 </div>
+             </div>
+             <div className="flex gap-2">
+                <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><MoreHorizontal size={20} /></button>
+                <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" onClick={onClose}><X size={20} /></button>
+             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                className="hover:bg-gray-100 text-gray-400 hover:text-gray-600 p-2 rounded-full transition-all"
-              >
-                <MoreHorizontal size={24} />
-              </button>
-              {isMoreMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsMoreMenuOpen(false)}
-                  />
-                  <div className="absolute top-12 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                    <button
-                      onClick={() => {
-                        setIsMoreMenuOpen(false);
-                        setIsMemberModalOpen(true);
-                      }}
-                      className="w-full text-left px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors"
-                    >
-                      <Users size={18} className="text-gray-500" />
-                      Members
-                    </button>
-                    <div className="h-px bg-gray-100 my-1" />
-                    <button
-                      onClick={() => setIsMoreMenuOpen(false)}
-                      className="w-full text-left px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-3 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                      Delete Task
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="hover:bg-gray-100 text-gray-400 hover:text-gray-600 p-2 rounded-full transition-all hover:rotate-90"
-            >
-              <X size={24} />
-            </button>
-          </div>
-        </div>
-
-        {/* Member Modal */}
-        <MemberModal
-          isOpen={isMemberModalOpen}
-          onClose={() => setIsMemberModalOpen(false)}
-          members={ALL_MEMBERS}
-          assignedMemberIds={assignedMemberIds}
-          onToggle={(id) => {
-            setAssignedMemberIds((prev) =>
-              prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
-            );
-          }}
-        />
-
-        {/* === Content Body === */}
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-white">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
-            {/* --- Left Column (Main) --- */}
-            <div className="lg:col-span-3 space-y-10">
-              {/* Title Section */}
-              <div className="group relative">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full text-3xl font-black text-gray-800 placeholder-gray-400 outline-none bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl px-4 py-3 -ml-4 transition-all duration-200 shadow-xs"
-                  placeholder="ชื่อหัวข้อ"
-                />
-              </div>
-
-              {/* Description Section */}
-              <div>
-                <div className="flex items-center gap-3 mb-4 text-gray-800">
-                  <AlignLeft
-                    className="w-6 h-6 text-blue-600"
-                    strokeWidth={2.5}
-                  />
-                  <h2 className="text-2xl font-bold">รายละเอียด</h2>
-                </div>
-                <div className="relative group">
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={4}
-                    className="w-full text-lg text-gray-700 placeholder-gray-400 outline-none bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl p-4 -ml-4 resize-none leading-relaxed transition-all duration-200 shadow-xs"
-                    placeholder="เพิ่มรายละเอียดเพิ่มเติมเกี่ยวกับงานนี้..."
-                  />
-                </div>
-              </div>
-
-              {/* Dynamic Content Area */}
-              <div className="space-y-4">
-                {contentBlocks.length === 0 ? (
-                  /* Placeholder Card Area */
-                  <div className="w-full h-48 border-3 border-dashed border-gray-200 bg-gray-50/50 rounded-3xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-500 transition-all cursor-pointer group">
-                    <Plus
-                      size={40}
-                      className="text-gray-300 group-hover:text-blue-400 transition-colors"
-                    />
-                    <span className="font-semibold text-sm">
-                      พื้นที่สำหรับการ์ด หรือไฟล์แนบ
-                    </span>
-                  </div>
-                ) : (
-                  contentBlocks.map((block) => (
-                    <div
-                      key={block.id}
-                      className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm group hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-2"
-                    >
-                      <button
-                        onClick={() => removeContentBlock(block.id)}
-                        className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <X size={20} />
-                      </button>
-
-                      {block.type === "checklist" && (
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3 text-gray-800">
-                              <CheckSquare className="w-6 h-6 text-blue-600" />
-                              <h3 className="text-xl font-bold">
-                                {block.title || "Checklist"}
-                                <span className="text-gray-400 text-lg font-medium ml-2">
-                                  (
-                                  {block.items?.filter((i) => i.isChecked)
-                                    .length || 0}
-                                  /{block.items?.length || 0})
-                                </span>
-                              </h3>
-                            </div>
-                            <button
-                              onClick={() => removeContentBlock(block.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <span className="sr-only">Delete</span>
-                            </button>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <span className="text-sm text-gray-500 font-semibold min-w-fit">
-                              {Math.round(
-                                ((block.items?.filter((i) => i.isChecked)
-                                  .length || 0) /
-                                  (block.items?.length || 1)) *
-                                  100
-                              )}
-                              %
-                            </span>
-                            <div className="h-2 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 transition-all duration-300 rounded-full"
-                                style={{
-                                  width: `${
-                                    ((block.items?.filter((i) => i.isChecked)
-                                      .length || 0) /
-                                      (block.items?.length || 1)) *
-                                    100
-                                  }%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Items List */}
-                          <div className="space-y-3 pl-1">
-                            {block.items?.map((item) => (
-                              <div
-                                key={item.id}
-                                className="flex items-center gap-3 group/item"
-                              >
-                                <div className="relative flex items-center justify-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={item.isChecked}
-                                    onChange={() =>
-                                      toggleChecklistItem(block.id, item.id)
-                                    }
-                                    className="peer appearance-none w-5 h-5 rounded border-2 border-gray-300 checked:border-blue-500 checked:bg-blue-500 transition-all cursor-pointer"
-                                  />
-                                  <CheckCircle2
-                                    size={14}
-                                    className="absolute text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
-                                    strokeWidth={4}
-                                  />
-                                </div>
-                                <span
-                                  className={`flex-1 text-gray-700 transition-all ${
-                                    item.isChecked
-                                      ? "line-through text-gray-400"
-                                      : ""
-                                  }`}
-                                >
-                                  {item.text}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    removeChecklistItem(block.id, item.id)
-                                  }
-                                  className="text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-all p-1 hover:bg-red-50 rounded-full"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-                            ))}
-
-                            {/* Add Item Input */}
-                            <div className="flex items-center gap-3 mt-2">
-                              <Plus size={20} className="text-gray-400" />
-                              <input
-                                type="text"
-                                placeholder="Add an item"
-                                className="flex-1 outline-none border-none bg-transparent placeholder-gray-400 text-gray-700 focus:placeholder-gray-300 text-sm py-1"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    const target = e.target as HTMLInputElement;
-                                    if (target.value.trim()) {
-                                      addChecklistItem(
-                                        block.id,
-                                        target.value.trim()
-                                      );
-                                      target.value = "";
-                                    }
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
+          <div className="flex flex-1 overflow-hidden relative">
+            
+            {/* === LEFT CONTENT === */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white pb-32">
+                
+                {/* Title */}
+                <div className="mb-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                        <Layout size={24} className="text-slate-500 mt-1.5" />
+                        <div className="flex-1">
+                            <input 
+                                value={title} 
+                                onChange={e => setTitle(e.target.value)} 
+                                className="w-full text-3xl font-black text-slate-900 bg-transparent outline-none placeholder:text-slate-300"
+                            />
+                            <p className="text-sm text-slate-500 mt-1">in list <span className="underline decoration-slate-300 cursor-pointer hover:text-blue-600">To Do</span></p>
                         </div>
-                      )}
-
-                      {block.type === "tags" && (
-                        <div>
-                          <div className="flex items-center gap-3 mb-4 text-gray-800">
-                            <TagIcon className="w-6 h-6 text-blue-600" />
-                            <h3 className="text-xl font-bold">Tags</h3>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedTagIds.map((tagId) => {
-                              const tag = availableTags.find(
-                                (t) => t.id === tagId
-                              );
-                              if (!tag) return null;
-                              return (
-                                <span
-                                  key={tagId}
-                                  className={`px-3 py-1 ${tag.color} text-white font-bold rounded-lg text-sm border border-transparent/20 cursor-pointer shadow-sm`}
-                                >
-                                  {tag.name || "Untitled"}
-                                </span>
-                              );
-                            })}
-                            <button
-                              onClick={() => {
-                                setIsTagsPopoverOpen(true);
-                              }}
-                              className="px-3 py-1 bg-gray-100 text-gray-500 font-bold rounded-lg text-sm border border-gray-200 hover:bg-gray-200 transition-colors"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {block.type === "date" && (
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3 text-gray-800">
-                              <Calendar className="w-6 h-6 text-blue-600" />
-                              <h3 className="text-xl font-bold">Dates</h3>
-                            </div>
-                          </div>
-                          <div
-                            className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 w-full"
-                            onClick={() => {
-                              if (block.startDate)
-                                setTempStartDate(block.startDate);
-                              if (block.endDate) setTempEndDate(block.endDate);
-                              setIsDatePopoverOpen(true);
-                            }}
-                          >
-                            <div className="text-center flex-1 cursor-pointer">
-                              <p className="text-xs text-gray-500 font-bold uppercase">
-                                Start
-                              </p>
-                              <p className="font-bold text-gray-800 text-lg">
-                                {block.startDate
-                                  ? formatDateShort(block.startDate)
-                                  : "-"}
-                              </p>
-                            </div>
-                            <MoveRight className="text-gray-400" />
-                            <div className="text-center flex-1 cursor-pointer">
-                              <p className="text-xs text-gray-500 font-bold uppercase">
-                                Due
-                              </p>
-                              <p className="font-bold text-gray-800 text-lg">
-                                {block.endDate
-                                  ? formatDateShort(block.endDate)
-                                  : "-"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {block.type === "attachment" && (
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3 text-gray-800">
-                              <Paperclip className="w-6 h-6 text-blue-600" />
-                              <h3 className="text-xl font-bold">Attachments</h3>
-                            </div>
-                            <button
-                              onClick={() => removeContentBlock(block.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <span className="sr-only">Delete</span>
-                              <X size={20} />
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3">
-                            {block.attachments?.map((att) => (
-                              <div
-                                key={att.id}
-                                className="flex items-center gap-4 p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors w-full group/att relative bg-white"
-                              >
-                                <div
-                                  className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                                    att.type === "link"
-                                      ? "bg-blue-100 text-blue-600"
-                                      : "bg-red-100 text-red-500"
-                                  }`}
-                                >
-                                  {att.type === "link" ? (
-                                    <LinkIcon size={24} />
-                                  ) : (
-                                    <FileText size={24} />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-gray-800 text-sm truncate">
-                                    {att.name}
-                                  </p>
-                                  <p className="text-xs text-gray-400">
-                                    Added {formatDateShort(att.dateAdded)}
-                                  </p>
-                                  {att.type === "link" && att.url && (
-                                    <a
-                                      href={att.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-xs text-blue-500 hover:underline truncate block"
-                                    >
-                                      {att.url}
-                                    </a>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    removeAttachmentItem(block.id, att.id)
-                                  }
-                                  className="absolute top-3 right-3 text-gray-300 hover:text-red-500 opacity-0 group-hover/att:opacity-100 transition-all p-1"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-3">
-                            <button
-                              onClick={() => {
-                                setAttachmentView("select");
-                                setIsAttachmentPopoverOpen(true);
-                              }}
-                              className="text-sm text-gray-500 font-semibold hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                              <Plus size={16} /> Add another attachment
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Tabs Section */}
-              <div className="pt-4">
-                {/* Tabs */}
-                <div className="flex gap-8 border-b-2 border-gray-100 mb-8">
-                  <button
-                    onClick={() => setActiveTab("comment")}
-                    className={`pb-4 text-lg font-bold transition-all relative px-2 ${
-                      activeTab === "comment"
-                        ? "text-blue-600"
-                        : "text-gray-400 hover:text-gray-600"
-                    }`}
-                  >
-                    คอมเมนต์
-                    {activeTab === "comment" && (
-                      <div className="absolute -bottom-0.5 left-0 w-full h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("activity")}
-                    className={`pb-4 text-lg font-bold transition-all relative px-2 flex items-center gap-2 ${
-                      activeTab === "activity"
-                        ? "text-blue-600"
-                        : "text-gray-400 hover:text-gray-600"
-                    }`}
-                  >
-                    กิจกรรม
-                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-bold">
-                      {activities.length}
-                    </span>
-                    {activeTab === "activity" && (
-                      <div className="absolute -bottom-0.5 left-0 w-full h-1 bg-blue-600 rounded-t-full shadow-lg shadow-blue-500/30"></div>
-                    )}
-                  </button>
                 </div>
 
-                {/* --- Content based on Tab --- */}
+                {/* Metadata Row */}
+                <div className="ml-9 mb-8 flex flex-wrap gap-4">
+                    {selectedTagIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                             {selectedTagIds.map(id => {
+                                 const t = availableTags.find(tag => tag.id === id);
+                                 return t ? <span key={id} className={`px-3 py-1 rounded-md text-sm font-bold shadow-sm ${t.bgColor} ${t.textColor}`}>{t.name}</span> : null;
+                             })}
+                             <button onClick={() => { setActivePopover('tags'); setTagView('list'); }} className="w-8 h-8 rounded bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"><Plus size={16}/></button>
+                        </div>
+                    )}
+                    {dateRange?.from && (
+                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md text-sm font-bold text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => setActivePopover('dates')}>
+                             <Clock size={16} />
+                             <span>
+                                {format(dateRange.from, 'dd MMM')} 
+                                {dateRange.to ? ` - ${format(dateRange.to, 'dd MMM')}` : ''}
+                             </span>
+                        </div>
+                    )}
+                </div>
 
-                {activeTab === "comment" && (
-                  <CommentSection logActivity={logActivity} />
-                )}
+                {/* Description */}
+                <div className="mb-8 group">
+                    <div className="flex items-center gap-3 mb-2 text-slate-800 font-bold">
+                        <AlignLeft size={20} /><h3>รายละเอียด</h3>
+                    </div>
+                    <div className="ml-9">
+                        <textarea 
+                            value={desc}
+                            onChange={(e) => setDesc(e.target.value)}
+                            placeholder="เพิ่มรายละเอียดเพิ่มเติมเกี่ยวกับงานนี้..."
+                            className="w-full min-h-[100px] bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg p-4 text-base text-slate-900 leading-relaxed transition-all resize-none focus:ring-2 focus:ring-blue-100"
+                        />
+                    </div>
+                </div>
 
-                {activeTab === "activity" && (
-                  <ActivitySection activities={activities} />
-                )}
-              </div>
+                {/* Dynamic Content Blocks */}
+                <div className="space-y-8 mb-10">
+                    {blocks.map(block => (
+                         <div key={block.id} className="group relative">
+                             <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3 text-slate-800 font-bold">
+                                    {block.type === 'checklist' ? <CheckSquare size={20} /> : <Paperclip size={20} />}
+                                    <h3>{block.type === 'checklist' ? block.title : 'Attachments'}</h3>
+                                </div>
+                                <button onClick={() => deleteBlock(block.id)} className="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded hover:bg-red-50 hover:text-red-600 transition-colors">Delete</button>
+                             </div>
+
+                             {block.type === 'checklist' && (
+                                <div className="ml-9 space-y-4">
+                                    <div className="flex items-center gap-3 text-xs text-slate-500 font-bold mb-2">
+                                        <span className="text-slate-600">{Math.round(((block.items?.filter(i => i.isChecked).length || 0) / (block.items?.length || 1)) * 100)}%</span>
+                                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                            <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${((block.items?.filter(i => i.isChecked).length || 0) / (block.items?.length || 1)) * 100}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {block.items?.map(item => (
+                                            <div key={item.id} className="flex items-start gap-3 group/item p-1.5 hover:bg-slate-50 rounded-lg -ml-1.5 transition-colors">
+                                                <GripVertical size={16} className="text-slate-300 mt-1 cursor-grab opacity-0 group-hover/item:opacity-100" />
+                                                <input type="checkbox" checked={item.isChecked} onChange={() => toggleCheckItem(block.id, item.id)} className="w-5 h-5 rounded border-slate-300 text-emerald-600 cursor-pointer focus:ring-0 mt-0.5" />
+                                                <input value={item.text} onChange={(e) => updateCheckItem(block.id, item.id, e.target.value)} className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${item.isChecked ? 'line-through text-slate-400' : ''}`}/>
+                                                <button onClick={() => deleteCheckItem(block.id, item.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 p-1"><X size={16}/></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="pl-7 mt-2">
+                                        <button className="text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 mb-2" onClick={() => { const input = document.getElementById(`add-input-${block.id}`) as HTMLInputElement; if (input) input.focus(); }}>
+                                            <Plus size={16}/> Add an item
+                                        </button>
+                                        <input id={`add-input-${block.id}`} placeholder="Add an item..." className="text-sm bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-500 focus:bg-white rounded px-3 py-2 w-full outline-none transition-all text-slate-700" onKeyDown={(e) => { if(e.key==='Enter' && e.currentTarget.value.trim()) { addChecklistItem(block.id, e.currentTarget.value); e.currentTarget.value = ""; }}}/>
+                                    </div>
+                                </div>
+                             )}
+
+                             {block.type === 'attachment' && (
+                                 <div className="ml-9 grid grid-cols-1 gap-2">
+                                     {block.attachments?.map(att => (
+                                         <div key={att.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white relative group/att">
+                                             <div className={`w-10 h-10 rounded flex items-center justify-center text-white ${att.type === 'link' ? 'bg-blue-500' : 'bg-red-500'}`}>
+                                                 {att.type === 'link' ? <LinkIcon size={18}/> : <FileText size={18}/>}
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <div className="text-sm font-bold text-slate-900 truncate">{att.name}</div>
+                                                 {att.url && <a href={att.url} target="_blank" className="text-xs text-blue-500 hover:underline truncate block">{att.url}</a>}
+                                                 <div className="text-xs text-slate-400 font-medium">Added {att.date}</div>
+                                             </div>
+                                         </div>
+                                     ))}
+                                 </div>
+                             )}
+                         </div>
+                    ))}
+                </div>
+
+                {/* Activity & Comments */}
+                <div className="mt-8 pt-8 border-t border-slate-200">
+                    <div className="flex gap-6 mb-6">
+                        <button onClick={() => setActiveTab('comments')} className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === 'comments' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}><MessageSquare size={16}/> Comments</button>
+                        <button onClick={() => setActiveTab('activity')} className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === 'activity' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}><Activity size={16}/> Activity</button>
+                    </div>
+                    {activeTab === 'comments' ? (
+                        <div className="space-y-6">
+                             <div className="flex gap-3">
+                                 <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">Y</div>
+                                 <div className="flex-1 relative">
+                                     <textarea value={commentInput} onChange={e => setCommentInput(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none min-h-[60px] text-slate-900" placeholder="Write a comment..." onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }}/>
+                                     <div className="flex items-center gap-2 mt-2 justify-end">
+                                         <button onClick={() => chatFileRef.current?.click()} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"><Paperclip size={16}/></button>
+                                         <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"><Smile size={16}/></button>
+                                         <input type="file" className="hidden" ref={chatFileRef} />
+                                         <button onClick={sendComment} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2">Send <Send size={14}/></button>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div className="space-y-5 pl-12">
+                                 {comments.map(c => (
+                                     <div key={c.id} className="group">
+                                         <div className="flex items-baseline gap-2 mb-1">
+                                             <span className="font-bold text-slate-900 text-sm">{c.user}</span>
+                                             <span className="text-xs text-slate-400 font-medium">{c.time}</span>
+                                         </div>
+                                         <div className="text-sm text-slate-800 bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm inline-block font-medium leading-relaxed max-w-full relative group">
+                                            {c.text}
+                                            <div className="absolute top-1 right-1 hidden group-hover:flex bg-white rounded-lg shadow-sm border border-slate-100 p-1">
+                                                <button className="p-1 text-slate-400 hover:text-blue-600 rounded" title="Edit"><Edit2 size={12}/></button>
+                                                <button onClick={() => deleteComment(c.id)} className="p-1 text-slate-400 hover:text-red-600 rounded" title="Delete"><Trash2 size={12}/></button>
+                                            </div>
+                                         </div>
+                                     </div>
+                                 ))}
+                             </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 pl-4 border-l-2 border-slate-100 ml-2">
+                            {activities.map(a => (
+                                <div key={a.id} className="relative pl-6">
+                                    <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white"></div>
+                                    <p className="text-sm text-slate-600"><span className="font-bold text-slate-900">{a.user}</span> {a.action}</p>
+                                    <span className="text-xs text-slate-400 font-medium mt-0.5">{a.time}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
             </div>
 
-            {/* --- Right Column (Actions) --- */}
-            <div className="space-y-6 pt-2">
-              <h3 className="text-xl font-black text-gray-800 mb-6 uppercase tracking-wider flex items-center gap-2">
-                <Plus size={20} className="text-blue-600" strokeWidth={3} />{" "}
-                เพิ่มลงในการ์ด
-              </h3>
+            {/* === RIGHT SIDEBAR === */}
+            <div className="w-72 bg-slate-50 border-l border-slate-200 p-6 flex flex-col gap-6 shadow-inner relative z-20 overflow-visible">
+               <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase mb-3 px-1 tracking-wider">Add to card</p>
+                  <div className="space-y-2 relative">
+                     <SidebarBtn icon={User} label="Members" active={activePopover === 'members'} onClick={() => setActivePopover('members')} />
+                     <SidebarBtn icon={TagIcon} label="Labels" active={activePopover === 'tags'} onClick={() => { setActivePopover('tags'); setTagView('list'); }} />
+                     <SidebarBtn icon={CheckSquare} label="Checklist" active={activePopover === 'checklist'} onClick={() => setActivePopover('checklist')} />
+                     <SidebarBtn icon={Calendar} label="Dates" active={activePopover === 'dates'} onClick={() => setActivePopover('dates')} />
+                     <SidebarBtn icon={Paperclip} label="Attachment" active={activePopover === 'attachment'} onClick={() => setActivePopover('attachment')} />
 
-              <div className="space-y-3">
-                <div className="relative z-50">
-                  <TaskActionButton
-                    icon={<CheckSquare size={20} />}
-                    label="CheckList"
-                    onClick={() => setIsChecklistPopoverOpen(true)}
-                  />
-                  {/* Popover */}
-                  {isChecklistPopoverOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsChecklistPopoverOpen(false)}
-                      />
-                      <div className="absolute top-0 right-full mr-4 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-bold text-gray-700">
-                            Add Checklist
-                          </h4>
-                          <button
-                            onClick={() => setIsChecklistPopoverOpen(false)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500">
-                              Item
-                            </label>
-                            <input
-                              type="text"
-                              value={newChecklistTitle}
-                              onChange={(e) =>
-                                setNewChecklistTitle(e.target.value)
-                              }
-                              placeholder="Add an item"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                              autoFocus
-                            />
-                          </div>
-                          <button
-                            onClick={addChecklist}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-sm transition-colors shadow-sm shadow-blue-500/30"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="relative z-45">
-                  <TaskActionButton
-                    icon={<TagIcon size={20} />}
-                    label="Tags"
-                    onClick={() => {
-                      setTagPopoverView("list");
-                      setIsTagsPopoverOpen(true);
-                    }}
-                  />
+                     {/* --- POPOVERS --- */}
+                     {activePopover === 'members' && (
+                       <PopoverContainer title="Members" onClose={() => setActivePopover(null)}>
+                         <div className="space-y-1">
+                             <input className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2" placeholder="Search members..."/>
+                             {ALL_MEMBERS.map(m => (
+                                 <button key={m.id} onClick={() => { setAssignedMembers(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]); }} className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700">
+                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}>{m.short}</div>
+                                     <span className="flex-1">{m.name}</span>
+                                     {assignedMembers.includes(m.id) && <CheckCircle2 size={14} className="text-blue-600"/>}
+                                 </button>
+                             ))}
+                         </div>
+                       </PopoverContainer>
+                     )}
 
-                  {isTagsPopoverOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsTagsPopoverOpen(false)}
-                      />
-                      <div className="absolute top-0 right-full mr-4 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
-                        {/* === LIST VIEW === */}
-                        {tagPopoverView === "list" && (
-                          <>
-                            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                              <div className="flex-1 text-center font-bold text-gray-700">
-                                Tags
-                              </div>
-                              <button
-                                onClick={() => setIsTagsPopoverOpen(false)}
-                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors absolute right-4"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                            <div className="p-3">
-                              <div className="bg-gray-50 border border-gray-200 rounded-md flex items-center px-3 py-2 mb-3 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all">
-                                <Search
-                                  size={14}
-                                  className="text-gray-400 mr-2"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Search tag"
-                                  className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
-                                  value={searchTag}
-                                  onChange={(e) => setSearchTag(e.target.value)}
-                                />
-                              </div>
-
-                              <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                <h5 className="text-xs font-bold text-gray-400 mb-2 uppercase">
-                                  Tags
-                                </h5>
-                                {availableTags
-                                  .filter((t) =>
-                                    t.name
-                                      .toLowerCase()
-                                      .includes(searchTag.toLowerCase())
-                                  )
-                                  .map((tag) => {
-                                    const isSelected = selectedTagIds.includes(
-                                      tag.id
-                                    );
-                                    return (
-                                      <div
-                                        key={tag.id}
-                                        className="flex items-center gap-2 group"
-                                      >
-                                        <div
-                                          onClick={() =>
-                                            handleTagToggle(tag.id)
-                                          }
-                                          className={`w-4 h-4 rounded-full border-2 cursor-pointer transition-colors flex items-center justify-center shrink-0 ${
-                                            isSelected
-                                              ? "border-blue-500 bg-blue-500"
-                                              : "border-gray-300 hover:border-gray-400"
-                                          }`}
-                                        >
-                                          {isSelected && (
-                                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                          )}
+                     {activePopover === 'tags' && (
+                       <PopoverContainer title={tagView === 'list' ? "Labels" : tagView === 'create' ? "Create Label" : "Edit Label"} onClose={() => setActivePopover(null)} width="w-80" showBack={tagView !== 'list'} onBack={() => setTagView('list')}>
+                         {tagView === 'list' ? (
+                            <div className="space-y-1">
+                                <input placeholder="Search labels..." className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500" value={tagSearch} onChange={e => setTagSearch(e.target.value)} />
+                                <p className="text-xs font-bold text-slate-500 mb-1 mt-2">LABELS</p>
+                                {availableTags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase())).map(t => (
+                                    <div key={t.id} className="flex items-center gap-2 mb-1 group">
+                                        <div onClick={() => toggleTag(t.id)} className={`flex-1 h-8 rounded px-3 flex items-center justify-between text-sm font-bold shadow-sm transition-all cursor-pointer ${t.bgColor} ${t.textColor} hover:opacity-90`}>
+                                            {t.name}
+                                            {selectedTagIds.includes(t.id) && <CheckCircle2 size={16} />}
                                         </div>
-                                        <div
-                                          onClick={() =>
-                                            handleTagToggle(tag.id)
-                                          }
-                                          className={`flex-1 h-8 rounded text-white text-sm font-bold flex items-center px-3 cursor-pointer transition-transform active:scale-95 ${tag.color}`}
-                                        >
-                                          {tag.name}
-                                        </div>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openEditTag(tag);
-                                          }}
-                                          className="text-gray-400 hover:text-gray-700 p-1 hover:bg-gray-100 rounded opacity-100 transition-opacity"
-                                        >
-                                          <Settings size={14} />
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
-                              </div>
-
-                              <button
-                                onClick={openCreateTag}
-                                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-colors shadow-sm shadow-blue-500/30"
-                              >
-                                Create a new tag
-                              </button>
-                            </div>
-                          </>
-                        )}
-
-                        {/* === CREATE / EDIT VIEW === */}
-                        {(tagPopoverView === "create" ||
-                          tagPopoverView === "edit") && (
-                          <>
-                            <div className="p-4 border-b border-gray-100 flex items-center justify-between relative">
-                              <button
-                                onClick={() => setTagPopoverView("list")}
-                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors absolute left-4"
-                              >
-                                <ChevronLeft size={18} />
-                              </button>
-                              <div className="flex-1 text-center font-bold text-gray-700">
-                                {tagPopoverView === "create"
-                                  ? "Create Tag"
-                                  : "Change Tag"}
-                              </div>
-                              <button
-                                onClick={() => setIsTagsPopoverOpen(false)}
-                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors absolute right-4"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                            <div className="p-4 bg-gray-50/50">
-                              <div className="flex justify-center py-6">
-                                <div
-                                  className={`h-10 px-6 rounded-lg text-white font-bold flex items-center justify-center min-w-[200px] shadow-sm ${editingTag?.color}`}
-                                >
-                                  {editingTag?.name || "Tag Name"}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="p-4 space-y-4">
-                              <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-gray-500 uppercase">
-                                  Tag name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editingTag?.name || ""}
-                                  onChange={(e) =>
-                                    setEditingTag((prev) =>
-                                      prev
-                                        ? { ...prev, name: e.target.value }
-                                        : null
-                                    )
-                                  }
-                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all font-medium text-gray-700"
-                                  placeholder="Enter tag name"
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">
-                                  Select Color
-                                </label>
-                                <div className="grid grid-cols-5 gap-3">
-                                  {TAG_COLORS.map((color) => (
-                                    <div
-                                      key={color}
-                                      onClick={() =>
-                                        setEditingTag((prev) =>
-                                          prev ? { ...prev, color } : null
-                                        )
-                                      }
-                                      className={`h-8 w-8 rounded-full cursor-pointer transition-all hover:scale-110 ${color} relative flex items-center justify-center`}
-                                    >
-                                      {editingTag?.color === color && (
-                                        <div className="w-full h-full rounded-full border-2 border-white shadow-sm ring-2 ring-blue-500" />
-                                      )}
+                                        <button onClick={() => startEditTag(t)} className="p-1 text-slate-400 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={14}/></button>
                                     </div>
-                                  ))}
+                                ))}
+                                <button onClick={startCreateTag} className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors">Create a new label</button>
+                            </div>
+                         ) : (
+                            <div className="space-y-3">
+                                <div className="h-24 bg-slate-50 rounded-lg flex items-center justify-center mb-2 border border-slate-100">
+                                    {/* Fix: Use newTagColor object correctly */}
+                                    <span className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm ${newTagColor.labelBg} ${newTagColor.labelText}`}>{newTagName || "Label Name"}</span>
                                 </div>
-                              </div>
-
-                              <div className="flex items-center gap-3 pt-4 border-t border-gray-100 mt-4">
-                                {tagPopoverView === "edit" && (
-                                  <button
-                                    onClick={handleDeleteTag}
-                                    className="px-4 py-2 border border-red-200 text-red-500 hover:bg-red-50 font-bold rounded-lg text-sm transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                                <button
-                                  onClick={
-                                    tagPopoverView === "create"
-                                      ? handleCreateTag
-                                      : handleUpdateTag
-                                  }
-                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-colors shadow-sm shadow-blue-500/30"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="relative z-40">
-                  <TaskActionButton
-                    icon={<Calendar size={20} />}
-                    label="Dates"
-                    onClick={() => {
-                      setTempStartDate(null);
-                      setTempEndDate(null);
-                      setIsDatePopoverOpen(true);
-                    }}
-                  />
-
-                  {isDatePopoverOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsDatePopoverOpen(false)}
-                      />
-                      <div className="absolute top-0 right-full mr-4 w-[340px] bg-white rounded-xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                          <h4 className="font-bold text-gray-800 text-lg">
-                            Start/End Date
-                          </h4>
-                        </div>
-
-                        <div className="p-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h5 className="font-bold text-gray-700 text-base">
-                              {monthNames[currentMonth.getMonth()]}{" "}
-                              {currentMonth.getFullYear()}
-                            </h5>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => changeMonth(-1)}
-                                className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                              >
-                                <ChevronLeft size={20} />
-                              </button>
-                              <button
-                                onClick={() => changeMonth(1)}
-                                className="p-1 hover:bg-gray-100 rounded text-gray-500"
-                              >
-                                <ChevronLeft size={20} className="rotate-180" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-7 mb-2 text-center">
-                            {["S", "M", "T", "W", "T", "F", "S"].map(
-                              (d, i) => (
-                                <div
-                                  key={i}
-                                  className="text-xs font-bold text-blue-400"
-                                >
-                                  {d}
+                                <input className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder="Name" />
+                                <div className="grid grid-cols-5 gap-2">
+                                    {TAG_COLORS.map(c => (
+                                        <div key={c.name} onClick={() => setNewTagColor(c)} className={`h-8 rounded cursor-pointer ${c.bg} ${newTagColor.name === c.name ? 'ring-2 ring-blue-600 ring-offset-1' : 'hover:opacity-80'}`}></div>
+                                    ))}
                                 </div>
-                              )
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-7 gap-y-1">
-                            {getDaysInMonth(currentMonth).map((date, i) => {
-                              if (!date) return <div key={i} />;
-                              const isSelected = isDateSelected(date);
-                              const inRange = isDateInRange(date);
-                              const isToday =
-                                new Date().toDateString() ===
-                                date.toDateString();
-
-                              // Handling range styling logic
-                              let rangeClass = "";
-                              if (inRange)
-                                rangeClass = "bg-blue-100 text-blue-900";
-                              if (isSelected)
-                                rangeClass =
-                                  "bg-blue-500 text-white shadow-md transform scale-105 z-10";
-                              // Rounding corners for range ends
-                              if (
-                                tempStartDate &&
-                                date.toDateString() ===
-                                  tempStartDate.toDateString() &&
-                                tempEndDate
-                              ) {
-                                rangeClass += " rounded-l-full";
-                              } else if (
-                                tempEndDate &&
-                                date.toDateString() ===
-                                  tempEndDate.toDateString()
-                              ) {
-                                rangeClass += " rounded-r-full";
-                              } else if (isSelected && !tempEndDate) {
-                                rangeClass += " rounded-full";
-                              } else if (!isSelected && !inRange) {
-                                rangeClass +=
-                                  " hover:bg-gray-100 text-gray-700 rounded-full";
-                              }
-
-                              if (inRange) rangeClass += " rounded-none"; // Range middle
-
-                              return (
-                                <button
-                                  key={i}
-                                  onClick={() => handleDateClick(date)}
-                                  className={`
-                                                                h-9 w-9 text-sm font-medium flex items-center justify-center transition-all relative
-                                                                ${rangeClass}
-                                                                ${
-                                                                  isToday &&
-                                                                  !isSelected &&
-                                                                  !inRange
-                                                                    ? "text-blue-600 font-bold"
-                                                                    : ""
-                                                                } 
-                                                            `}
-                                >
-                                  {date.getDate()}
-                                  {isToday && !isSelected && !inRange && (
-                                    <div className="absolute -bottom-1 w-1 h-1 bg-orange-400 rounded-full"></div>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-                          <div className="text-xs text-gray-500 font-semibold  max-w-[150px] truncate">
-                            {tempStartDate ? (
-                              <>
-                                {formatDateShort(tempStartDate)}
-                                {tempEndDate &&
-                                  ` - ${formatDateShort(tempEndDate)}`}
-                              </>
-                            ) : (
-                              "Select a date"
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            {contentBlocks.some((b) => b.type === "date") && (
-                              <button
-                                onClick={removeDateBlock}
-                                className="px-3 py-1.5 text-red-500 hover:bg-red-50 text-xs font-bold rounded-lg transition-colors"
-                              >
-                                Unset
-                              </button>
-                            )}
-                            <button
-                              onClick={handleSaveDate}
-                              disabled={!tempStartDate}
-                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-                            >
-                              Done
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="relative z-30">
-                  <TaskActionButton
-                    icon={<Paperclip size={20} />}
-                    label="Attachment"
-                    onClick={() => {
-                      setAttachmentView("select");
-                      setIsAttachmentPopoverOpen(true);
-                    }}
-                  />
-                  {isAttachmentPopoverOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsAttachmentPopoverOpen(false)}
-                      />
-                      <div className="absolute top-0 right-full mr-4 w-[340px] bg-white rounded-xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {attachmentView === "link" && (
-                              <button
-                                onClick={() => setAttachmentView("select")}
-                                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-full"
-                              >
-                                <ChevronLeft size={18} />
-                              </button>
-                            )}
-                            <h4 className="font-bold text-gray-800 text-base">
-                              {attachmentView === "select"
-                                ? "Add Attachment"
-                                : "Add Link"}
-                            </h4>
-                          </div>
-                          <button
-                            onClick={() => setIsAttachmentPopoverOpen(false)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-
-                        {attachmentView === "select" && (
-                          <div className="p-2">
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors text-gray-700 font-medium"
-                            >
-                              <Monitor size={18} className="text-gray-500" />
-                              Computer
-                            </button>
-                            <button
-                              onClick={() => setAttachmentView("link")}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors text-gray-700 font-medium"
-                            >
-                              <LinkIcon size={18} className="text-gray-500" />
-                              Paste a link
-                            </button>
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              className="hidden"
-                              onChange={handleFileUpload}
-                            />
-                          </div>
-                        )}
-
-                        {attachmentView === "link" && (
-                          <div className="p-4 space-y-4">
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500 uppercase">
-                                Link URL
-                              </label>
-                              <input
-                                type="text"
-                                value={linkUrl}
-                                onChange={(e) => setLinkUrl(e.target.value)}
-                                placeholder="Paste any link here..."
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all bg-gray-50 focus:bg-white"
-                                autoFocus
-                              />
+                                <div className="flex gap-2">
+                                    <button onClick={tagView === 'create' ? handleCreateTag : handleUpdateTag} className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Save</button>
+                                    {tagView === 'edit' && <button onClick={handleDeleteTag} className="bg-red-50 text-red-600 px-3 rounded text-sm font-bold hover:bg-red-100">Delete</button>}
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-bold text-gray-500 uppercase">
-                                Link Name (Optional)
-                              </label>
-                              <input
-                                type="text"
-                                value={linkText}
-                                onChange={(e) => setLinkText(e.target.value)}
-                                placeholder="Text to display"
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                            </div>
-                            <button
-                              onClick={handleAddLink}
-                              disabled={!linkUrl}
-                              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg text-sm transition-colors shadow-sm shadow-blue-500/30"
-                            >
-                              Attach
-                            </button>
+                         )}
+                       </PopoverContainer>
+                     )}
+
+                     {activePopover === 'checklist' && (
+                       <PopoverContainer title="Add checklist" onClose={() => setActivePopover(null)}>
+                         <div className="space-y-3">
+                            <input autoFocus className="w-full border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 text-slate-900" placeholder="Title" value={newChecklistTitle} onChange={e => setNewChecklistTitle(e.target.value)} />
+                            <button onClick={addChecklistBlock} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Add</button>
+                         </div>
+                       </PopoverContainer>
+                     )}
+
+                     {activePopover === 'dates' && (
+                       <PopoverContainer title="Dates" onClose={() => setActivePopover(null)} width="w-auto">
+                          <div className="p-1"><DayPicker mode="range" defaultMonth={new Date()} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} /></div>
+                          <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl">
+                             <button onClick={() => setDateRange(undefined)} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200">Clear</button>
+                             <button onClick={handleSaveDate} disabled={!dateRange?.from} className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">Save</button>
                           </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                       </PopoverContainer>
+                     )}
+
+                     {activePopover === 'attachment' && (
+                       <PopoverContainer title="Attach" onClose={() => setActivePopover(null)}>
+                          <div className="flex gap-2 mb-3 border-b border-slate-100 pb-2">
+                               <button onClick={() => setAttachmentTab('file')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'file' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Computer</button>
+                               <button onClick={() => setAttachmentTab('link')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'link' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Link</button>
+                          </div>
+                          {attachmentTab === 'file' ? (
+                               <div className="border-2 border-dashed border-slate-200 rounded-xl py-6 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition-all" onClick={() => fileInputRef.current?.click()}>
+                                   <UploadCloud size={24} className="mx-auto mb-2 text-slate-400"/> Click to upload file
+                                   <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => { if(e.target.files?.[0]) handleAddAttachment('file', e.target.files[0].name); }} />
+                               </div>
+                           ) : (
+                               <div className="space-y-3">
+                                   <input placeholder="Paste any link..." className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+                                   <input placeholder="Link name (optional)" className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkText} onChange={e => setLinkText(e.target.value)} />
+                                   <button onClick={() => handleAddAttachment('link', linkUrl, linkText)} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Attach</button>
+                               </div>
+                           )}
+                       </PopoverContainer>
+                     )}
+                  </div>
+               </div>
+               <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase mb-3 px-1 tracking-wider">Actions</p>
+                  <div className="space-y-2">
+                     <SidebarBtn icon={Layout} label="Cover" />
+                     <SidebarBtn icon={Trash2} label="Delete" />
+                  </div>
+               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
+
+// --- 5. Helper Components ---
+const SidebarBtn = ({ icon: Icon, label, onClick, active }: any) => (
+  <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${active ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300 shadow-sm' : 'text-slate-700 hover:bg-slate-200/70 active:bg-slate-200'}`}>
+    <Icon size={18} className={active ? "text-blue-600" : "text-slate-500"} /> {label}
+  </button>
+);
+
+const PopoverContainer = ({ title, onClose, children, width = "w-80", showBack, onBack }: any) => (
+  <div className={`absolute top-0 right-[105%] mr-2 ${width} bg-white rounded-xl shadow-2xl border border-slate-200 z-50 animate-in fade-in zoom-in-95 slide-in-from-right-4 overflow-hidden ring-1 ring-slate-900/5`}>
+    <div className="flex justify-between items-center px-4 py-3 border-b border-slate-100 bg-slate-50/50 relative">
+      {showBack ? (
+          <button onClick={onBack} className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200/50"><ChevronLeft size={18}/></button>
+      ) : <div className="w-6"></div>}
+      <h4 className="font-bold text-slate-700 text-sm">{title}</h4>
+      <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200/50 transition-colors"><X size={16} /></button>
+    </div>
+    <div className="p-4">{children}</div>
+  </div>
+);
