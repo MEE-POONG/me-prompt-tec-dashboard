@@ -1,7 +1,7 @@
 import React from "react";
 import { Filter, Users, Settings, ChevronLeft } from "lucide-react";
 import { WorkspaceInfo } from "@/types/workspace";
-import Link from "next/link";
+import Link from "next/link"; // ✅ Import Link
 
 interface WorkspaceHeaderProps {
   workspaceInfo: WorkspaceInfo;
@@ -20,11 +20,19 @@ export default function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   return (
     <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm">
+      
       {/* Left: Project Info */}
       <div className="flex items-center gap-4">
-        <Link href="/workspace" className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-          <ChevronLeft size={20} />
+        
+        {/* ✅ เพิ่มปุ่ม Back กลับมาแล้ว */}
+        <Link 
+          href="/workspace" 
+          className="p-2 -ml-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Back to My Projects"
+        >
+          <ChevronLeft size={24} />
         </Link>
+
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-800">ME PROMPT {workspaceInfo.name}</h1>

@@ -33,8 +33,8 @@ export function WorkspaceSettingsSidebar({
   
   // Form States (Settings)
   const [shortName, setShortName] = useState("MPT");
-  const [description, setDescription] = useState("แผนงานโปรเจคเว็บบริษัท"); // ค่าจริง
-  const [tempDescription, setTempDescription] = useState("แผนงานโปรเจคเว็บบริษัท"); // ค่าระหว่างพิมพ์
+  const [description, setDescription] = useState("แผนงานโปรเจคเว็บบริษัท"); // ค่าที่บันทึกแล้ว
+  const [tempDescription, setTempDescription] = useState("แผนงานโปรเจคเว็บบริษัท"); // ค่าที่กำลังพิมพ์
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
   
   // Member States
@@ -54,14 +54,13 @@ export function WorkspaceSettingsSidebar({
   const menuRef = useRef<HTMLDivElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Data
+  // Initialize Data when modal opens
   useEffect(() => {
     if (isOpen) {
         setMembers(workspaceInfo.members);
-        // Reset Text areas
-        setTempDescription(description);
+        setTempDescription(description); // Reset temp description to saved value
     }
-  }, [isOpen, workspaceInfo]);
+  }, [isOpen, workspaceInfo, description]);
 
   // Click Outside to Close Menus
   useEffect(() => {
@@ -84,7 +83,7 @@ export function WorkspaceSettingsSidebar({
   };
 
   const handleCancelDescription = () => {
-    setTempDescription(description); // Reset กลับเป็นค่าล่าสุดที่บันทึก
+    setTempDescription(description); // Revert to saved description
   };
 
   const handleRoleChange = (index: number, newRole: string) => {
@@ -105,7 +104,7 @@ export function WorkspaceSettingsSidebar({
   const handleLeaveBoard = () => {
     if (window.confirm("Are you sure you want to leave this board?")) {
         onClose();
-        // ใส่ Logic การออกจากบอร์ดจริงๆ ตรงนี้
+        // Add actual leave logic here
     }
   };
 
@@ -120,13 +119,11 @@ export function WorkspaceSettingsSidebar({
       setDifficultyLevels([...difficultyLevels, newDiff]);
   };
 
-  // --- Logic for Lists ---
-  // กรองสมาชิกตามช่องค้นหา
+  // --- Logic for Filtering Lists ---
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(memberSearch.toLowerCase())
   );
 
-  // กรองระดับความยากตามช่องค้นหา
   const filteredDifficulties = difficultyLevels.filter(d => 
     d.name.toLowerCase().includes(difficultySearch.toLowerCase())
   );
@@ -239,13 +236,13 @@ export function WorkspaceSettingsSidebar({
                             <div className="flex justify-end gap-2">
                                 <button 
                                     onClick={handleCancelDescription}
-                                    className="px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all"
+                                    className="px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     onClick={handleSaveDescription}
-                                    className="px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
+                                    className="px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95"
                                 >
                                     Save
                                 </button>
@@ -327,7 +324,12 @@ export function WorkspaceSettingsSidebar({
                     </div>
 
                     <div className="pt-6 mt-auto">
-                        <button onClick={handleLeaveBoard} className="w-full py-2.5 border border-blue-500 text-blue-500 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors active:scale-95">Leave Board</button>
+                        <button 
+                            onClick={handleLeaveBoard}
+                            className="w-full py-2.5 border border-blue-500 text-blue-500 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors active:scale-95"
+                        >
+                            Leave Board
+                        </button>
                     </div>
                 </div>
             )}
@@ -339,7 +341,7 @@ export function WorkspaceSettingsSidebar({
                         <h3 className="text-lg font-medium text-slate-800">Difficulty Level</h3>
                         <button 
                             onClick={handleAddDifficulty}
-                            className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-all shadow-sm"
+                            className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-all shadow-sm active:scale-95"
                         >
                             <Plus size={14}/> Create
                         </button>
@@ -371,7 +373,7 @@ export function WorkspaceSettingsSidebar({
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium text-slate-800">Archived tasks</h3>
-                        <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-all shadow-sm">
+                        <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-all shadow-sm active:scale-95">
                             Switch to columns
                         </button>
                     </div>
@@ -454,7 +456,7 @@ export function MembersManageModal({
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"><Plus size={18} /></div>
                             <input placeholder="Invite by name or email" className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:border-blue-500 shadow-sm" />
                         </div>
-                        <button className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-md">ส่งคำเชิญ</button>
+                        <button className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-md active:scale-95 transition-all">ส่งคำเชิญ</button>
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto max-h-[300px] custom-scrollbar">
