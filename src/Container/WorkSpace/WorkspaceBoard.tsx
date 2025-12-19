@@ -36,14 +36,14 @@ import ProjectReport from "./Views/ProjectReport";
 
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const router = useRouter();
-  
-  const board = useWorkspaceBoard([]);
+  const board = useWorkspaceBoard(INITIAL_WORKSPACE_COLUMNS);
 
   const [loading, setLoading] = useState(true);
   const [workspaceInfo, setWorkspaceInfo] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
+  // State สำหรับ Filter และ View
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentView, setCurrentView] = useState<"board" | "dashboard" | "timeline" | "report">("board");
 
@@ -56,6 +56,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     priority: task.priority || "Medium",
     members:
       task.assignees?.map((a: any) =>
+        // support both shapes (assignee.user or direct fields)
         a?.user?.avatar || a?.avatar || a?.user?.name?.substring(0, 2) || a?.name?.substring(0, 2) || "?"
       ) || [],
     comments: task.comments || 0,
@@ -68,6 +69,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       : "No date",
   });
 
+  // Fetch board details and populate local state
   useEffect(() => {
     if (!workspaceId) return;
 
@@ -76,6 +78,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       try {
         const data = await getBoard(workspaceId);
 
+        // map columns/tasks to workspace shape
         const transformedColumns = data.columns?.map((col: any) => ({
           id: col.id,
           title: col.title,
@@ -97,29 +100,30 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     fetchBoard();
   }, [workspaceId]);
 
-  // Handler: รองรับการแอดทั้งบนและล่าง
-  const handleAddTaskApi = async (columnId: string | number, titleArg?: string) => {
-    const title = (typeof titleArg === 'string' && titleArg) ? titleArg : board.newTaskTitle;
+  // -----------------------
+  // API-backed handlers
+  // -----------------------
+  const handleAddTaskApi = async (columnId: string | number) => {
+    if (!board.newTaskTitle?.trim()) return;
+    const title = board.newTaskTitle;
 
-    if (!title?.trim()) return;
-
+    // optimistic UI
     const tempId = `temp-${Date.now()}`;
     const tempTask = { id: tempId, title, tag: "General", tagColor: "bg-gray-100 text-gray-600", priority: "Medium" as "Medium", members: [], comments: 0, attachments: 0, date: "Today" };
     board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: [...(c.tasks || []), tempTask] } : c)));
-    
-    if (!titleArg) {
-        board.setNewTaskTitle("");
-        board.setIsAddingTask(null);
-    }
+    board.setNewTaskTitle("");
+    board.setIsAddingTask(null);
 
     try {
       const created = await createTask({ columnId: String(columnId), title, order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0 });
       const mapped = mapApiTaskToWorkspaceTask(created);
       board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: (c.tasks || []).map((t) => (t.id === tempId ? mapped : t)) } : c)));
 
+      // activity
       await createActivity({ boardId: String(workspaceId), user: "System", action: "created task", target: created.title, projectId: String(workspaceId) });
     } catch (err) {
       console.error("Failed to create task", err);
+      // rollback
       board.setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== tempId) } : c)));
     }
   };
@@ -154,6 +158,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       board.setColumns((prev) => {
         const found = prev.some((c) => c.id === tempId);
         if (found) return prev.map((c) => (c.id === tempId ? mappedCol : c));
+        // fallback: append if temp not found
         return [...prev, mappedCol];
       });
 
@@ -214,6 +219,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
+    // Optimistic UI update
     board.onDragEnd(result);
 
     try {
@@ -221,6 +227,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       await createActivity({ boardId: String(workspaceId), user: "System", action: "moved task", target: String(draggableId), projectId: String(workspaceId) });
     } catch (err) {
       console.error("Failed to move task", err);
+      // revert by refetching
       try {
         const data = await getBoard(workspaceId);
         const transformedColumns = data.columns?.map((col: any) => ({ id: col.id, title: col.title, color: col.color || "bg-gray-500", tasks: (col.tasks || []).map(mapApiTaskToWorkspaceTask) })) || [];
@@ -231,17 +238,10 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center bg-white">
-        <div className="w-10 h-10 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-500 font-semibold text-sm">Loading Workspace...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full relative bg-white">
+      {/* 1. Header ด้านบนสุด */}
       <WorkspaceHeader 
         workspaceInfo={workspaceInfo || { name: "", description: "", progress: 0, dueDate: "", members: [], activities: [] }}
         isFilterOpen={isFilterOpen}
@@ -250,8 +250,10 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         onOpenMembers={() => board.setIsMembersOpen(true)}
       />
 
+      {/* 2. View Switcher & Filter Bar */}
       <div className="border-b border-gray-200 bg-white">
           <div className="px-6 flex items-center justify-between">
+            {/* View Tabs */}
             <div className="flex items-center gap-6">
                 <button 
                     onClick={() => setCurrentView("board")}
@@ -279,6 +281,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 </button>
             </div>
 
+            {/* Filter Input */}
             {isFilterOpen && (
                 <div className="relative w-64 py-2">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -294,8 +297,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           </div>
       </div>
 
+      {/* 3. Main Content Area */}
       <div className="flex-1 w-full h-full overflow-hidden bg-white relative">
-            
+            {/* VIEW: BOARD */}
             {currentView === "board" && (
                 <div className="h-full pt-6">
                     <DragDropContext onDragEnd={handleDragEnd}>
@@ -318,7 +322,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                     onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
                                     activeMenuId={board.activeMenuColumnId}
                                     onMenuToggle={board.setActiveMenuColumnId}
-                                    isAdding={board.isAddingTask === col.id} // ✅ ส่งสถานะการเพิ่ม Task ไป
                                 >
                                     <Droppable droppableId={String(col.id)}>
                                         {(provided, snapshot) => (
@@ -331,7 +334,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                                 : ""
                                             }`}
                                         >
-                                            {board.filterTasks(col.tasks).map((task, index) => (
+                                                                    {board.filterTasks(col.tasks).map((task, index) => (
                                             <WorkspaceTaskCard
                                                 key={task.id}
                                                 task={task}
@@ -343,13 +346,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                             ))}
                                             {provided.placeholder}
 
-                                            {/* ✅ แสดง Textarea เมื่อกดเพิ่ม (ไม่มีปุ่มซ้ำซ้อนแล้ว) */}
-                                            {board.isAddingTask === col.id && (
+                                            {board.isAddingTask === col.id ? (
                                             <div className="bg-white p-3 rounded-xl shadow-lg border border-blue-200 animate-in fade-in zoom-in-95 duration-200 ring-4 ring-blue-50/50">
                                                 <textarea
                                                 autoFocus
                                                 placeholder="Type task name..."
-                                                className="w-full text-sm resize-none outline-none text-slate-900 placeholder:text-slate-500 mb-2 font-medium bg-transparent"
+                                                className="w-full text-sm resize-none outline-none text-gray-700 placeholder:text-gray-400 mb-2 font-medium bg-transparent"
                                                 rows={2}
                                                 value={board.newTaskTitle}
                                                 onChange={(e) => board.setNewTaskTitle(e.target.value)}
@@ -375,6 +377,14 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                                 </button>
                                                 </div>
                                             </div>
+                                            ) : (
+                                            <button
+                                                onClick={() => board.setIsAddingTask(col.id)}
+                                                className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group"
+                                            >
+                                                <Plus size={18} className="text-gray-400 group-hover:text-blue-500" />
+                                                Add Task
+                                            </button>
                                             )}
                                         </div>
                                         )}
@@ -383,19 +393,20 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                             </div>
                         ))}
 
+                        {/* Add New List Button */}
                         <div className="min-w-[320px] shrink-0">
                             {board.isAddingColumn ? (
                                 <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
                                     <input
-                                            autoFocus
-                                            placeholder="Enter list title..."
-                                            className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
-                                            value={board.newColumnTitle}
-                                            onChange={(e) => board.setNewColumnTitle(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") handleAddColumnApi();
-                                                if (e.key === "Escape") board.setIsAddingColumn(false);
-                                            }}
+                                        autoFocus
+                                        placeholder="Enter list title..."
+                                        className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
+                                        value={board.newColumnTitle}
+                                        onChange={(e) => board.setNewColumnTitle(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleAddColumnApi();
+                                            if (e.key === "Escape") board.setIsAddingColumn(false);
+                                        }}
                                     />
                                     <div className="flex items-center gap-2">
                                         <button
@@ -426,17 +437,23 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 </div>
             )}
 
+            {/* VIEW: DASHBOARD */}
             {currentView === "dashboard" && <ProjectDashboard />}
+
+            {/* VIEW: TIMELINE */}
             {currentView === "timeline" && <ProjectTimeline />}
+
+            {/* VIEW: REPORT */}
             {currentView === "report" && <ProjectReport />}
 
       </div>
 
+      {/* === MODALS === */}
       {board.selectedTask && (
         <ModalsWorkflow
           isOpen={board.isModalOpen}
           onClose={() => board.setIsModalOpen(false)}
-          task={{ ...board.selectedTask, id: String(board.selectedTask.id) } as any}
+          task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
         />
       )}
 

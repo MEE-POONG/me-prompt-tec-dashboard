@@ -8,6 +8,7 @@ import {
 import { format } from "date-fns";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { getTask, updateTask, getActivities, createActivity, getMembers } from "@/lib/api/workspace";
 
 // --- 1. CSS Styles ---
 const customStyles = `
@@ -113,22 +114,62 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFileRef = useRef<HTMLInputElement>(null);
 
-  // --- Effect: Sync Data from Task Prop ---
+  // API-connected state
+  const [boardId, setBoardId] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [loadingTask, setLoadingTask] = useState(false);
+  const [membersList, setMembersList] = useState<Member[]>(ALL_MEMBERS);
+
+  // --- Effect: Load full task when modal opens ---
   useEffect(() => {
-    if (task) {
-        setTitle(task.title || "Untitled Task");
-        // ถ้า task มี field อื่นๆ ที่อยากให้ update ก็ใส่เพิ่มตรงนี้ได้ครับ
-        // เช่น setDesc(task.description || "");
-    }
-  }, [task]);
+    const load = async () => {
+      if (!isOpen || !task?.id) return;
+      try {
+        setLoadingTask(true);
+        const data: any = await getTask(String(task.id));
+        setTaskId(data.id);
+        setTitle(data.title || "Untitled Task");
+        setDesc(data.description || "");
+        setAssignedMembers((data.assignees || []).map((a: any) => a.user?.id || a.userId).filter(Boolean));
+        setBoardId(data.column?.board?.id || data.column?.boardId || null);
+
+        // Load activities for board
+        if (data.column?.board?.id) {
+          const boardId = String(data.column.board.id);
+          const acts: any[] = await getActivities(boardId);
+          setActivities(acts.map(a => ({ id: a.id, user: a.user, action: `${a.action} ${a.target || ''}`.trim(), time: new Date(a.createdAt).toLocaleString() })));
+
+          // load members for this board
+          try {
+            const mems: any[] = await getMembers(boardId);
+            // map to local Member shape if possible
+            setMembersList(mems.map(m => ({ id: m.id, name: m.name || m.user || "Member", color: m.color || "bg-slate-400", short: (m.name || "").slice(0,1).toUpperCase() })));
+          } catch (err) {
+            // ignore, keep defaults
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load task", err);
+      } finally {
+        setLoadingTask(false);
+      }
+    };
+    load();
+  }, [isOpen, task?.id]);
 
 
   // --- Handlers ---
   const logActivity = (action: string) => {
+    // Local UI update
     setActivities(prev => [{ 
         id: Date.now().toString(), user: "You", action, 
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
     }, ...prev]);
+
+    // Persist activity (best-effort)
+    if (boardId) {
+      createActivity({ boardId, user: "You", action, target: title, projectId: boardId }).catch(e => console.error("createActivity failed", e));
+    }
   };
 
   // Tag Handlers
@@ -224,16 +265,74 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
       if(confirm("Delete this section?")) { setBlocks(prev => prev.filter(b => b.id !== blockId)); logActivity("removed a block"); }
   };
   
-  const handleSaveDate = () => { if(dateRange?.from) { logActivity("updated dates"); setActivePopover(null); } };
-  const handleAddAttachment = (type: 'link' | 'file', val1: string, val2?: string) => {
+
+  const handleAddAttachment = async (type: 'link' | 'file', val1: string, val2?: string) => {
     const newItem: AttachmentItem = { id: Date.now().toString(), type, name: val2 || val1, url: type === 'link' ? val1 : undefined, date: new Date().toLocaleDateString() };
     const existing = blocks.find(b => b.type === 'attachment');
     if (existing) { setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, attachments: [...(b.attachments || []), newItem] } : b)); } 
     else { setBlocks(prev => [...prev, { id: Date.now().toString(), type: 'attachment', attachments: [newItem] }]); }
     logActivity(`attached ${type}`); setActivePopover(null); setLinkUrl(""); setLinkText("");
+
+    // persist attachments count (best-effort)
+    if (taskId) {
+      try { await updateTask(String(taskId), { attachments: (task?.attachments || 0) + 1 }); } catch (err) { console.error("Failed to update attachments count", err); }
+    }
   };
-  const sendComment = () => { if (!commentInput.trim()) return; setComments(prev => [{ id: Date.now(), user: "You", text: commentInput, time: "Just now", color: "bg-blue-600" }, ...prev]); setCommentInput(""); logActivity("commented"); };
+  // Add a comment locally + persist comment count and activity
+  const sendComment = async () => {
+    if (!commentInput.trim() || !taskId) return;
+    const newComment = { id: Date.now(), user: "You", text: commentInput, time: "Just now", color: "bg-blue-600" };
+    setComments(prev => [newComment, ...prev]);
+    setCommentInput("");
+
+    try {
+      // increment comments count on task (best-effort)
+      // fetch current count from API would be better, but we try to increment via updateTask
+      await updateTask(String(taskId), { comments: (task?.comments || 0) + 1 });
+      if (boardId) await createActivity({ boardId, user: "You", action: "commented", target: title, projectId: boardId });
+      // update local activity list
+      logActivity("commented");
+    } catch (err) {
+      console.error("Failed to persist comment", err);
+    }
+  };
+
   const deleteComment = (id: number) => { if(confirm("Delete this comment?")) setComments(prev => prev.filter(c => c.id !== id)); };
+
+  // Toggle member assignment and persist to API
+  const toggleMember = async (memberId: string) => {
+    if (!taskId) return;
+    const newMembers = assignedMembers.includes(memberId) ? assignedMembers.filter(id => id !== memberId) : [...assignedMembers, memberId];
+    setAssignedMembers(newMembers);
+    try {
+      await updateTask(String(taskId), { assigneeIds: newMembers });
+      const member = membersList.find(m => m.id === memberId);
+      logActivity(`${newMembers.includes(memberId) ? 'assigned' : 'removed'} ${member?.name || memberId}`);
+    } catch (err) {
+      console.error("Failed to update assignees", err);
+    }
+  };
+
+  // Save dates to task
+  const handleSaveDate = async () => {
+    if (!taskId) return;
+    try {
+      await updateTask(String(taskId), { dueDate: dateRange?.from ? dateRange.from.toISOString() : null });
+      logActivity("updated dates");
+      setActivePopover(null);
+    } catch (err) { console.error("Failed to save date", err); }
+  };
+
+  // Update task title/description on blur (best-effort)
+  const saveField = async (data: { title?: string; description?: string }) => {
+    if (!taskId) return;
+    try {
+      await updateTask(String(taskId), data);
+      if (data.title) logActivity("updated title");
+      if (data.description) logActivity("updated description");
+    } catch (err) { console.error("Failed to save field", err); }
+  };
+
 
   if (!isOpen) return null;
 
@@ -256,7 +355,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                  <div className="h-6 w-px bg-slate-200 mx-2"></div>
                  <div className="flex -space-x-1">
                      {assignedMembers.map(id => {
-                         const m = ALL_MEMBERS.find(mem => mem.id === id);
+                         const m = membersList.find(mem => mem.id === id);
                          return m ? <div key={id} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm ${m.color}`}>{m.short}</div> : null;
                      })}
                      <button onClick={() => setActivePopover('members')} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"><Plus size={14}/></button>
@@ -281,6 +380,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                             <input 
                                 value={title} 
                                 onChange={e => setTitle(e.target.value)} 
+                                onBlur={() => saveField({ title })}
                                 className="w-full text-3xl font-black text-slate-900 bg-transparent outline-none placeholder:text-slate-300"
                             />
                             <p className="text-sm text-slate-500 mt-1">in list <span className="underline decoration-slate-300 cursor-pointer hover:text-blue-600">To Do</span></p>
@@ -319,6 +419,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                         <textarea 
                             value={desc}
                             onChange={(e) => setDesc(e.target.value)}
+                            onBlur={() => saveField({ description: desc })}
                             placeholder="เพิ่มรายละเอียดเพิ่มเติมเกี่ยวกับงานนี้..."
                             className="w-full min-h-[100px] bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg p-4 text-base text-slate-900 leading-relaxed transition-all resize-none focus:ring-2 focus:ring-blue-100"
                         />
@@ -453,8 +554,8 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                        <PopoverContainer title="Members" onClose={() => setActivePopover(null)}>
                          <div className="space-y-1">
                              <input className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2" placeholder="Search members..."/>
-                             {ALL_MEMBERS.map(m => (
-                                 <button key={m.id} onClick={() => { setAssignedMembers(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]); }} className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700">
+                             {membersList.map(m => (
+                                 <button key={m.id} onClick={() => toggleMember(m.id)} className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700">
                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}>{m.short}</div>
                                      <span className="flex-1">{m.name}</span>
                                      {assignedMembers.includes(m.id) && <CheckCircle2 size={14} className="text-blue-600"/>}
@@ -565,7 +666,7 @@ const SidebarBtn = ({ icon: Icon, label, onClick, active }: any) => (
   </button>
 );
 
-const PopoverContainer = ({ title, onClose, children, width = "w-80", showBack, onBack }: any) => (
+const PopoverContainer = ({ title, onClose, children, width = "w-80", showBack, onBack }: { title: any; onClose: () => void; children?: React.ReactNode; width?: string; showBack?: boolean; onBack?: () => void }) => (
   <div className={`absolute top-0 right-[105%] mr-2 ${width} bg-white rounded-xl shadow-2xl border border-slate-200 z-50 animate-in fade-in zoom-in-95 slide-in-from-right-4 overflow-hidden ring-1 ring-slate-900/5`}>
     <div className="flex justify-between items-center px-4 py-3 border-b border-slate-100 bg-slate-50/50 relative">
       {showBack ? (

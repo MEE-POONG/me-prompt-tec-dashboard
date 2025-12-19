@@ -119,7 +119,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
       id: `col-${Date.now()}`,
       title: newColumnTitle,
       tasks: [],
-      color: "bg-gray-400", // สี Default ของจุดหน้าชื่อ
+      color: "bg-gray-400",
     };
     setColumns([...columns, newCol]);
     setNewColumnTitle("");
