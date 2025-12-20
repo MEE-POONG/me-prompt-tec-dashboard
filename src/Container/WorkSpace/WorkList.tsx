@@ -5,25 +5,25 @@ import {
   MoreVertical,
   Users,
   Trash2,
-  Star,
-  CheckCircle2,
   Calendar as CalendarIcon,
-  MessageSquare,
   X,
   Filter,
   ChevronLeft,
   ChevronRight,
   Plus,
   Loader2,
+  Lock,  // [เพิ่ม]
+  Globe, // [เพิ่ม]
 } from "lucide-react";
 
-// --- Types (ปรับให้ตรงกับ Prisma Return Type) ---
+// --- Types ---
 interface Project {
   id: string;
   name: string;
   description: string;
   color: string;
   createdAt: string;
+  visibility?: "PRIVATE" | "PUBLIC";
   members?: any[];
   columns?: {
     tasks: { isDone: boolean }[];
@@ -48,9 +48,8 @@ export default function WorkList({
   const [currentCalendarDate, setCurrentCalendarDate] = useState(
     new Date(2025, 11, 1)
   );
-  // เพิ่ม State สำหรับจัดการ Modal และฟอร์ม
+  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // --- Fetch Data ---
@@ -106,7 +105,6 @@ export default function WorkList({
     }
   };
 
-  // Helper: คำนวณ % ความสำเร็จจาก Tasks ใน Columns
   const calculateProgress = (project: Project) => {
     if (!project.columns) return 0;
     const allTasks = project.columns.flatMap((col) => col.tasks);
@@ -115,13 +113,11 @@ export default function WorkList({
     return Math.round((completedTasks / allTasks.length) * 100);
   };
 
-  // --- Filtering Logic ---
   const filteredProjects = projects.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchItem.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchItem.toLowerCase());
 
-    // จัดรูปแบบวันที่จาก DB (ISOString) ให้เป็น YYYY-MM-DD เพื่อเทียบกับปฏิทิน
     const projectDate = new Date(p.createdAt).toISOString().split("T")[0];
     const matchesDate = selectedDate ? projectDate === selectedDate : true;
 
@@ -129,10 +125,9 @@ export default function WorkList({
   });
 
   const handleEditClick = (project: Project) => {
-    console.log("Editing project:", project.id); // ลองใส่ console.log เพื่อเช็คว่าปุ่มถูกกดจริงไหม
-    setEditingProject(project); // เก็บข้อมูลโปรเจกต์ที่จะแก้
-    setIsEditModalOpen(true); // เปิด Modal
-    setActiveDropdownId(null); // ปิด Dropdown เมนู
+    setEditingProject(project);
+    setIsEditModalOpen(true);
+    setActiveDropdownId(null);
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -155,7 +150,6 @@ export default function WorkList({
 
       if (res.ok) {
         const updatedBoard = await res.json();
-        // อัปเดตข้อมูลในหน้าจอทันทีโดยไม่ต้อง Refresh
         setProjects((prev) =>
           prev.map((p) =>
             p.id === updatedBoard.id ? { ...p, ...updatedBoard } : p
@@ -198,31 +192,69 @@ export default function WorkList({
                 : "items-center gap-4 flex-1"
             }`}
           >
-            <div className="flex items-center gap-3 w-full">
-              <div
-                className={`p-3 rounded-xl bg-blue-50 text-blue-600 ${
-                  viewType === "list" ? "shrink-0" : "max-w-max"
-                }`}
-                style={{
-                  backgroundColor: `${project.color}20`,
-                  color: project.color,
-                }}
-              >
-                <Folder size={28} strokeWidth={1.5} />
-              </div>
-              {viewType === "list" && (
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-gray-900 truncate">
+            {/* --- ส่วนแสดงผล Grid View --- */}
+            {viewType === "grid" ? (
+              <div className="w-full mb-4">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h3 className="text-lg font-bold text-gray-900 truncate flex-1">
                     {project.name}
                   </h3>
+                  
+                  {/* แสดงสถานะ Private/Public (แก้ไขแล้ว: ใส่ title ที่ div) */}
+                  {project.visibility === "PUBLIC" ? (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold shrink-0 border border-blue-200" title="Public Workspace">
+                       <Globe size={12} />
+                       <span>Public</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200" title="Private Workspace">
+                       <Lock size={12} />
+                       <span>Private</span>
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">
+                  {project.description}
+                </p>
+              </div>
+            ) : (
+              // --- ส่วนแสดงผล List View ---
+              <div className="flex items-center gap-3 w-full">
+                <div
+                  className={`p-3 rounded-xl bg-blue-50 text-blue-600 shrink-0`}
+                  style={{
+                    backgroundColor: `${project.color}20`,
+                    color: project.color,
+                  }}
+                >
+                  <Folder size={28} strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 truncate">
+                      {project.name}
+                    </h3>
+                    
+                    {/* ป้ายสถานะใน List View (แก้ไขแล้ว: ย้าย title ไปใส่ div หุ้ม) */}
+                    {project.visibility === "PUBLIC" ? (
+                      <div title="Public">
+                        <Globe size={14} className="text-blue-500" />
+                      </div>
+                    ) : (
+                      <div title="Private">
+                        <Lock size={14} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 truncate">
                     {project.description}
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div className="relative pointer-events-auto">
+            <div className="relative pointer-events-auto ml-auto">
               <button
                 className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 onClick={(e) => {
@@ -244,13 +276,12 @@ export default function WorkList({
                   }}
                   className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50"
                 >
-                  {/* ปุ่ม Edit */}
                   <button
                     className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     onClick={(e) => {
-                      e.preventDefault(); // ป้องกันการไปตาม Link
-                      e.stopPropagation(); // หยุดการส่ง Event ไปยัง Element พ่อ
-                      handleEditClick(project); // เรียกฟังก์ชันเปิด Modal
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleEditClick(project);
                     }}
                   >
                     <Folder size={16} className="text-blue-500" />
@@ -259,7 +290,6 @@ export default function WorkList({
 
                   <div className="h-px bg-gray-100 my-1"></div>
 
-                  {/* ปุ่ม Delete */}
                   <button
                     className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                     onClick={() => handleDeleteProject(project.id)}
@@ -274,14 +304,18 @@ export default function WorkList({
 
           {viewType === "grid" && (
             <>
-              <div className="w-full mb-4">
-                <h3 className="text-lg font-bold text-gray-900 truncate">
-                  {project.name}
-                </h3>
-                <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">
-                  {project.description}
-                </p>
+              <div className="flex items-center gap-3 mb-4">
+                 <div
+                    className="p-3 rounded-xl bg-blue-50 text-blue-600 max-w-max"
+                    style={{
+                      backgroundColor: `${project.color}20`,
+                      color: project.color,
+                    }}
+                  >
+                    <Folder size={28} strokeWidth={1.5} />
+                  </div>
               </div>
+
               <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
                 <div
                   className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
@@ -326,9 +360,7 @@ export default function WorkList({
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 pb-12 items-start">
-      {/* === Left Content (Main) === */}
       <div className="flex-1 w-full space-y-8 min-w-0">
-        {/* Banner Filter */}
         {selectedDate && (
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-2 text-blue-700 text-sm">
@@ -346,7 +378,6 @@ export default function WorkList({
           </div>
         )}
 
-        {/* My Projects */}
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             All Projects{" "}
@@ -386,9 +417,7 @@ export default function WorkList({
         </div>
       </div>
 
-      {/* === Right Sidebar (Widgets) === */}
       <div className="w-full lg:w-80 space-y-6 shrink-0">
-        {/* Interactive Calendar */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-gray-800">
@@ -492,13 +521,12 @@ export default function WorkList({
             })}
           </div>
         </div>
-        {/* Widgets อื่นๆ (Tasks/Comments) สามารถดึงจาก API activities หรือ tasks แยกต่างหากได้ */}
       </div>
       {isEditModalOpen && editingProject && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()} // กัน Click ทะลุ
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-800">Edit Project</h3>

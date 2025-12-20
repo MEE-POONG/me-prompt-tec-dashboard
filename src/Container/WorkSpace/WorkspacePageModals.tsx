@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { 
   X, Save, Trash2, ChevronDown, Check, Plus, 
   MoreHorizontal, Copy, Archive, Bell, Search, Mail, Edit2, 
-  History, BarChart3, AlertCircle,
-  User
+  History, BarChart3, AlertCircle,Lock,  // [เพิ่ม]
+  Globe, // [เพิ่ม]
+  User, 
 } from "lucide-react";
 import { WorkspaceInfo, WorkspaceMember } from "@/types/workspace";
 

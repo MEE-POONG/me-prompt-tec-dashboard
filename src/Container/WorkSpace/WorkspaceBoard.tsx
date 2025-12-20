@@ -9,6 +9,8 @@ import {
   KanbanSquare,
   CalendarDays,
   FileBarChart,
+  Lock,  // [เพิ่ม]
+  Globe, // [เพิ่ม]
 } from "lucide-react";
 import ModalsWorkflow from "@/components/ui/workspace/ModalsWorkflow";
 import { useWorkspaceBoard } from "@/hooks/useWorkspaceBoard";
