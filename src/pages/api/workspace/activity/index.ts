@@ -1,6 +1,7 @@
 // pages/api/workspace/activity/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { publish } from "@/lib/realtime";
 
 export default async function handler(
   req: NextApiRequest,
@@ -45,6 +46,7 @@ export default async function handler(
         },
       });
 
+      try { publish(String(boardId), { type: "activity:created", payload: activity }); } catch (e) { console.error(e); }
       return res.status(201).json(activity);
     }
 

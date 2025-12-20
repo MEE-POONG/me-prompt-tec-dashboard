@@ -1,6 +1,7 @@
 // pages/api/workspace/task/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { publish } from "@/lib/realtime";
 
 export default async function handler(
   req: NextApiRequest,
@@ -61,6 +62,7 @@ export default async function handler(
         priority,
         order,
         dueDate,
+        checklist,
         assigneeIds,
       } = req.body;
 
@@ -80,6 +82,7 @@ export default async function handler(
           priority: priority || "Medium",
           order: order ?? 0,
           dueDate: dueDate ? new Date(dueDate) : undefined,
+          checklist: checklist ?? 0,
           ...(assigneeIds &&
             assigneeIds.length > 0 && {
               assignees: {
@@ -107,6 +110,14 @@ export default async function handler(
           taskMembers: true,
         },
       });
+
+      // publish event to board channel (attempt to fetch boardId)
+      try {
+        const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } });
+        if (col?.boardId) publish(String(col.boardId), { type: "task:created", payload: task });
+      } catch (e) {
+        console.error("publish failed", e);
+      }
 
       return res.status(201).json(task);
     }

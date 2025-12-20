@@ -1,6 +1,7 @@
 // pages/api/workspace/task/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { publish } from "@/lib/realtime";
 
 export default async function handler(
   req: NextApiRequest,
@@ -61,6 +62,7 @@ export default async function handler(
         columnId,
         comments,
         attachments,
+        checklist,
         assigneeIds,
       } = req.body;
 
@@ -76,6 +78,7 @@ export default async function handler(
       if (columnId !== undefined) updateData.columnId = columnId;
       if (comments !== undefined) updateData.comments = comments;
       if (attachments !== undefined) updateData.attachments = attachments;
+      if (checklist !== undefined) updateData.checklist = checklist;
 
       // Handle assignees separately
       if (assigneeIds !== undefined) {
@@ -122,13 +125,25 @@ export default async function handler(
         },
       });
 
+      // publish update to board channel
+      try {
+        const boardId = task.column?.boardId || (await prisma.boardColumn.findUnique({ where: { id: task.columnId }, select: { boardId: true } }))?.boardId;
+        if (boardId) publish(String(boardId), { type: "task:updated", payload: task });
+      } catch (e) {
+        console.error("publish failed", e);
+      }
+
       return res.status(200).json(task);
     }
 
     if (req.method === "DELETE") {
-      await prisma.boardTask.delete({
-        where: { id },
-      });
+      // fetch task to get boardId/column
+      const existing = await prisma.boardTask.findUnique({ where: { id }, select: { id: true, columnId: true } });
+      await prisma.boardTask.delete({ where: { id } });
+      try {
+        const boardId = existing ? (await prisma.boardColumn.findUnique({ where: { id: existing.columnId }, select: { boardId: true } }))?.boardId : null;
+        if (boardId) publish(String(boardId), { type: "task:deleted", payload: { id } });
+      } catch (e) { console.error("publish failed", e); }
 
       return res.status(204).end();
     }

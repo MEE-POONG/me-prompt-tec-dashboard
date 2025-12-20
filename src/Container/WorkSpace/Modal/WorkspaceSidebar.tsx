@@ -1,5 +1,6 @@
-import React from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import { X, ChevronLeft, ChevronRight, Tag as TagIcon, CheckCircle2 } from "lucide-react";
+import { updateTask } from "@/lib/api/workspace";
 import WorkspaceDetailsTab from "./WorkspaceDetailsTab";
 import WorkspaceTeamTab from "./WorkspaceTeamTab";
 import WorkspaceActivityTab from "./WorkspaceActivityTab";
@@ -13,6 +14,9 @@ interface WorkspaceSidebarProps {
   activeTab: "details" | "team" | "activity";
   onTabChange: (tab: "details" | "team" | "activity") => void;
   workspaceInfo: WorkspaceInfo;
+  // optional: operate on a specific task (makes Labels act on this task)
+  taskId?: string;
+  onTaskUpdated?: (taskId: string, data: any) => void;
 }
 
 export default function WorkspaceSidebar({
@@ -23,7 +27,32 @@ export default function WorkspaceSidebar({
   activeTab,
   onTabChange,
   workspaceInfo,
+  taskId,
+  onTaskUpdated,
 }: WorkspaceSidebarProps) {
+  const [showLabels, setShowLabels] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+
+  const TAG_OPTIONS = [
+    { id: '1', name: 'High Priority', bg: 'bg-red-100', text: 'text-red-700', color: 'red' },
+    { id: '2', name: 'Design', bg: 'bg-purple-100', text: 'text-purple-700', color: 'purple' },
+    { id: '3', name: 'Dev', bg: 'bg-blue-100', text: 'text-blue-700', color: 'blue' },
+    { id: '4', name: 'Low', bg: 'bg-green-100', text: 'text-green-700', color: 'green' },
+  ];
+
+  const handleSelectLabel = async (label: any) => {
+    if (!taskId) { alert('No task selected to apply label.'); return; }
+    try {
+      // update task with single label (task model has `tag` and `tagColor`)
+      await updateTask(String(taskId), { tag: label.name, tagColor: label.color });
+      setSelectedLabel(label.id);
+      setShowLabels(false);
+      if (onTaskUpdated) onTaskUpdated(String(taskId), { tag: label.name, tagColor: label.color });
+    } catch (err) {
+      console.error('Failed to set label on task', err);
+      alert('Failed to set label');
+    }
+  };
   return (
     <>
       {!isSidebarOpen && (
@@ -113,6 +142,28 @@ export default function WorkspaceSidebar({
           )}
           {activeTab === "activity" && !isTabBarCollapsed && (
             <WorkspaceActivityTab activities={workspaceInfo.activities} />
+          )}
+          {/* Labels section (per-task) */}
+          {!isTabBarCollapsed && (
+            <div className="mt-4">
+              <p className="text-xs font-bold text-slate-500 uppercase mb-2 px-1 tracking-wider">Labels (Task)</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowLabels(s => !s)} className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold flex items-center gap-2">
+                  <TagIcon size={16} /> Labels
+                </button>
+                {selectedLabel && <div className="px-3 py-2 rounded-lg bg-slate-50 text-sm font-medium">Selected</div>}
+              </div>
+              {showLabels && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {TAG_OPTIONS.map(t => (
+                    <button key={t.id} onClick={() => handleSelectLabel(t)} className={`px-3 py-2 rounded-lg text-sm font-medium border ${t.bg} ${t.text}`}>
+                      {t.name}
+                      {selectedLabel === t.id && <CheckCircle2 size={14} className="inline-block ml-2 text-white"/>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

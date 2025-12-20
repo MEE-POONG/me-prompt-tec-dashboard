@@ -1,6 +1,7 @@
 // pages/api/workspace/column/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { publish } from "@/lib/realtime";
 
 export default async function handler(
   req: NextApiRequest,
@@ -49,14 +50,15 @@ export default async function handler(
         },
       });
 
+      try { publish(String(column.boardId), { type: "column:updated", payload: column }); } catch (e) { console.error(e); }
       return res.status(200).json(column);
     }
 
     if (req.method === "DELETE") {
-      await prisma.boardColumn.delete({
-        where: { id },
-      });
-
+      // fetch boardId then delete
+      const existing = await prisma.boardColumn.findUnique({ where: { id }, select: { boardId: true } });
+      await prisma.boardColumn.delete({ where: { id } });
+      try { if (existing?.boardId) publish(String(existing.boardId), { type: "column:deleted", payload: { id } }); } catch (e) { console.error(e); }
       return res.status(204).end();
     }
 

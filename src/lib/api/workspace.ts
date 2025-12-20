@@ -151,6 +151,7 @@ export const updateTask = async (
     columnId?: string;
     comments?: number;
     attachments?: number;
+    checklist?: number;
     assigneeIds?: string[];
   }
 ) => {
@@ -252,5 +253,87 @@ export const deleteActivity = async (id: string) => {
     method: "DELETE",
   });
   if (!res.ok) throw new Error("Failed to delete activity");
+  return res.ok;
+};
+
+// ==================== Checklist APIs ====================
+export const getChecklistItems = async (taskId: string) => {
+  const res = await fetch(`/api/workspace/checklist?taskId=${taskId}`);
+  if (!res.ok) throw new Error("Failed to fetch checklist items");
+  return res.json();
+};
+
+export const getChecklistItem = async (id: string) => {
+  const res = await fetch(`/api/workspace/checklist/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch checklist item");
+  return res.json();
+};
+
+export const createChecklistItem = async (data: {
+  taskId: string;
+  text: string;
+  isChecked?: boolean;
+  order?: number;
+}) => {
+  const res = await fetch("/api/workspace/checklist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create checklist item");
+  return res.json();
+};
+
+export const updateChecklistItem = async (
+  id: string,
+  data: { text?: string; isChecked?: boolean; order?: number }
+) => {
+  const res = await fetch(`/api/workspace/checklist/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update checklist item");
+  return res.json();
+};
+
+export const deleteChecklistItem = async (id: string) => {
+  const res = await fetch(`/api/workspace/checklist/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete checklist item");
+  return res.ok;
+};
+
+// ==================== Comments APIs ====================
+export const getComments = async (taskId: string) => {
+  const res = await fetch(`/api/workspace/comment?taskId=${taskId}`);
+  if (!res.ok) throw new Error("Failed to fetch comments");
+  return res.json();
+};
+
+export const createComment = async (data: { taskId: string; content: string; author?: string }) => {
+  const res = await fetch(`/api/workspace/comment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create comment");
+  return res.json();
+};
+
+export const updateComment = async (id: string, data: { content?: string }) => {
+  const res = await fetch(`/api/workspace/comment/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update comment");
+  return res.json();
+};
+
+export const deleteComment = async (id: string) => {
+  const res = await fetch(`/api/workspace/comment/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete comment");
   return res.ok;
 };

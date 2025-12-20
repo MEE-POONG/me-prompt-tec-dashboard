@@ -181,8 +181,8 @@ model User {
   // relation: Contact messages handled by this user
   handledMessages ContactMessage[]
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([role])
 }
@@ -511,9 +511,10 @@ model BoardTask {
   title       String
   description String?
 
-  tag      String?
-  tagColor String?
-  priority TaskPriority @default(Medium)
+  tag       String?
+  tagColor  String?
+  priority  TaskPriority @default(Medium)
+  checklist Int          @default(0)
 
   order   Int
   dueDate DateTime?
@@ -524,11 +525,49 @@ model BoardTask {
   columnId String      @db.ObjectId
   column   BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
-  assignees TaskAssignee[]
+  assignees      TaskAssignee[]
+  checklistItems ChecklistItem[]
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  taskMembers   TaskMember[]
+  // relation: task comments (TaskComment model)
+  taskComments TaskComment[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  taskMembers TaskMember[]
+}
+
+/**
+ * =========================
+ * Comments
+ * =========================
+ */
+model TaskComment {
+  id      String    @id @default(auto()) @map("_id") @db.ObjectId
+  content String
+  author  String
+  taskId  String    @db.ObjectId
+  task    BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * =========================
+ * Checklist Items
+ * =========================
+ */
+model ChecklistItem {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  isChecked Boolean @default(false)
+  order     Int     @default(0)
+
+  taskId String    @db.ObjectId
+  task   BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /**

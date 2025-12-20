@@ -8,7 +8,7 @@ import {
 import { format } from "date-fns";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { getTask, updateTask, getActivities, createActivity, getMembers } from "@/lib/api/workspace";
+import { getTask, updateTask, getActivities, createActivity, getMembers, getChecklistItems, createChecklistItem, updateChecklistItem, deleteChecklistItem, getComments, createComment, deleteComment as apiDeleteComment } from "@/lib/api/workspace";
 
 // --- 1. CSS Styles ---
 const customStyles = `
@@ -38,7 +38,7 @@ interface TagItem { id: string; name: string; color: string; bgColor: string; te
 interface CheckItem { id: string; text: string; isChecked: boolean; }
 interface AttachmentItem { id: string; type: 'file' | 'link'; name: string; url?: string; date: string; }
 interface ActivityLog { id: string; user: string; action: string; time: string; }
-interface Comment { id: number; user: string; text: string; time: string; color: string; isEdited?: boolean; }
+interface Comment { id: string; user: string; text: string; time: string; color: string; isEdited?: boolean; }
 
 interface ContentBlock {
     id: string;
@@ -78,6 +78,8 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   const [activeTab, setActiveTab] = useState<'comments' | 'activity'>('comments');
   const [isAccepted, setIsAccepted] = useState(false);
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  const [isSavingDate, setIsSavingDate] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Metadata State
   const [assignedMembers, setAssignedMembers] = useState<string[]>(["1"]);
@@ -86,9 +88,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   const [availableTags, setAvailableTags] = useState<TagItem[]>(INITIAL_TAGS);
 
   // Activities & Comments State
-  const [comments, setComments] = useState<Comment[]>([
-    { id: 1, user: "Jame", text: "Design looks great! 👍", time: "2h ago", color: "bg-emerald-600" }
-  ]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([
     { id: "1", user: "System", action: "created this task", time: "Yesterday" }
   ]);
@@ -119,19 +119,34 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   const [taskId, setTaskId] = useState<string | null>(null);
   const [loadingTask, setLoadingTask] = useState(false);
   const [membersList, setMembersList] = useState<Member[]>(ALL_MEMBERS);
+  const [checklistCount, setChecklistCount] = useState(0);
 
   // --- Effect: Load full task when modal opens ---
   useEffect(() => {
     const load = async () => {
       if (!isOpen || !task?.id) return;
+      // reset blocks when loading a new task to avoid leaking previous task data
+      setBlocks([]);
       try {
         setLoadingTask(true);
         const data: any = await getTask(String(task.id));
         setTaskId(data.id);
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
+        setChecklistCount(data.checklist || 0);
         setAssignedMembers((data.assignees || []).map((a: any) => a.user?.id || a.userId).filter(Boolean));
         setBoardId(data.column?.board?.id || data.column?.boardId || null);
+        // initialize dateRange from task dueDate
+        if (data.dueDate) {
+          try {
+            const dt = new Date(data.dueDate);
+            if (!isNaN(dt.getTime())) setDateRange({ from: dt, to: undefined });
+          } catch (e) {
+            // ignore
+          }
+        } else {
+          setDateRange(undefined);
+        }
 
         // Load activities for board
         if (data.column?.board?.id) {
@@ -147,6 +162,51 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
           } catch (err) {
             // ignore, keep defaults
           }
+
+            // load checklist items from database
+            try {
+              const checklistItems: any[] = await getChecklistItems(data.id);
+              // group by "Checklist" (first) or create one if needed
+              if (checklistItems.length > 0) {
+                const blockId = `checklist-${Date.now()}`;
+                const checklistBlock: ContentBlock = {
+                  id: blockId,
+                  type: 'checklist',
+                  title: 'Checklist',
+                  items: checklistItems.map((ci: any) => ({ id: ci.id, text: ci.text, isChecked: ci.isChecked })),
+                };
+                setBlocks([checklistBlock]);
+              } else {
+                // ensure blocks empty if there are no checklist items for this task
+                setBlocks([]);
+              }
+            } catch (err) {
+              // ignore, no checklists found
+              setBlocks([]);
+            }
+            // initialize selected label from task (if present)
+            try {
+              if (data.tag) {
+                const found = availableTags.find(t => t.name === data.tag);
+                if (found) {
+                  setSelectedTagIds([found.id]);
+                } else {
+                  const newId = Date.now().toString();
+                  const newTag: TagItem = { id: newId, name: data.tag, color: data.tagColor || 'blue', bgColor: 'bg-slate-100', textColor: 'text-slate-700' };
+                  setAvailableTags(prev => [...prev, newTag]);
+                  setSelectedTagIds([newId]);
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+            // load comments for this task
+            try {
+              const coms: any[] = await getComments(data.id);
+              setComments(coms.map(c => ({ id: c.id, user: c.author || 'Unknown', text: c.content, time: new Date(c.createdAt).toLocaleString(), color: 'bg-slate-400', isEdited: (c.updatedAt && c.updatedAt !== c.createdAt) } )));
+            } catch (e) {
+              // ignore
+            }
         }
       } catch (err) {
         console.error("Failed to load task", err);
@@ -155,7 +215,65 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
       }
     };
     load();
+      // cleanup when modal closes: ensure blocks cleared so next task starts fresh
+      return () => {
+        if (!isOpen) setBlocks([]);
+      };
   }, [isOpen, task?.id]);
+
+  // Real-time updates for this task (checklist changes etc.)
+  useEffect(() => {
+    if (!isOpen || !taskId) return;
+    const channel = `task:${taskId}`;
+    const es = new EventSource(`/api/realtime/stream?channel=${encodeURIComponent(channel)}`);
+
+    es.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        const { type, payload } = data;
+        if (!type) return;
+
+        if (type === "checklist:created") {
+          const item = payload;
+          setBlocks(prev => {
+            const idx = prev.findIndex(b => b.type === 'checklist');
+            if (idx === -1) {
+              return [{ id: `checklist-${Date.now()}`, type: 'checklist', title: 'Checklist', items: [{ id: item.id, text: item.text, isChecked: item.isChecked }] } , ...prev];
+            }
+            return prev.map(b => b.type === 'checklist' ? { ...b, items: [...(b.items || []), { id: item.id, text: item.text, isChecked: item.isChecked }] } : b);
+          });
+        }
+
+        if (type === "checklist:updated") {
+          const item = payload;
+          setBlocks(prev => prev.map(b => b.type === 'checklist' ? { ...b, items: b.items?.map(i => i.id === item.id ? { id: item.id, text: item.text, isChecked: item.isChecked } : i) } : b));
+        }
+
+        if (type === "checklist:deleted") {
+          const { id } = payload;
+          setBlocks(prev => prev.map(b => b.type === 'checklist' ? { ...b, items: b.items?.filter(i => i.id !== id) } : b));
+        }
+        // comments
+        if (type === 'comment:created') {
+          const c = payload;
+          setComments(prev => [{ id: c.id, user: c.author || 'Unknown', text: c.content, time: new Date(c.createdAt).toLocaleString(), color: 'bg-slate-400' }, ...prev]);
+        }
+        if (type === 'comment:updated') {
+          const c = payload;
+          setComments(prev => prev.map(cm => cm.id === c.id ? { id: c.id, user: c.author || 'Unknown', text: c.content, time: new Date(c.updatedAt || c.createdAt).toLocaleString(), color: 'bg-slate-400', isEdited: true } : cm));
+        }
+        if (type === 'comment:deleted') {
+          const { id } = payload;
+          setComments(prev => prev.filter(cm => cm.id !== id));
+        }
+      } catch (e) {
+        console.error('Invalid SSE payload', e);
+      }
+    };
+
+    es.onerror = (e) => { es.close(); };
+    return () => es.close();
+  }, [isOpen, taskId]);
 
 
   // --- Handlers ---
@@ -233,36 +351,148 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   };
 
   const toggleTag = (tagId: string) => {
-      if (selectedTagIds.includes(tagId)) {
+      // persist tag selection to task: only one tag stored on task model
+      const tag = availableTags.find(t => t.id === tagId);
+      if (!tag) return;
+      (async () => {
+        if (!taskId) {
+          // local-only when no task context
+          if (selectedTagIds.includes(tagId)) setSelectedTagIds(prev => prev.filter(id => id !== tagId));
+          else setSelectedTagIds([tagId]);
+          return;
+        }
+
+        if (selectedTagIds.includes(tagId)) {
+          // deselect -> clear tag on task
           setSelectedTagIds(prev => prev.filter(id => id !== tagId));
-      } else {
-          setSelectedTagIds(prev => [...prev, tagId]);
-      }
+          try {
+            await updateTask(String(taskId), { tag: null, tagColor: null });
+            logActivity(`removed label "${tag.name}"`);
+          } catch (err) { console.error('Failed to remove tag from task', err); }
+        } else {
+          // select this tag (single-tag model)
+          setSelectedTagIds([tagId]);
+          try {
+            await updateTask(String(taskId), { tag: tag.name, tagColor: tag.color });
+            logActivity(`added label "${tag.name}"`);
+          } catch (err) { console.error('Failed to set tag on task', err); }
+        }
+      })();
   };
 
   // Checklist Handlers
-  const addChecklistBlock = () => {
+  const addChecklistBlock = async () => {
       const titleText = newChecklistTitle.trim() || "Checklist";
       setBlocks(prev => [...prev, { id: Date.now().toString(), type: 'checklist', title: titleText, items: [] }]);
       logActivity(`added checklist "${titleText}"`);
       setNewChecklistTitle("");
       setActivePopover(null);
+
+      // persist checklist count (increment by 1)
+      if (taskId) {
+        try { 
+          const newCount = checklistCount + 1;
+          setChecklistCount(newCount);
+          await updateTask(String(taskId), { checklist: newCount }); 
+        } catch (err) { console.error("Failed to update checklist count", err); }
+      }
   };
-  const addChecklistItem = (blockId: string, text: string) => {
-      if(!text.trim()) return;
-      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: [...(b.items || []), { id: Date.now().toString(), text, isChecked: false }] } : b));
+  const addChecklistItem = async (blockId: string, text: string) => {
+      if(!text.trim() || !taskId) return;
+      const tempId = `temp-${Date.now()}`;
+      // optimistic UI
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: [...(b.items || []), { id: tempId, text, isChecked: false }] } : b));
+
+      try {
+        const created = await createChecklistItem({ taskId: String(taskId), text, isChecked: false, order: 0 });
+        // replace temp with real item
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === tempId ? { id: created.id, text: created.text, isChecked: created.isChecked } : i) } : b));
+        logActivity(`added checklist item "${text}"`);
+      } catch (err) {
+        console.error("Failed to create checklist item", err);
+        // rollback
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.filter(i => i.id !== tempId) } : b));
+      }
   };
-  const toggleCheckItem = (blockId: string, itemId: string) => {
-      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { ...i, isChecked: !i.isChecked } : i) } : b));
+  const toggleCheckItem = async (blockId: string, itemId: string) => {
+      // compute new checked state from current state (avoid relying on updater side-effects)
+      const currentBlock = blocks.find(b => b.id === blockId);
+      const currentItem = currentBlock?.items?.find(i => i.id === itemId);
+      const newCheckedState = !!currentItem ? !currentItem.isChecked : true;
+
+      // optimistic UI update
+      setBlocks(prev => prev.map(b => {
+        if (b.id === blockId) {
+          const updated = b.items?.map(i => i.id === itemId ? { ...i, isChecked: !i.isChecked } : i);
+          return { ...b, items: updated };
+        }
+        return b;
+      }));
+
+      try {
+        // persist to API
+        if (itemId.startsWith('temp-')) {
+          // find the temp item's text from currentBlock
+          const tempText = currentItem?.text;
+          if (taskId && tempText !== undefined) {
+            const created = await createChecklistItem({ taskId: String(taskId), text: tempText, isChecked: newCheckedState, order: 0 });
+            // replace temp id with real id
+            setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { id: created.id, text: created.text, isChecked: created.isChecked } : i) } : b));
+          }
+        } else {
+          const updated = await updateChecklistItem(itemId, { isChecked: newCheckedState });
+          // ensure local state matches server
+          setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { id: updated.id, text: updated.text, isChecked: updated.isChecked } : i) } : b));
+        }
+      } catch (err) {
+        console.error("Failed to toggle check item", err);
+        // rollback optimistic change
+        setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { ...i, isChecked: currentItem?.isChecked ?? false } : i) } : b));
+      }
   };
-  const deleteCheckItem = (blockId: string, itemId: string) => {
+  const deleteCheckItem = async (blockId: string, itemId: string) => {
+      // optimistic UI
       setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.filter(i => i.id !== itemId) } : b));
+
+      try {
+        // persist deletion to API (use real item id, not temp id)
+        if (!itemId.startsWith('temp-')) {
+          await deleteChecklistItem(itemId);
+          logActivity("deleted checklist item");
+        }
+      } catch (err) {
+        console.error("Failed to delete check item", err);
+      }
   };
-  const updateCheckItem = (blockId: string, itemId: string, text: string) => {
+  const updateCheckItem = async (blockId: string, itemId: string, text: string) => {
+      // optimistic UI
       setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, items: b.items?.map(i => i.id === itemId ? { ...i, text } : i) } : b));
+
+      try {
+        // persist text change to API (use real item id, not temp id)
+        if (!itemId.startsWith('temp-')) {
+          await updateChecklistItem(itemId, { text });
+          logActivity(`updated checklist item to "${text}"`);
+        }
+      } catch (err) {
+        console.error("Failed to update check item", err);
+      }
   };
-  const deleteBlock = (blockId: string) => {
-      if(confirm("Delete this section?")) { setBlocks(prev => prev.filter(b => b.id !== blockId)); logActivity("removed a block"); }
+  const deleteBlock = async (blockId: string) => {
+      if(confirm("Delete this section?")) { 
+        const block = blocks.find(b => b.id === blockId);
+        setBlocks(prev => prev.filter(b => b.id !== blockId)); 
+        logActivity("removed a block");
+
+        // decrement checklist count if it's a checklist block
+        if (block?.type === 'checklist' && taskId) {
+          try {
+            const newCount = Math.max(0, checklistCount - 1);
+            setChecklistCount(newCount);
+            await updateTask(String(taskId), { checklist: newCount });
+          } catch (err) { console.error("Failed to update checklist count", err); }
+        }
+      }
   };
   
 
@@ -281,23 +511,39 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   // Add a comment locally + persist comment count and activity
   const sendComment = async () => {
     if (!commentInput.trim() || !taskId) return;
-    const newComment = { id: Date.now(), user: "You", text: commentInput, time: "Just now", color: "bg-blue-600" };
-    setComments(prev => [newComment, ...prev]);
+    const content = commentInput.trim();
     setCommentInput("");
+    // optimistic local UI: show temporary comment
+    const temp = { id: `temp-${Date.now()}`, user: 'You', text: content, time: 'Just now', color: 'bg-blue-600' };
+    setComments(prev => [temp, ...prev]);
 
     try {
-      // increment comments count on task (best-effort)
-      // fetch current count from API would be better, but we try to increment via updateTask
-      await updateTask(String(taskId), { comments: (task?.comments || 0) + 1 });
-      if (boardId) await createActivity({ boardId, user: "You", action: "commented", target: title, projectId: boardId });
-      // update local activity list
-      logActivity("commented");
+      const created: any = await createComment({ taskId: String(taskId), content, author: 'You' });
+      // replace temp with real comment
+      setComments(prev => prev.map(c => c.id === temp.id ? { id: created.id, user: created.author || 'You', text: created.content, time: new Date(created.createdAt).toLocaleString(), color: 'bg-blue-600' } : c));
+      if (boardId) await createActivity({ boardId, user: 'You', action: 'commented', target: title, projectId: boardId });
+      logActivity('commented');
     } catch (err) {
-      console.error("Failed to persist comment", err);
+      console.error('Failed to persist comment', err);
+      // rollback optimistic
+      setComments(prev => prev.filter(c => !c.id.startsWith('temp-')));
     }
   };
 
-  const deleteComment = (id: number) => { if(confirm("Delete this comment?")) setComments(prev => prev.filter(c => c.id !== id)); };
+  const deleteComment = async (id: string) => {
+    if (!id) return;
+    if (!confirm('Delete this comment?')) return;
+    // optimistic
+    setComments(prev => prev.filter(c => c.id !== id));
+    try {
+      if (!id.startsWith('temp-')) {
+        await apiDeleteComment(id);
+        logActivity('deleted comment');
+      }
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+    }
+  };
 
   // Toggle member assignment and persist to API
   const toggleMember = async (memberId: string) => {
@@ -317,10 +563,15 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
   const handleSaveDate = async () => {
     if (!taskId) return;
     try {
-      await updateTask(String(taskId), { dueDate: dateRange?.from ? dateRange.from.toISOString() : null });
-      logActivity("updated dates");
+      setIsSavingDate(true);
+      const due = dateRange?.from ? dateRange.from.toISOString() : null;
+      await updateTask(String(taskId), { dueDate: due });
+      logActivity(due ? "updated dates" : "cleared due date");
+      // if cleared, ensure local dateRange cleared
+      if (!due) setDateRange(undefined);
       setActivePopover(null);
     } catch (err) { console.error("Failed to save date", err); }
+    finally { setIsSavingDate(false); }
   };
 
   // Update task title/description on blur (best-effort)
@@ -331,6 +582,28 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
       if (data.title) logActivity("updated title");
       if (data.description) logActivity("updated description");
     } catch (err) { console.error("Failed to save field", err); }
+  };
+
+  // Save current card fields (title, description, assignees, dueDate, checklist count)
+  const handleSaveAll = async () => {
+    if (!taskId) return;
+    try {
+      setIsSaving(true);
+      const due = dateRange?.from ? dateRange.from.toISOString() : null;
+      const payload: any = {
+        title,
+        description: desc,
+        assigneeIds: assignedMembers,
+        dueDate: due,
+        checklist: checklistCount,
+      };
+      await updateTask(String(taskId), payload);
+      logActivity('saved card');
+    } catch (err) {
+      console.error('Failed to save card', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
 
@@ -361,9 +634,10 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                      <button onClick={() => setActivePopover('members')} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"><Plus size={14}/></button>
                  </div>
              </div>
-             <div className="flex gap-2">
-                <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><MoreHorizontal size={20} /></button>
-                <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" onClick={onClose}><X size={20} /></button>
+             <div className="flex gap-2 items-center">
+               <button onClick={handleSaveAll} disabled={isSaving} className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isSaving ? 'bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-all disabled:opacity-60`}>{isSaving ? 'Saving...' : 'Save'}</button>
+               <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><MoreHorizontal size={20} /></button>
+               <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" onClick={onClose}><X size={20} /></button>
              </div>
           </div>
 
@@ -616,8 +890,8 @@ export default function ModalsWorkflow({ isOpen, onClose, task }: { isOpen: bool
                        <PopoverContainer title="Dates" onClose={() => setActivePopover(null)} width="w-auto">
                           <div className="p-1"><DayPicker mode="range" defaultMonth={new Date()} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} /></div>
                           <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl">
-                             <button onClick={() => setDateRange(undefined)} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200">Clear</button>
-                             <button onClick={handleSaveDate} disabled={!dateRange?.from} className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">Save</button>
+                             <button onClick={async () => { if (isSavingDate) return; setDateRange(undefined); await handleSaveDate(); }} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200" disabled={isSavingDate}>{isSavingDate ? 'Saving...' : 'Clear'}</button>
+                             <button onClick={handleSaveDate} disabled={!dateRange?.from || isSavingDate} className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">{isSavingDate ? 'Saving...' : 'Save'}</button>
                           </div>
                        </PopoverContainer>
                      )}
