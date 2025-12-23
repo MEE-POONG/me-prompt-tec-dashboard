@@ -80,24 +80,24 @@ export default function WorkspaceTaskCard({
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                       <div className="flex items-center gap-3 text-slate-400">
-                         {(task.comments > 0 || task.attachments > 0) ? (
-                            <>
-                                {task.comments > 0 && (
-                                    <div className="flex items-center gap-1 text-xs font-medium hover:text-slate-600 transition-colors">
-                                        <MessageSquare size={13} strokeWidth={2.5} /> {task.comments}
-                                    </div>
-                                )}
-                                {task.attachments > 0 && (
-                                    <div className="flex items-center gap-1 text-xs font-medium hover:text-slate-600 transition-colors">
-                                        <Paperclip size={13} strokeWidth={2.5} /> {task.attachments}
-                                    </div>
-                                )}
-                            </>
-                         ) : (
-                            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                                <CalendarClock size={12} /> {task.date}
-                            </div>
-                         )}
+                        {task.comments > 0 && (
+                          <div className="flex items-center gap-1 text-xs font-medium hover:text-slate-600 transition-colors">
+                            <MessageSquare size={13} strokeWidth={2.5} /> {task.comments}
+                          </div>
+                        )}
+
+                        {task.attachments > 0 && (
+                          <div className="flex items-center gap-1 text-xs font-medium hover:text-slate-600 transition-colors">
+                            <Paperclip size={13} strokeWidth={2.5} /> {task.attachments}
+                          </div>
+                        )}
+
+                        {/* Always show date when available */}
+                        {task.date && task.date !== 'No date' && (
+                          <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                            <CalendarClock size={12} /> {task.date}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex -space-x-1.5 items-center pl-2">

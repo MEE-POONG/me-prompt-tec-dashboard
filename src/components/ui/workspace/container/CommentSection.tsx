@@ -27,6 +27,65 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
 
   const commentFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper: insert tab/spaces into textarea
+  const handleTabInTextarea = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    value: string,
+    setter: (val: string) => void
+  ) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      // ใช้ 4 spaces แทน 2 เพื่อให้ column ตรงกัน
+      const newValue =
+        value.substring(0, start) + "    " + value.substring(end);
+      setter(newValue);
+
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 4;
+      }, 0);
+    }
+  };
+  // Helper: render text with optional monospace for code
+  const renderCommentText = (text: string) => {
+    // ปรับ Logic ให้แม่นยำขึ้น: ถ้ามี model, @, { หรือ \n ให้ถือว่าเป็น Code
+    const isCode =
+      text.includes("model") ||
+      text.includes("@") ||
+      text.includes("{") ||
+      text.includes("\n");
+
+    if (isCode) {
+      return (
+        <div className="w-full mt-2 rounded-xl border border-slate-200 bg-[#f8fafc] overflow-hidden">
+          {/* Header เล็กๆ เพื่อบอกว่าเป็น Code */}
+          <div className="bg-slate-100 px-3 py-1 border-b border-slate-200 flex justify-between items-center">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              Code / Schema
+            </span>
+          </div>
+
+          <div className="overflow-x-auto w-full custom-scrollbar">
+            {/* whitespace-pre สำคัญที่สุดในการคงบรรทัด */}
+            {/* min-w-max ป้องกันไม่ให้ตัวหนังสือไหลมารวมกันเมื่อกล่องแคบ */}
+            <pre className="p-4 font-mono text-[13px] leading-6 text-slate-700 whitespace-pre min-w-max select-text">
+              {text}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <p className="whitespace-pre-wrap wrap-break-word leading-relaxed text-gray-700">
+        {text}
+      </p>
+    );
+  };
+
   const handleAddComment = () => {
     if (!newComment.trim() && commentAttachments.length === 0) return;
 
@@ -116,8 +175,18 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
                     <textarea
                       value={editingCommentText}
                       onChange={(e) => setEditingCommentText(e.target.value)}
-                      className="w-full border border-blue-300 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-                      rows={3}
+                      onKeyDown={(e) =>
+                        handleTabInTextarea(
+                          e,
+                          editingCommentText,
+                          setEditingCommentText
+                        )
+                      }
+                      className="w-full border border-blue-300 rounded-xl p-3 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-100 bg-white"
+                      rows={Math.min(
+                        10,
+                        editingCommentText.split("\n").length + 1
+                      )}
                       autoFocus
                     />
                     <div className="flex justify-end gap-2">
@@ -137,7 +206,7 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
                   </div>
                 ) : (
                   <>
-                    <p className="whitespace-pre-wrap">{c.text}</p>
+                    {renderCommentText(c.text)}
 
                     {/* Comment Attachments */}
                     {c.attachments && c.attachments.length > 0 && (
@@ -217,13 +286,18 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                // Support Tab
+                handleTabInTextarea(e, newComment, setNewComment);
+
+                // Send with Ctrl+Enter or Cmd+Enter
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                   e.preventDefault();
                   handleAddComment();
                 }
               }}
-              placeholder="แสดงความคิดเห็น หรือ @mention..."
-              className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400 resize-none min-h-20 text-base px-3 py-2"
+              placeholder="แสดงความคิดเห็น หรือ @mention... (Ctrl+Enter เพื่อส่ง)"
+              className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400 resize-none min-h-20 text-base px-3 py-2 scrollbar-hide"
+              rows={Math.max(3, newComment.split("\n").length)}
             />
             <div className="flex justify-between items-center px-2 pb-1">
               <div className="flex gap-2">

@@ -476,9 +476,10 @@ model ProjectBoard {
   updatedAt DateTime @updatedAt
 
   // relations
-  columns    BoardColumn[]
-  members    BoardMember[]
-  activities BoardActivity[]
+  columns     BoardColumn[]
+  members     BoardMember[]
+  activities  BoardActivity[]
+  boardLabels BoardLabel[]
 }
 
 /**
@@ -518,6 +519,9 @@ model BoardTask {
 
   order   Int
   dueDate DateTime?
+  // Support date ranges for tasks
+  startDate DateTime?
+  endDate   DateTime?
 
   comments    Int @default(0)
   attachments Int @default(0)
@@ -640,4 +644,25 @@ model TaskAssignee {
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
+}
+
+/**
+ * =========================
+ * Board Labels
+ * =========================
+ */
+model BoardLabel {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  color     String // color name: "red", "blue", "green", etc.
+  bgColor   String // Tailwind class: "bg-red-100"
+  textColor String // Tailwind class: "text-red-700"
+
+  boardId String       @db.ObjectId
+  board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardId, name])
 }

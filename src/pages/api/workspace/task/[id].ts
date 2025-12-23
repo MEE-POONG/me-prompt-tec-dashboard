@@ -59,6 +59,8 @@ export default async function handler(
         priority,
         order,
         dueDate,
+        startDate,
+        endDate,
         columnId,
         comments,
         attachments,
@@ -75,6 +77,8 @@ export default async function handler(
       if (order !== undefined) updateData.order = order;
       if (dueDate !== undefined)
         updateData.dueDate = dueDate ? new Date(dueDate) : null;
+      if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+      if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
       if (columnId !== undefined) updateData.columnId = columnId;
       if (comments !== undefined) updateData.comments = comments;
       if (attachments !== undefined) updateData.attachments = attachments;

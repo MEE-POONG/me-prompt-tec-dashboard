@@ -4,7 +4,7 @@ import { DropResult } from "@hello-pangea/dnd";
 
 export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
   const [columns, setColumns] = useState<WorkspaceColumn[]>(initialData);
-  
+
   // State เดิม
   const [isAddingTask, setIsAddingTask] = useState<string | number | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -14,6 +14,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
   const [tempColumnTitle, setTempColumnTitle] = useState("");
   const [activeMenuColumnId, setActiveMenuColumnId] = useState<string | number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
 
@@ -27,7 +28,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
     const { destination, source } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-    
+
     const startColIndex = columns.findIndex((c) => c.id === source.droppableId);
     const endColIndex = columns.findIndex((c) => c.id === destination.droppableId);
     const startCol = columns[startColIndex];
@@ -103,8 +104,25 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
   };
 
   const filterTasks = (tasks: WorkspaceTask[] | undefined) => {
-    if (!tasks || !searchQuery) return tasks || [];
-    return tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!tasks) return [];
+
+    let filtered = tasks;
+
+    // Filter by search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.tag.toLowerCase().includes(q)
+      );
+    }
+
+    // Filter by selected labels
+    if (selectedLabels.length > 0) {
+      filtered = filtered.filter((t) => selectedLabels.includes(t.tag));
+    }
+
+    return filtered;
   };
 
   const handleOpenTaskModal = (task: WorkspaceTask) => {
@@ -136,9 +154,10 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
     tempColumnTitle, setTempColumnTitle,
     activeMenuColumnId, setActiveMenuColumnId,
     searchQuery, setSearchQuery,
+    selectedLabels, setSelectedLabels,
     isSettingsOpen, setIsSettingsOpen,
     isMembersOpen, setIsMembersOpen,
-    
+
     // Exports เดิม
     onDragEnd, handleRenameColumnStart, handleRenameColumnSave,
     handleDeleteColumn, handleClearColumn, handleAddTask,

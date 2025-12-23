@@ -62,6 +62,8 @@ export default async function handler(
         priority,
         order,
         dueDate,
+        startDate,
+        endDate,
         checklist,
         assigneeIds,
       } = req.body;
@@ -82,6 +84,8 @@ export default async function handler(
           priority: priority || "Medium",
           order: order ?? 0,
           dueDate: dueDate ? new Date(dueDate) : undefined,
+          startDate: startDate ? new Date(startDate) : undefined,
+          endDate: endDate ? new Date(endDate) : undefined,
           checklist: checklist ?? 0,
           ...(assigneeIds &&
             assigneeIds.length > 0 && {
@@ -90,6 +94,7 @@ export default async function handler(
               },
             }),
         },
+
         include: {
           assignees: {
             select: {

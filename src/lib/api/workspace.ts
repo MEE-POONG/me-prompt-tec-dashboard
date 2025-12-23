@@ -127,6 +127,8 @@ export const createTask = async (data: {
   priority?: "High" | "Medium" | "Low";
   order?: number;
   dueDate?: string;
+  startDate?: string;
+  endDate?: string;
   assigneeIds?: string[];
 }) => {
   const res = await fetch("/api/workspace/task", {
@@ -148,6 +150,8 @@ export const updateTask = async (
     priority?: "High" | "Medium" | "Low";
     order?: number;
     dueDate?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
     columnId?: string;
     comments?: number;
     attachments?: number;
@@ -335,5 +339,53 @@ export const updateComment = async (id: string, data: { content?: string }) => {
 export const deleteComment = async (id: string) => {
   const res = await fetch(`/api/workspace/comment/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete comment");
+  return res.ok;
+};
+// ==================== BoardLabel NEW APIs ====================
+export const getLabels = async (boardId: string) => {
+  const res = await fetch(`/api/workspace/label?boardId=${boardId}`);
+  if (!res.ok) throw new Error("Failed to fetch labels");
+  return res.json();
+};
+
+export const createLabel = async (data: {
+  boardId: string;
+  name: string;
+  color: string;
+  bgColor: string;
+  textColor: string;
+}) => {
+  const res = await fetch("/api/workspace/label", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create label");
+  return res.json();
+};
+
+export const updateLabel = async (
+  id: string,
+  data: {
+    name?: string;
+    color?: string;
+    bgColor?: string;
+    textColor?: string;
+  }
+) => {
+  const res = await fetch(`/api/workspace/label/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update label");
+  return res.json();
+};
+
+export const deleteLabel = async (id: string) => {
+  const res = await fetch(`/api/workspace/label/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete label");
   return res.ok;
 };

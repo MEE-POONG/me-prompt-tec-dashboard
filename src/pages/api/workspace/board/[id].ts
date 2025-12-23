@@ -45,6 +45,7 @@ export default async function handler(
             orderBy: { order: "asc" },
           },
           members: true,
+          boardLabels: true,
           activities: {
             orderBy: { createdAt: "desc" },
             take: 20,

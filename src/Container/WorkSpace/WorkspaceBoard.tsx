@@ -60,33 +60,77 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const [currentView, setCurrentView] = useState<
     "board" | "dashboard" | "timeline" | "report"
   >("board");
+  const [labels, setLabels] = useState<any[]>([]);
+
+  // Helper: map a color name or board label to Tailwind classes
+  const getLabelColors = useCallback((tag: string, tagColor?: string, currentLabels: any[] = []) => {
+    // 1. Try to find in board labels first (by name)
+    const labelData = currentLabels.find(l => l.name === tag);
+    if (labelData) {
+      // derive border from bgColor if possible, or use a default
+      const baseColor = labelData.color || "slate";
+      return `${labelData.bgColor} ${labelData.textColor} border-${baseColor}-200/50`;
+    }
+
+    // 2. Fallback to name-based mapping (for INITIAL_TAGS or legacy)
+    const color = tagColor || "slate";
+    const mapping: Record<string, string> = {
+      red: "bg-red-50 text-red-600 border-red-100",
+      orange: "bg-orange-50 text-orange-600 border-orange-100",
+      yellow: "bg-amber-50 text-amber-600 border-amber-100",
+      green: "bg-emerald-50 text-emerald-600 border-emerald-100",
+      blue: "bg-blue-50 text-blue-600 border-blue-100",
+      purple: "bg-purple-50 text-purple-600 border-purple-100",
+      slate: "bg-slate-50 text-slate-600 border-slate-100",
+      gray: "bg-gray-50 text-gray-600 border-gray-100",
+    };
+
+    return mapping[color] || mapping.slate;
+  }, []);
 
   // Helper: map API task -> WorkspaceTask
-  const mapApiTaskToWorkspaceTask = (task: any) => ({
-    id: task.id,
-    title: task.title,
-    tag: task.tag || "General",
-    tagColor: task.tagColor || "bg-gray-100 text-gray-600",
-    priority: task.priority || "Medium",
-    members:
-      task.assignees?.map(
-        (a: any) =>
-          // support both shapes (assignee.user or direct fields)
-          a?.user?.avatar ||
-          a?.avatar ||
-          a?.user?.name?.substring(0, 2) ||
-          a?.name?.substring(0, 2) ||
-          "?"
-      ) || [],
-    comments: task.comments || 0,
-    attachments: task.attachments || 0,
-    date: task.dueDate
-      ? new Date(task.dueDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })
-      : "No date",
-  });
+  const mapApiTaskToWorkspaceTask = useCallback((task: any, currentLabels: any[] = []) => {
+    // derive human-friendly date display (support date ranges)
+    let dateLabel = "No date";
+    try {
+      const start = task.startDate ? new Date(task.startDate) : (task.dueDate ? new Date(task.dueDate) : null);
+      const end = task.endDate ? new Date(task.endDate) : null;
+      if (start && end) {
+        const s = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const e = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        dateLabel = `${s} - ${e}`;
+      } else if (start) {
+        dateLabel = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+    } catch (e) {
+      dateLabel = task.dueDate || "No date";
+    }
+
+    return {
+      id: task.id,
+      title: task.title,
+      tag: task.tag || "General",
+      tagColor: getLabelColors(task.tag, task.tagColor, currentLabels),
+      priority: task.priority || "Medium",
+      status: task.column?.title || "To Do",
+      rawDueDate: task.dueDate,
+      assignees: task.assignees,
+      memberIds: task.assignees?.map((a: any) => a.userId || a.user?.id),
+      members:
+        task.assignees?.map(
+          (a: any) =>
+            // support both shapes (assignee.user or direct fields)
+            a?.user?.avatar ||
+            a?.avatar ||
+            a?.user?.name?.substring(0, 2) ||
+            a?.name?.substring(0, 2) ||
+            "?"
+        ) || [],
+      comments: task.comments || 0,
+      attachments: task.attachments || 0,
+      date: dateLabel,
+    };
+  }, [getLabelColors]);
 
   // Fetch board details and populate local state
   const fetchBoard = useCallback(async () => {
@@ -96,6 +140,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
     try {
       const data = await getBoard(workspaceId);
+      const currentLabels = data.boardLabels || [];
+      setLabels(currentLabels);
 
       // map columns/tasks to workspace shape
       const transformedColumns =
@@ -103,7 +149,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           id: col.id,
           title: col.title,
           color: col.color || "bg-gray-500",
-          tasks: (col.tasks || []).map(mapApiTaskToWorkspaceTask),
+          tasks: (col.tasks || []).map((t: any) => mapApiTaskToWorkspaceTask(t, currentLabels)),
         })) || [];
 
       board.setColumns(transformedColumns);
@@ -123,7 +169,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, mapApiTaskToWorkspaceTask]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -193,16 +240,16 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         title,
         order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0,
       });
-      const mapped = mapApiTaskToWorkspaceTask(created);
+      const mapped = mapApiTaskToWorkspaceTask(created, labels);
       board.setColumns((prev) =>
         prev.map((c) =>
           c.id === columnId
             ? {
-                ...c,
-                tasks: (c.tasks || []).map((t) =>
-                  t.id === tempId ? mapped : t
-                ),
-              }
+              ...c,
+              tasks: (c.tasks || []).map((t) =>
+                t.id === tempId ? mapped : t
+              ),
+            }
             : c
         )
       );
@@ -269,7 +316,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       const mappedCol = {
         id: created.id,
         title: created.title,
-        tasks: (created.tasks || []).map(mapApiTaskToWorkspaceTask),
+        tasks: (created.tasks || []).map((t: any) => mapApiTaskToWorkspaceTask(t, labels)),
         color: created.color,
       };
 
@@ -396,7 +443,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             id: col.id,
             title: col.title,
             color: col.color || "bg-gray-500",
-            tasks: (col.tasks || []).map(mapApiTaskToWorkspaceTask),
+            tasks: (col.tasks || []).map((t: any) => mapApiTaskToWorkspaceTask(t, labels)),
           })) || [];
         board.setColumns(transformedColumns);
       } catch (e) {
@@ -458,41 +505,37 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           <div className="flex items-center gap-6">
             <button
               onClick={() => setCurrentView("board")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
-                currentView === "board"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "board"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
             >
               <KanbanSquare size={18} /> Board
             </button>
             <button
               onClick={() => setCurrentView("dashboard")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
-                currentView === "dashboard"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "dashboard"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
             >
               <LayoutDashboard size={18} /> Dashboard
             </button>
             <button
               onClick={() => setCurrentView("timeline")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
-                currentView === "timeline"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "timeline"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
             >
               <CalendarDays size={18} /> Timeline
             </button>
             <button
               onClick={() => setCurrentView("report")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
-                currentView === "report"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "report"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
             >
               <FileBarChart size={18} /> Reports{" "}
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded ml-1">
@@ -510,14 +553,53 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
               />
               <input
                 type="text"
-                placeholder="Filter..."
-                className="w-full pl-9 pr-4 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-gray-50"
+                placeholder="Filter tasks..."
+                className="w-full pl-9 pr-4 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-gray-50 font-medium"
                 value={board.searchQuery}
                 onChange={(e) => board.setSearchQuery(e.target.value)}
               />
             </div>
           )}
         </div>
+
+        {/* Label Chips Filter */}
+        {isFilterOpen && labels.length > 0 && (
+          <div className="px-6 pb-3 flex items-center gap-2 overflow-x-auto scrollbar-hide border-t border-gray-50 pt-2">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1 shrink-0">
+              Filter Labels:
+            </span>
+            {labels.map((label) => {
+              const isActive = board.selectedLabels.includes(label.name);
+              const colors = getLabelColors(label.name, label.color, labels);
+              return (
+                <button
+                  key={label.id}
+                  onClick={() => {
+                    board.setSelectedLabels((prev) =>
+                      isActive
+                        ? prev.filter((n) => n !== label.name)
+                        : [...prev, label.name]
+                    );
+                  }}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border shrink-0 ${isActive
+                    ? colors
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    }`}
+                >
+                  {label.name}
+                </button>
+              );
+            })}
+            {board.selectedLabels.length > 0 && (
+              <button
+                onClick={() => board.setSelectedLabels([])}
+                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 underline shrink-0 ml-2"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 3. Main Content Area */}
@@ -551,11 +633,10 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                           <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] transition-colors rounded-b-2xl scrollbar-hide ${
-                              snapshot.isDraggingOver
-                                ? "bg-blue-50/30 ring-2 ring-inset ring-blue-100"
-                                : ""
-                            }`}
+                            className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] transition-colors rounded-b-2xl scrollbar-hide ${snapshot.isDraggingOver
+                              ? "bg-blue-50/30 ring-2 ring-inset ring-blue-100"
+                              : ""
+                              }`}
                           >
                             {board.filterTasks(col.tasks).map((task, index) => (
                               <WorkspaceTaskCard
@@ -671,23 +752,41 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         )}
 
         {/* VIEW: DASHBOARD */}
-        {currentView === "dashboard" && <ProjectDashboard />}
+        {currentView === "dashboard" && (
+          <ProjectDashboard
+            tasks={board.columns.flatMap(c => c.tasks || [])}
+            members={members}
+          />
+        )}
 
         {/* VIEW: TIMELINE */}
-        {currentView === "timeline" && <ProjectTimeline />}
+        {currentView === "timeline" && (
+          <ProjectTimeline
+            tasks={board.columns.flatMap(c => c.tasks || [])}
+            labels={labels}
+          />
+        )}
 
         {/* VIEW: REPORT */}
-        {currentView === "report" && <ProjectReport />}
+        {currentView === "report" && (
+          <ProjectReport
+            tasks={board.columns.flatMap(c => c.tasks || [])}
+            members={members}
+          />
+        )}
       </div>
 
       {/* === MODALS === */}
-      {board.selectedTask && (
-        <ModalsWorkflow
-          isOpen={board.isModalOpen}
-          onClose={() => board.setIsModalOpen(false)}
-          task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
-        />
-      )}
+      {
+        board.selectedTask && (
+          <ModalsWorkflow
+            isOpen={board.isModalOpen}
+            onClose={() => board.setIsModalOpen(false)}
+            task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
+            onTaskUpdated={fetchBoard}
+          />
+        )
+      }
 
       <WorkspaceSettingsSidebar
         isOpen={board.isSettingsOpen}
@@ -709,6 +808,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         onClose={() => board.setIsMembersOpen(false)}
         members={members}
       />
-    </div>
+    </div >
   );
 }
