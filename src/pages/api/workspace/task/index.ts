@@ -74,6 +74,14 @@ export default async function handler(
           .json({ message: "columnId and title are required" });
       }
 
+      // determine if initial column should mark as completed
+      let completedAt: Date | undefined = undefined;
+      try {
+        const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { title: true } });
+        const t = (col?.title || "").toLowerCase();
+        if (t.includes("done") || t.includes("completed")) completedAt = new Date();
+      } catch (e) { /* ignore */ }
+
       const task = await prisma.boardTask.create({
         data: {
           columnId,
@@ -87,6 +95,7 @@ export default async function handler(
           startDate: startDate ? new Date(startDate) : undefined,
           endDate: endDate ? new Date(endDate) : undefined,
           checklist: checklist ?? 0,
+          completedAt,
           ...(assigneeIds &&
             assigneeIds.length > 0 && {
               assignees: {

@@ -84,6 +84,25 @@ export default async function handler(
       if (attachments !== undefined) updateData.attachments = attachments;
       if (checklist !== undefined) updateData.checklist = checklist;
 
+      // If columnId changes, set or clear completedAt based on target column title
+      if (columnId !== undefined) {
+        try {
+          // get existing to compare
+          const existing = await prisma.boardTask.findUnique({ where: { id }, select: { columnId: true } });
+          if (!existing || existing.columnId !== columnId) {
+            const col = await prisma.boardColumn.findUnique({ where: { id: String(columnId) }, select: { title: true } });
+            const t = (col?.title || "").toLowerCase();
+            if (t.includes("done") || t.includes("completed")) {
+              updateData.completedAt = new Date();
+            } else {
+              updateData.completedAt = null;
+            }
+          }
+        } catch (e) {
+          // ignore failures
+        }
+      }
+
       // Handle assignees separately
       if (assigneeIds !== undefined) {
         // First, disconnect all current assignees

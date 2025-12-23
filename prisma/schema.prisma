@@ -542,6 +542,8 @@ model BoardTask {
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  // timestamp when task was moved to a completed column
+  completedAt  DateTime?
   taskMembers TaskMember[]
   activities  BoardActivity[]
 }

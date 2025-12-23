@@ -457,6 +457,49 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     board.onDragEnd(result);
 
     try {
+      // If this task is a temporary/local task id (optimistic create not yet persisted), we should persist it on the server
+      const isTemp = String(draggableId).startsWith("temp-") || !/^[a-fA-F0-9]{24}$/.test(String(draggableId));
+
+      if (isTemp) {
+        // Find the moved task in the destination column
+        const destCol = board.columns.find((c) => c.id === destination.droppableId);
+        const movedTask = destCol?.tasks?.find((t: any) => String(t.id) === String(draggableId));
+        if (movedTask) {
+          const created = await createTask({
+            columnId: String(destination.droppableId),
+            title: movedTask.title,
+            order: destination.index,
+            dueDate: (movedTask as any).rawDueDate || undefined,
+            startDate: (movedTask as any).startDate || undefined,
+            endDate: (movedTask as any).endDate || undefined,
+          });
+
+          const mapped = mapApiTaskToWorkspaceTask(created, labels);
+          // replace temp task with persisted task id in columns
+          board.setColumns((prev) =>
+            prev.map((c) =>
+              c.id === destination.droppableId
+                ? { ...c, tasks: (c.tasks || []).map((t: any) => (t.id === draggableId ? mapped : t)) }
+                : c
+            )
+          );
+
+          await createActivity({
+            boardId: String(workspaceId),
+            user: "System",
+            action: "created task",
+            target: created.title,
+            projectId: String(workspaceId),
+            taskId: created.id,
+          });
+
+          // refresh to ensure consistent ordering and counts
+          await fetchBoard();
+          return;
+        }
+      }
+
+      // Normal persisted task move
       await updateTask(String(draggableId), {
         columnId: String(destination.droppableId),
         order: destination.index,
@@ -790,6 +833,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         {/* VIEW: DASHBOARD */}
         {currentView === "dashboard" && (
           <ProjectDashboard
+            boardId={workspaceId}
             tasks={board.columns.flatMap(c => c.tasks || [])}
             members={members}
           />
