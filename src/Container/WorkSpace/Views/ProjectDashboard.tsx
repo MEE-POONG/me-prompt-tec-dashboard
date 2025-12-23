@@ -13,14 +13,21 @@ export default function ProjectDashboard({
 }) {
   // Calculate real stats
   const totalTasks = tasks.length;
-  // Let's assume tasks have a 'column' or status info. 
-  // For now we'll use a simple heuristic or pass more info.
-  // In WorkspaceBoard, we can add 'status' to the mapped task.
-  const completedTasks = tasks.filter(t => t.status === "Done" || t.status === "Completed").length;
-  const inProgressTasks = tasks.filter(t => t.status !== "Done" && t.status !== "Completed" && t.status !== "To Do").length;
+
+  // Normalize status values so various sources (columns, strings) map to the same canonical states
+  const normalizeStatus = (t: any) => {
+    const s = (t.status || t.column || "").toString().toLowerCase();
+    if (s.includes("done") || s.includes("completed")) return "completed";
+    if (s.includes("progress") || s.includes("in progress") || s === "inprogress") return "inprogress";
+    if (s.includes("todo") || s.includes("to do")) return "todo";
+    return s || "";
+  };
+
+  const completedTasks = tasks.filter(t => normalizeStatus(t) === "completed").length;
+  const inProgressTasks = tasks.filter(t => normalizeStatus(t) === "inprogress").length;
 
   const now = new Date();
-  const overdueTasks = tasks.filter(t => t.rawDueDate && new Date(t.rawDueDate) < now && t.status !== "Done").length;
+  const overdueTasks = tasks.filter(t => t.rawDueDate && new Date(t.rawDueDate) < now && normalizeStatus(t) !== "completed").length;
 
   const stats = [
     { label: "Total Tasks", value: totalTasks, change: "+0%", trend: "up", icon: <CheckCircle2 className="text-blue-600" />, color: "bg-blue-50 text-blue-600" },
@@ -32,7 +39,7 @@ export default function ProjectDashboard({
   // Calculate workload per member
   const workload = members.map(m => {
     const memberTasks = tasks.filter(t => t.assignees?.some((a: any) => a.id === m.id) || t.memberIds?.includes(m.id));
-    const done = memberTasks.filter(t => t.status === "Done" || t.status === "Completed").length;
+    const done = memberTasks.filter(t => normalizeStatus(t) === "completed").length;
     return {
       name: m.name,
       role: m.position || "Member",

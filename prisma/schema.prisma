@@ -543,6 +543,7 @@ model BoardTask {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   taskMembers TaskMember[]
+  activities  BoardActivity[]
 }
 
 /**
@@ -626,6 +627,10 @@ model BoardActivity {
   createdAt DateTime @default(now())
   project   Project? @relation(fields: [projectId], references: [id])
   projectId String?  @db.ObjectId
+
+  // optional task relation to tie activity to a specific BoardTask
+  task   BoardTask? @relation(fields: [taskId], references: [id])
+  taskId String?    @db.ObjectId
 }
 
 /**

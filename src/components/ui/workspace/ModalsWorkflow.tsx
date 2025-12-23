@@ -161,7 +161,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
         // Load activities for board
         if (data.column?.board?.id) {
           const boardId = String(data.column.board.id);
-          const acts: any[] = await getActivities(boardId);
+          const acts: any[] = await getActivities(boardId, undefined, data.id);
           setActivities(acts.map(a => ({ id: a.id, user: a.user, action: `${a.action} ${a.target || ''}`.trim(), time: new Date(a.createdAt).toLocaleString() })));
 
           // load members for this board
@@ -300,6 +300,11 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
           const { id } = payload;
           setComments(prev => prev.filter(cm => cm.id !== id));
         }
+
+        if (type === 'activity:created') {
+          const a = payload;
+          setActivities(prev => [{ id: a.id, user: a.user, action: `${a.action} ${a.target || ''}`.trim(), time: new Date(a.createdAt).toLocaleString() }, ...prev]);
+        }
       } catch (e) {
         console.error('Invalid SSE payload', e);
       }
@@ -320,7 +325,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
 
     // Persist activity (best-effort)
     if (boardId) {
-      createActivity({ boardId, user: "You", action, target: title, projectId: boardId }).catch(e => console.error("createActivity failed", e));
+      createActivity({ boardId, user: "You", action, target: title, projectId: boardId, taskId: taskId || undefined }).catch(e => console.error("createActivity failed", e));
     }
   };
 
@@ -354,9 +359,42 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     }
   };
 
+  const isValidObjectId = (id: string | null | undefined) => {
+    if (!id || typeof id !== 'string') return false;
+    return /^[a-fA-F0-9]{24}$/.test(id);
+  };
+
   const handleUpdateTag = async () => {
     if (editingTagId && newTagName.trim()) {
       try {
+        // If the tag id isn't a real ObjectId (mock/default tag), create a new label instead
+        if (!isValidObjectId(editingTagId)) {
+          // create new label
+          if (!boardId) throw new Error('No board context');
+          const created = await createLabel({
+            boardId,
+            name: newTagName,
+            color: newTagColor.name,
+            bgColor: newTagColor.labelBg,
+            textColor: newTagColor.labelText
+          });
+          const createdTag: TagItem = {
+            id: created.id,
+            name: created.name,
+            color: created.color,
+            bgColor: created.bgColor,
+            textColor: created.textColor
+          };
+          // replace local mock tag id with created one if exists, else append
+          setAvailableTags(prev => prev.map(t => t.id === editingTagId ? createdTag : t));
+          setSelectedTagIds(prev => prev.map(id => id === editingTagId ? created.id : id));
+          setTagView('list');
+          setEditingTagId(null);
+          setNewTagName("");
+          logActivity(`created label "${newTagName}"`);
+          return;
+        }
+
         const updated = await updateLabel(editingTagId, {
           name: newTagName,
           color: newTagColor.name,
@@ -388,6 +426,17 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
       if (!confirm("Are you sure you want to delete this label?")) return;
       try {
         const tagToDelete = availableTags.find(t => t.id === editingTagId);
+        // If tag is not persisted in DB (mock), just remove locally
+        if (!isValidObjectId(editingTagId)) {
+          setAvailableTags(prev => prev.filter(t => t.id !== editingTagId));
+          setSelectedTagIds(prev => prev.filter(id => id !== editingTagId));
+          setTagView('list');
+          setEditingTagId(null);
+          setNewTagName("");
+          logActivity(`deleted label "${tagToDelete?.name}"`);
+          return;
+        }
+
         await deleteLabel(editingTagId);
         setAvailableTags(prev => prev.filter(t => t.id !== editingTagId));
         setSelectedTagIds(prev => prev.filter(id => id !== editingTagId));
@@ -586,7 +635,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
       const created: any = await createComment({ taskId: String(taskId), content, author: 'You' });
       // replace temp with real comment
       setComments(prev => prev.map(c => c.id === temp.id ? { id: created.id, user: created.author || 'You', text: created.content, time: new Date(created.createdAt).toLocaleString(), color: 'bg-blue-600' } : c));
-      if (boardId) await createActivity({ boardId, user: 'You', action: 'commented', target: title, projectId: boardId });
+      if (boardId) await createActivity({ boardId, user: 'You', action: 'commented', target: title, projectId: boardId, taskId: taskId || undefined });
       logActivity('commented');
     } catch (err) {
       console.error('Failed to persist comment', err);

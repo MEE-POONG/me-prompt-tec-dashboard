@@ -18,10 +18,12 @@ interface TimelineEvent {
 
 export default function ProjectTimeline({
     tasks = [],
-    labels = []
+    labels = [],
+    onCreateTask
 }: {
     tasks?: any[],
-    labels?: any[]
+    labels?: any[],
+    onCreateTask?: (payload: { title: string; startDate: string; duration: number; status: string }) => Promise<any>
 }) {
     const [viewMode, setViewMode] = useState<ViewMode>("Month");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -59,8 +61,9 @@ export default function ProjectTimeline({
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     // New Event Form
+    const today = new Date().toISOString().slice(0, 10);
     const [newEventTitle, setNewEventTitle] = useState("");
-    const [newEventDate, setNewEventDate] = useState("2025-12-16");
+    const [newEventDate, setNewEventDate] = useState(today);
     const [newEventStatus, setNewEventStatus] = useState("To Do");
     const [newEventDuration, setNewEventDuration] = useState(3);
 
@@ -112,7 +115,7 @@ export default function ProjectTimeline({
         setCurrentDate(newDate);
     };
 
-    const handleAddEvent = () => {
+    const handleAddEvent = async () => {
         if (!newEventTitle.trim()) return;
         const start = new Date(newEventDate);
         const end = new Date(start);
@@ -123,17 +126,40 @@ export default function ProjectTimeline({
         if (newEventStatus === "Done") color = "bg-green-500";
         if (newEventStatus === "Research") color = "bg-purple-500";
 
-        setEvents([...events, {
-            id: Date.now(),
+        const tempId = `temp-${Date.now()}`;
+        const newEvt: TimelineEvent = {
+            id: tempId,
             title: newEventTitle,
             startDate: start,
             endDate: end,
             color,
             status: newEventStatus
-        }]);
+        };
+
+        // optimistic add
+        setEvents(prev => [...prev, newEvt]);
         setIsCreateModalOpen(false);
         setNewEventTitle("");
-    };
+
+        if (onCreateTask) {
+            try {
+                const created = await onCreateTask({
+                    title: newEventTitle,
+                    startDate: newEventDate,
+                    duration: newEventDuration,
+                    status: newEventStatus
+                });
+                // replace temp id if backend supplied id
+                if (created && created.id) {
+                    setEvents(prev => prev.map(e => (e.id === tempId ? { ...e, id: created.id } : e)));
+                }
+            } catch (err) {
+                // rollback optimistic event
+                setEvents(prev => prev.filter(e => e.id !== tempId));
+                alert("Failed to create task");
+            }
+        }
+    }; 
 
     return (
         <div className="flex flex-col h-full bg-white relative font-sans text-slate-800">

@@ -46,6 +46,8 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
 
     const startTasks = Array.from(startCol.tasks || []);
     const [movedTask] = startTasks.splice(source.index, 1);
+    // Ensure the moved task's status reflects the destination column title
+    try { movedTask.status = endCol.title || movedTask.status || "To Do"; } catch (e) { /* ignore if shaped differently */ }
     const endTasks = Array.from(endCol.tasks || []);
     endTasks.splice(destination.index, 0, movedTask);
     const newColumns = [...columns];

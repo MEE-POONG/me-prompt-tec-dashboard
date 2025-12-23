@@ -17,6 +17,11 @@ export type WorkspaceTask = {
     comments: number;
     attachments: number;
     date: string;
+    // Optional fields added for dashboard/status mapping
+    status?: string;
+    rawDueDate?: string;
+    assignees?: any[];
+    memberIds?: string[];
 };
 
 export type WorkspaceMember = {

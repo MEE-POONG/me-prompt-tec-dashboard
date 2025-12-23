@@ -227,9 +227,10 @@ export const deleteMember = async (id: string) => {
 };
 
 // ==================== BoardActivity APIs ====================
-export const getActivities = async (boardId: string, limit?: number) => {
+export const getActivities = async (boardId: string, limit?: number, taskId?: string) => {
   const query = new URLSearchParams({ boardId });
   if (limit) query.append("limit", limit.toString());
+  if (taskId) query.append("taskId", taskId);
 
   const res = await fetch(`/api/workspace/activity?${query.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch activities");
@@ -242,6 +243,7 @@ export const createActivity = async (data: {
   action: string;
   target: string;
   projectId?: string;
+  taskId?: string;
 }) => {
   const res = await fetch("/api/workspace/activity", {
     method: "POST",

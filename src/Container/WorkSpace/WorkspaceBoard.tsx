@@ -227,6 +227,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       comments: 0,
       attachments: 0,
       date: "Today",
+      // reflect column title for immediate dashboard counts
+      status: board.columns.find((c) => c.id === columnId)?.title || "To Do",
     };
     board.setColumns((prev) =>
       prev.map((c) =>
@@ -263,6 +265,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         action: "created task",
         target: created.title,
         projectId: String(workspaceId),
+        taskId: created.id,
       });
     } catch (err) {
       console.error("Failed to create task", err);
@@ -339,6 +342,36 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     } catch (err) {
       console.error("Failed to create column", err);
       board.setColumns((prev) => prev.filter((c) => c.id !== tempId));
+    }
+  };
+
+  const handleCreateTaskFromTimeline = async ({ title, startDate, duration, status }: { title: string; startDate: string; duration: number; status: string; }) => {
+    if (!title?.trim()) return;
+    const targetCol = board.columns.find((c) => c.title === "To Do") || board.columns[0];
+    if (!targetCol) return;
+    const columnId = targetCol.id;
+    try {
+      const created = await createTask({
+        columnId: String(columnId),
+        title,
+        dueDate: startDate,
+        startDate,
+        endDate: new Date(new Date(startDate).getTime() + duration * 24 * 60 * 60 * 1000).toISOString(),
+        order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0,
+      });
+      await createActivity({
+        boardId: String(workspaceId),
+        user: "System",
+        action: "created task",
+        target: created.title,
+        projectId: String(workspaceId),
+        taskId: created.id,
+      });
+      await fetchBoard();
+      return created;
+    } catch (err) {
+      console.error("Failed to create task from timeline", err);
+      throw err;
     }
   };
 
@@ -434,6 +467,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         action: "moved task",
         target: String(draggableId),
         projectId: String(workspaceId),
+        taskId: String(draggableId),
       });
     } catch (err) {
       console.error("Failed to move task", err);
@@ -766,6 +800,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           <ProjectTimeline
             tasks={board.columns.flatMap(c => c.tasks || [])}
             labels={labels}
+            onCreateTask={handleCreateTaskFromTimeline}
           />
         )}
 

@@ -9,8 +9,9 @@ export default async function handler(
 ) {
   try {
     if (req.method === "GET") {
-      const { boardId, limit } = req.query as {
+      const { boardId, taskId, limit } = req.query as {
         boardId?: string;
+        taskId?: string;
         limit?: string;
       };
 
@@ -18,8 +19,11 @@ export default async function handler(
         return res.status(400).json({ message: "boardId is required" });
       }
 
+      const where: any = { boardId };
+      if (taskId) where.taskId = taskId;
+
       const activities = await prisma.boardActivity.findMany({
-        where: { boardId },
+        where,
         orderBy: { createdAt: "desc" },
         take: limit ? parseInt(limit) : 50,
       });
@@ -28,7 +32,7 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { boardId, user, action, target, projectId } = req.body;
+      const { boardId, user, action, target, projectId, taskId } = req.body;
 
       if (!boardId || !user || !action || !target) {
         return res.status(400).json({
@@ -43,10 +47,12 @@ export default async function handler(
           action,
           target,
           projectId,
+          taskId: taskId || undefined,
         },
       });
 
       try { publish(String(boardId), { type: "activity:created", payload: activity }); } catch (e) { console.error(e); }
+      try { if (taskId) publish(`task:${taskId}`, { type: "activity:created", payload: activity }); } catch (e) { console.error(e); }
       return res.status(201).json(activity);
     }
 

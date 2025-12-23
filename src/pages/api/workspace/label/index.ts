@@ -31,17 +31,43 @@ export default async function handler(
                     .json({ message: "boardId, name, and color are required" });
             }
 
-            const label = await prisma.boardLabel.create({
-                data: {
-                    boardId,
-                    name,
-                    color,
-                    bgColor: bgColor || "bg-slate-100",
-                    textColor: textColor || "text-slate-700",
-                },
-            });
+            // Create or update existing label atomically (avoid unique constraint errors)
+            try {
+                const label = await prisma.boardLabel.upsert({
+                    where: { boardId_name: { boardId, name } },
+                    update: {
+                        color,
+                        bgColor: bgColor || "bg-slate-100",
+                        textColor: textColor || "text-slate-700",
+                    },
+                    create: {
+                        boardId,
+                        name,
+                        color,
+                        bgColor: bgColor || "bg-slate-100",
+                        textColor: textColor || "text-slate-700",
+                    },
+                });
 
-            return res.status(201).json(label);
+                // Return 200 for existing/updated label and 201 for create isn't reliably detectable from upsert, so return 200 with the label
+                return res.status(200).json(label);
+            } catch (err: any) {
+                console.error(err);
+                // Fallback: if unique constraint somehow still occurs, try to return the existing label
+                if (err?.code === 'P2002') {
+                    try {
+                        const existing = await prisma.boardLabel.findUnique({
+                            where: { boardId_name: { boardId, name } },
+                        });
+                        if (existing) return res.status(200).json(existing);
+                        return res.status(409).json({ message: 'Label already exists' });
+                    } catch (e) {
+                        console.error('fallback findUnique failed', e);
+                    }
+                }
+
+                return res.status(500).json({ message: 'Server error' });
+            }
         }
 
         return res.status(405).json({ message: "Method Not Allowed" });

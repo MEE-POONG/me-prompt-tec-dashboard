@@ -39,11 +39,19 @@ export default async function handler(
         return res.status(400).json({ message: "Name is required" });
       }
 
+      // Create board with default columns (To Do / In Progress / Done)
       const board = await prisma.projectBoard.create({
         data: {
           name,
           description,
           color: color || "#3B82F6",
+          columns: {
+            create: [
+              { title: "To Do", order: 0, color: "bg-slate-50" },
+              { title: "In Progress", order: 1, color: "bg-blue-50" },
+              { title: "Done", order: 2, color: "bg-green-50" },
+            ],
+          },
         },
         include: {
           columns: true,
