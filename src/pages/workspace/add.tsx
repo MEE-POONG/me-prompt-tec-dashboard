@@ -10,6 +10,8 @@ import {
   Check,
   Plus,
   X,
+  Lock,  // [เพิ่ม]
+  Globe, // [เพิ่ม]
 } from "lucide-react";
 import Link from "next/link";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
@@ -19,7 +21,7 @@ import { SketchPicker } from "react-color";
 
 export default function AddWorkspacePage() {
   const router = useRouter();
-
+  
   // Ref สำหรับ popover
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +29,7 @@ export default function AddWorkspacePage() {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#3B82F6");
-
+  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
   // State ควบคุมการแสดงผล Color Picker
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isCustomColor, setIsCustomColor] = useState(false);
@@ -59,6 +61,7 @@ export default function AddWorkspacePage() {
         name: projectName,
         description,
         color,
+        visibility,
       };
 
       const res = await fetch("/api/workspace/board", {
@@ -174,6 +177,64 @@ export default function AddWorkspacePage() {
                   />
                 </div>
 
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    การมองเห็น (Visibility)
+                  </label>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* ตัวเลือกแบบ Private */}
+                    <div 
+                      onClick={() => setVisibility("PRIVATE")}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${
+                        visibility === "PRIVATE" 
+                          ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20" 
+                          : "border-slate-200 hover:border-blue-300 bg-white"
+                      }`}
+                    >
+                      <div className={`mt-1 p-2 rounded-lg ${visibility === "PRIVATE" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400"}`}>
+                        <Lock size={18} />
+                      </div>
+                      <div>
+                        <h4 className={`font-bold text-sm ${visibility === "PRIVATE" ? "text-blue-700" : "text-slate-700"}`}>ส่วนตัว (Private)</h4>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                          เฉพาะคุณและสมาชิกที่ได้รับเชิญเท่านั้น ที่สามารถเข้าถึงและแก้ไขได้
+                        </p>
+                      </div>
+                      {visibility === "PRIVATE" && (
+                        <div className="absolute top-3 right-3 text-blue-600 bg-white rounded-full p-0.5 shadow-sm">
+                          <Check size={14} strokeWidth={4} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ตัวเลือกแบบ Public */}
+                    <div 
+                      onClick={() => setVisibility("PUBLIC")}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${
+                        visibility === "PUBLIC" 
+                          ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20" 
+                          : "border-slate-200 hover:border-blue-300 bg-white"
+                      }`}
+                    >
+                      <div className={`mt-1 p-2 rounded-lg ${visibility === "PUBLIC" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400"}`}>
+                        <Globe size={18} />
+                      </div>
+                      <div>
+                        <h4 className={`font-bold text-sm ${visibility === "PUBLIC" ? "text-blue-700" : "text-slate-700"}`}>สาธารณะ (Public)</h4>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                          ทุกคนที่มีลิงก์สามารถเข้ามาดูได้ (Read Only) แต่ต้องได้รับเชิญถึงจะแก้ไขได้
+                        </p>
+                      </div>
+                      {visibility === "PUBLIC" && (
+                        <div className="absolute top-3 right-3 text-blue-600 bg-white rounded-full p-0.5 shadow-sm">
+                          <Check size={14} strokeWidth={4} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
                 {/* === ส่วนเลือกสี และ วงล้อ === */}
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-slate-700">

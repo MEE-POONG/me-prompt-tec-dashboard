@@ -45,7 +45,10 @@ enum MediaType {
   video
   file
 }
-
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
 // ---------------- Composite Types (Embedded) ----------------
 type Name {
   first   String
@@ -471,6 +474,8 @@ model ProjectBoard {
   name        String  @unique
   description String?
   color       String  @default("#3B82F6")
+  
+  visibility  Visibility @default(PRIVATE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
