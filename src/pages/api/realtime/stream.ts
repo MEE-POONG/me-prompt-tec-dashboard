@@ -2,33 +2,53 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { subscribe } from "@/lib/realtime";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  // SSE endpoint: /api/realtime/stream?channel=<channel>
+  // SSE endpoint: /api/realtime/stream?channel=<boardId>
   const { channel } = req.query as { channel?: string };
-  if (!channel) return res.status(400).json({ message: "channel is required" });
 
-  // Set headers for SSE
+  if (!channel) {
+    return res.status(400).json({ message: "channel is required" });
+  }
+
+  // 1. ตั้งค่า Headers สำหรับ Server-Sent Events (SSE)
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  res.flushHeaders?.();
+  res.setHeader("Content-Encoding", "none");
+  
+  // flushHeaders จำเป็นสำหรับบาง Hosting (เช่น Vercel) เพื่อให้ส่งข้อมูลทันที
+  if (res.flushHeaders) {
+    res.flushHeaders();
+  }
 
+  // 2. ฟังก์ชันส่งข้อมูลไปยัง Frontend
   const send = (data: any) => {
     try {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
+      // บังคับส่งทันที (ถ้าทำได้)
+      if ((res as any).flush) (res as any).flush();
     } catch (e) {
-      // ignore
+      console.error("Error writing stream", e);
     }
   };
 
+  // 3. เริ่มดักฟังข้อมูลจาก channel ที่ระบุ
   const unsub = subscribe(channel, (ev) => {
     send(ev);
   });
 
-  // ping to keep connection alive
-  const ping = setInterval(() => res.write(`: ping\n\n`), 20000);
+  // 4. ส่ง Ping ทุก 20 วินาที เพื่อเลี้ยง Connection ไม่ให้หลุด
+  const ping = setInterval(() => {
+    try {
+      res.write(`: ping\n\n`);
+    } catch (e) {
+      clearInterval(ping);
+    }
+  }, 20000);
 
+  // 5. Cleanup เมื่อ Client ปิดหน้าเว็บ
   req.on("close", () => {
     clearInterval(ping);
     unsub();
+    res.end();
   });
 }

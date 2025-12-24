@@ -6,13 +6,14 @@ import Link from "next/link";
 
 export default function Workspace() {
   const [searchItem, setSearchItem] = useState("");
+  // Default to "grid" view
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
 
   return (
     <Layouts>
       <div className="p-6 md:p-8 w-full max-w-7xl mx-auto space-y-6 text-black">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 pr-4 rounded-2xl shadow-sm border border-gray-200">
-          {/* ช่องค้นหา */}
+          {/* Search Bar */}
           <div className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search size={20} className="text-gray-400" />
@@ -27,9 +28,9 @@ export default function Workspace() {
             />
           </div>
 
-          {/* ปุ่มควบคุมด้านขวา */}
+          {/* Right Controls */}
           <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-            {/* ปุ่มสลับมุมมอง */}
+            {/* View Toggle */}
             <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
               <button
                 onClick={() => setViewType("grid")}
@@ -53,16 +54,18 @@ export default function Workspace() {
               </button>
             </div>
 
-            {/* ปุ่มเพิ่ม */}
+            {/* Add Button */}
             <Link
               href="/workspace/add"
-              className="min-w-content bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-200 flex items-center gap-2 active:scale-95"
+              className="min-w-max bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-200 flex items-center gap-2 active:scale-95"
             >
               <Plus size={20} strokeWidth={3} />
-              <span className="w-max">เพิ่มแผนงาน</span>
+              <span>เพิ่มแผนงาน</span>
             </Link>
           </div>
         </div>
+        
+        {/* Pass state to WorkList component */}
         <WorkList viewType={viewType} searchItem={searchItem} />
       </div>
     </Layouts>

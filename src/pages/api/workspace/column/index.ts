@@ -1,4 +1,3 @@
-// pages/api/workspace/column/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
@@ -24,7 +23,7 @@ export default async function handler(
                 select: {
                   id: true,
                   userId: true,
-                  assignedAt: true,
+                  // assignedAt: true, // เอาออกถ้าไม่มีใน Schema
                   user: {
                     select: {
                       id: true,
@@ -48,7 +47,7 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { boardId, title, order, color } = req.body;
+      const { boardId, title, order, color, user } = req.body; // รับ user เพิ่ม
 
       if (!boardId || !title) {
         return res
@@ -68,7 +67,20 @@ export default async function handler(
         },
       });
 
-      try { publish(String(boardId), { type: "column:created", payload: column }); } catch (e) { console.error(e); }
+      // ✅ Publish Notification (แจ้งเตือนสร้าง List)
+      try { 
+        publish(String(boardId), { 
+            type: "column:created", 
+            payload: column,
+            // ข้อมูลสำหรับ Notification
+            user: user || "System",
+            action: "created list",
+            target: column.title
+        }); 
+      } catch (e) { 
+        console.error("publish failed", e); 
+      }
+
       return res.status(201).json(column);
     }
 
