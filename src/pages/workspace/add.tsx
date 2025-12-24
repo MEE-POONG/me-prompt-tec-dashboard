@@ -21,7 +21,7 @@ import { SketchPicker } from "react-color";
 
 export default function AddWorkspacePage() {
   const router = useRouter();
-  
+
   // Ref สำหรับ popover
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +62,7 @@ export default function AddWorkspacePage() {
         description,
         color,
         visibility,
+        creator: JSON.parse(localStorage.getItem("user") || "{}"),
       };
 
       const res = await fetch("/api/workspace/board", {
@@ -73,13 +74,14 @@ export default function AddWorkspacePage() {
       });
 
       if (!res.ok) {
-        throw new Error("Create project failed");
+        const data = await res.json();
+        throw new Error(data.message || "Create project failed");
       }
 
       setShowSuccessModal(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการสร้างแผนงาน");
+      alert(error.message || "เกิดข้อผิดพลาดในการสร้างแผนงาน");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,16 +183,15 @@ export default function AddWorkspacePage() {
                   <label className="block text-sm font-semibold text-slate-700">
                     การมองเห็น (Visibility)
                   </label>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* ตัวเลือกแบบ Private */}
-                    <div 
+                    <div
                       onClick={() => setVisibility("PRIVATE")}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${
-                        visibility === "PRIVATE" 
-                          ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20" 
-                          : "border-slate-200 hover:border-blue-300 bg-white"
-                      }`}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${visibility === "PRIVATE"
+                        ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20"
+                        : "border-slate-200 hover:border-blue-300 bg-white"
+                        }`}
                     >
                       <div className={`mt-1 p-2 rounded-lg ${visibility === "PRIVATE" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400"}`}>
                         <Lock size={18} />
@@ -209,13 +210,12 @@ export default function AddWorkspacePage() {
                     </div>
 
                     {/* ตัวเลือกแบบ Public */}
-                    <div 
+                    <div
                       onClick={() => setVisibility("PUBLIC")}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${
-                        visibility === "PUBLIC" 
-                          ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20" 
-                          : "border-slate-200 hover:border-blue-300 bg-white"
-                      }`}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${visibility === "PUBLIC"
+                        ? "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/20"
+                        : "border-slate-200 hover:border-blue-300 bg-white"
+                        }`}
                     >
                       <div className={`mt-1 p-2 rounded-lg ${visibility === "PUBLIC" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400"}`}>
                         <Globe size={18} />
@@ -234,7 +234,7 @@ export default function AddWorkspacePage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* === ส่วนเลือกสี และ วงล้อ === */}
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -249,10 +249,9 @@ export default function AddWorkspacePage() {
                         onClick={() => handlePresetClick(option.hex)}
                         className={`
                           w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
-                          ${
-                            !isCustomColor && color === option.hex
-                              ? "ring-2 ring-offset-2 ring-slate-400 scale-110 shadow-md"
-                              : "hover:scale-110 hover:shadow-sm opacity-90 hover:opacity-100"
+                          ${!isCustomColor && color === option.hex
+                            ? "ring-2 ring-offset-2 ring-slate-400 scale-110 shadow-md"
+                            : "hover:scale-110 hover:shadow-sm opacity-90 hover:opacity-100"
                           }
                         `}
                         style={{ backgroundColor: option.hex }}
@@ -277,10 +276,9 @@ export default function AddWorkspacePage() {
                         }}
                         className={`
                           w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 overflow-hidden
-                          ${
-                            isCustomColor
-                              ? "ring-2 ring-offset-2 ring-slate-400 shadow-md scale-110"
-                              : "hover:scale-110 hover:shadow-sm ring-1 ring-slate-200"
+                          ${isCustomColor
+                            ? "ring-2 ring-offset-2 ring-slate-400 shadow-md scale-110"
+                            : "hover:scale-110 hover:shadow-sm ring-1 ring-slate-200"
                           }
                         `}
                         // พื้นหลังสีรุ้ง
@@ -365,7 +363,7 @@ export default function AddWorkspacePage() {
                   <Save size={18} />
                 )}
                 {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-              </button>  
+              </button>
             </div>
           </form>
         </div>

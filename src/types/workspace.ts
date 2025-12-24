@@ -29,6 +29,7 @@ export type WorkspaceMember = {
     role: string;
     avatar: string;
     color: string;
+    email?: string; // [added]
 };
 
 export type WorkspaceActivity = {
@@ -43,6 +44,7 @@ export type WorkspaceInfo = {
     description: string;
     progress: number;
     dueDate: string;
+    visibility?: "PRIVATE" | "PUBLIC";
     members: WorkspaceMember[];
     activities: WorkspaceActivity[];
 };

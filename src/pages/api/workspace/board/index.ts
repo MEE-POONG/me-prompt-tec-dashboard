@@ -33,7 +33,7 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { name, description, color } = req.body;
+      const { name, description, color, visibility } = req.body;
 
       if (!name) {
         return res.status(400).json({ message: "Name is required" });
@@ -45,6 +45,7 @@ export default async function handler(
           name,
           description,
           color: color || "#3B82F6",
+          visibility: visibility || "PRIVATE",
           columns: {
             create: [
               { title: "To Do", order: 0, color: "bg-slate-50" },
@@ -52,6 +53,15 @@ export default async function handler(
               { title: "Done", order: 2, color: "bg-green-50" },
             ],
           },
+          members: {
+            create: req.body.creator?.name ? [{
+              name: req.body.creator.name,
+              role: "Admin",
+              avatar: req.body.creator.avatar || "",
+              color: "#3B82F6",
+              // email: req.body.creator.email // Reverted until schema update works
+            }] : [],
+          }
         },
         include: {
           columns: true,
@@ -66,6 +76,9 @@ export default async function handler(
     return res.status(405).json({ message: "Method Not Allowed" });
   } catch (error) {
     console.error(error);
+    if ((error as any).code === "P2002") {
+      return res.status(409).json({ message: "Workspace name already exists" });
+    }
     return res.status(500).json({ message: "Server error" });
   }
 }

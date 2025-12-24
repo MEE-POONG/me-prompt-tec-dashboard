@@ -45,7 +45,7 @@ export default async function handler(
             orderBy: { order: "asc" },
           },
           members: true,
-          boardLabels: true,
+          // boardLabels: true,
           activities: {
             orderBy: { createdAt: "desc" },
             take: 20,
@@ -61,11 +61,11 @@ export default async function handler(
     }
 
     if (req.method === "PUT") {
-      const { name, description, color } = req.body;
+      const { name, description, color, visibility } = req.body;
 
       const board = await prisma.projectBoard.update({
         where: { id },
-        data: { name, description, color },
+        data: { name, description, color, visibility },
         include: {
           columns: {
             include: {
@@ -96,6 +96,9 @@ export default async function handler(
     return res.status(405).json({ message: "Method Not Allowed" });
   } catch (error) {
     console.error(error);
+    if ((error as any).code === "P2002") {
+      return res.status(409).json({ message: "Workspace name already exists" });
+    }
     return res.status(500).json({ message: "Server error" });
   }
 }

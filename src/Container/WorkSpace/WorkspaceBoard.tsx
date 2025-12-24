@@ -29,7 +29,6 @@ import {
 // Imports Components
 import WorkspaceTaskCard from "./Board/WorkspaceTaskCard";
 import WorkspaceBoardColumn from "./Board/WorkspaceBoardColumn";
-// ✅ Import Header ที่แก้ไขแล้ว
 import WorkspaceHeader, { NotificationItem } from "./WorkspaceHeader";
 
 // Modals
@@ -53,7 +52,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
-  // State สำหรับ Filter และ View
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
     "board" | "dashboard" | "timeline" | "report"
@@ -169,6 +169,45 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     fetchBoard();
   }, [workspaceId, fetchBoard]);
 
+  useEffect(() => {
+    // Get Current User
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse user", e);
+        }
+      }
+    }
+  }, []);
+
+  // Calculate Read Only logic
+  useEffect(() => {
+    if (!workspaceInfo || !currentUser) {
+      return;
+    }
+
+    const isMember = (workspaceInfo.members || []).some(
+      (m: any) => {
+        const memberName = (m.name || "").toLowerCase();
+        const userName = (currentUser.name || "").toLowerCase();
+        const memberEmail = (m.email || "").toLowerCase();
+        const userEmail = (currentUser.email || "").toLowerCase();
+
+        return memberName === userName || memberName === userEmail || (memberEmail && memberEmail === userEmail);
+      }
+    );
+
+    if (workspaceInfo.visibility === "PUBLIC" && !isMember) {
+      setIsReadOnly(true);
+    } else {
+      setIsReadOnly(false);
+    }
+
+  }, [workspaceInfo, currentUser]);
+
   // Real-time: subscribe to server-sent events for this board
   useEffect(() => {
     if (!workspaceId) return;
@@ -183,16 +222,18 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         fetchBoard();
 
         // 2. Handle Notifications
-        if (data.type && data.user !== "Me") { // กรองการแจ้งเตือนของตัวเองออกถ้าต้องการ
+        if (data.type) { // ตัดเงื่อนไข user !== "Me" ออกเพื่อให้เห็นแจ้งเตือนตัวเองช่วงเทส
             let actionText = "อัปเดต";
             let notifType: NotificationItem["type"] = "update";
 
-            // Map action string to readable Thai text & type
             const actionLower = (data.action || "").toLowerCase();
             
             if (actionLower.includes("created task")) { 
                 actionText = "สร้างงานใหม่"; 
                 notifType = "create"; 
+            } else if (actionLower.includes("created list")) {
+                actionText = "สร้างลิสต์ใหม่";
+                notifType = "create";
             } else if (actionLower.includes("comment")) { 
                 actionText = "คอมเมนต์ใน"; 
                 notifType = "comment"; 
@@ -227,13 +268,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     es.onerror = (e) => {
       console.error("SSE error", e);
       es.close();
-      // Auto-reconnect logic usually handled by browser or manual fetchBoard here
     };
 
     return () => es.close();
   }, [workspaceId, fetchBoard]);
 
-  // API-backed handlers (คงเดิม)
+  // API-backed handlers
   const handleAddTaskApi = async (columnId: string | number) => {
     if (!board.newTaskTitle?.trim()) return;
     const title = board.newTaskTitle;
@@ -530,12 +570,21 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
         isFilterOpen={isFilterOpen}
         onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
-        onOpenSettings={() => board.setIsSettingsOpen(true)}
-        onOpenMembers={() => board.setIsMembersOpen(true)}
+        onOpenSettings={() => {
+          if (isReadOnly) return alert("You don't have permission to edit settings.");
+          board.setIsSettingsOpen(true);
+        }}
+        onOpenMembers={() => {
+          if (isReadOnly) return alert("You don't have permission to manage members.");
+          board.setIsMembersOpen(true);
+        }}
         onRefresh={fetchBoard}
-        // Props แจ้งเตือนใหม่
+        // ✅ Props แจ้งเตือน
         notifications={notifications}
-        onClearNotifications={() => { /* Option: setNotifications([]) */ }}
+        onClearNotifications={() => {
+            // ล้างการแจ้งเตือน
+            setNotifications([]); 
+        }}
       />
 
       {error && (
@@ -625,8 +674,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                       onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
                       activeMenuId={board.activeMenuColumnId}
                       onMenuToggle={board.setActiveMenuColumnId}
+                      isReadOnly={isReadOnly}
                     >
-                      <Droppable droppableId={String(col.id)}>
+                      <Droppable droppableId={String(col.id)} isDropDisabled={isReadOnly}>
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
@@ -666,9 +716,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                 </div>
                               </div>
                             ) : (
-                              <button onClick={() => board.setIsAddingTask(col.id)} className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group">
-                                <Plus size={18} className="text-gray-400 group-hover:text-blue-500" /> Add Task
-                              </button>
+                              !isReadOnly && (
+                                <button onClick={() => board.setIsAddingTask(col.id)} className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group">
+                                  <Plus size={18} className="text-gray-400 group-hover:text-blue-500" /> Add Task
+                                </button>
+                              )
                             )}
                           </div>
                         )}
@@ -676,31 +728,35 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                     </WorkspaceBoardColumn>
                   </div>
                 ))}
-                <div className="min-w-[320px] shrink-0">
-                  {board.isAddingColumn ? (
-                    <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
-                      <input
-                        autoFocus
-                        placeholder="Enter list title..."
-                        className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
-                        value={board.newColumnTitle}
-                        onChange={(e) => board.setNewColumnTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAddColumnApi();
-                          if (e.key === "Escape") board.setIsAddingColumn(false);
-                        }}
-                      />
-                      <div className="flex items-center gap-2">
-                        <button onClick={handleAddColumnApi} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all">Add List</button>
-                        <button onClick={() => board.setIsAddingColumn(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                
+                {/* Add List Button - ซ่อนถ้า Read Only */}
+                {!isReadOnly && (
+                  <div className="min-w-[320px] shrink-0">
+                    {board.isAddingColumn ? (
+                      <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
+                        <input
+                          autoFocus
+                          placeholder="Enter list title..."
+                          className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
+                          value={board.newColumnTitle}
+                          onChange={(e) => board.setNewColumnTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddColumnApi();
+                            if (e.key === "Escape") board.setIsAddingColumn(false);
+                          }}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button onClick={handleAddColumnApi} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all">Add List</button>
+                          <button onClick={() => board.setIsAddingColumn(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => board.setIsAddingColumn(true)} className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all">
-                      <Plus size={20} /> Add New List
-                    </button>
-                  )}
-                </div>
+                    ) : (
+                      <button onClick={() => board.setIsAddingColumn(true)} className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all">
+                        <Plus size={20} /> Add New List
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </DragDropContext>
           </div>
