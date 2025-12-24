@@ -1,4 +1,3 @@
-// pages/api/workspace/task/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
@@ -25,7 +24,6 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              // assignedAt: true,  <-- ลบออก
               user: {
                 select: {
                   id: true,
@@ -66,6 +64,7 @@ export default async function handler(
         endDate,
         checklist,
         assigneeIds,
+        user, // ✅ รับชื่อ user จาก Frontend
       } = req.body;
 
       if (!columnId || !title) {
@@ -109,7 +108,6 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              // assignedAt: true, <-- ลบออก
               user: {
                 select: {
                   id: true,
@@ -125,10 +123,19 @@ export default async function handler(
         },
       });
 
-      // publish event to board channel (attempt to fetch boardId)
+      // ✅ Publish Notification พร้อมชื่อ User
       try {
         const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } });
-        if (col?.boardId) publish(String(col.boardId), { type: "task:created", payload: task });
+        
+        if (col?.boardId) {
+            publish(String(col.boardId), { 
+                type: "task:created", 
+                payload: task,
+                user: user || "System", // ✅ ใช้ user ที่ส่งมา ถ้าไม่มีใช้ System
+                action: "created task", 
+                target: task.title
+            });
+        }
       } catch (e) {
         console.error("publish failed", e);
       }

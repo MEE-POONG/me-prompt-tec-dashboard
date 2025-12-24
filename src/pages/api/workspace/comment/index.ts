@@ -14,11 +14,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const { taskId, content, author } = req.body;
       if (!taskId || !content) return res.status(400).json({ error: 'taskId and content required' });
-      const created = await prisma.taskComment.create({ data: { taskId: String(taskId), content, author: author || 'Anonymous' } });
-      // increment task comment count
+      
+      const created = await prisma.taskComment.create({ 
+          data: { 
+              taskId: String(taskId), 
+              content, 
+              author: author || 'Anonymous' 
+          },
+          // Include เพื่อหา boardId
+          include: {
+            task: {
+                include: {
+                    column: true
+                }
+            }
+          }
+      });
+
+      // Increment task comment count
       try { await prisma.boardTask.update({ where: { id: String(taskId) }, data: { comments: { increment: 1 } } }); } catch (e) { /* ignore */ }
-      // publish realtime event on task channel
-      publish(`task:${String(taskId)}`, { type: 'comment:created', payload: created });
+      
+      // ✅ Publish Notification
+      // สำคัญ: ต้องส่งเข้า channel ของ board (ไม่ใช่ task) เพื่อให้ Header ได้รับ notification
+      const boardId = created.task?.column?.boardId;
+      if (boardId) {
+          publish(String(boardId), { 
+              type: 'comment:created', 
+              payload: created,
+              // Notification Data
+              user: author || "System",
+              action: "commented on",
+              target: created.task?.title || "task"
+          });
+      }
+
       return res.status(201).json(created);
     }
 

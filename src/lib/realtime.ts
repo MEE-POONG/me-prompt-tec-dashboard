@@ -1,24 +1,30 @@
 import { EventEmitter } from "events";
 
-// Simple in-memory event bus for server-side publishing
-const bus = new EventEmitter();
+// ประกาศ Global Interface เพื่อไม่ให้ TypeScript ฟ้อง error ในโหมด Dev
+declare global {
+  var realtimeEmitter: EventEmitter | undefined;
+}
 
-export type RealtimeEvent = {
-  type: string;
-  payload?: any;
+// ใช้ Global Emitter เพื่อป้องกันการสร้าง Instance ใหม่ทุกครั้งที่ Hot Reload
+const emitter = global.realtimeEmitter || new EventEmitter();
+
+if (process.env.NODE_ENV !== "production") {
+  global.realtimeEmitter = emitter;
+}
+
+// ฟังก์ชันสำหรับส่งข้อมูล (Publish) - เรียกใช้ตอน Create/Update/Delete ใน Backend
+export const publish = (channel: string, data: any) => {
+  // console.log(`📢 Realtime Publish to [${channel}]:`, data.type); // เปิดคอมเมนต์ถ้าอยาก Debug
+  emitter.emit(channel, data);
 };
 
-export const publish = (channel: string, event: RealtimeEvent) => {
-  // channel can be boardId or taskId etc.
-  bus.emit(channel, event);
-};
+// ฟังก์ชันสำหรับรับข้อมูล (Subscribe) - เรียกใช้โดย SSE API Endpoint
+export const subscribe = (channel: string, callback: (data: any) => void) => {
+  const handler = (data: any) => callback(data);
+  emitter.on(channel, handler);
 
-export const subscribe = (channel: string, handler: (ev: RealtimeEvent) => void) => {
-  bus.on(channel, handler);
-  return () => bus.off(channel, handler);
-};
-
-export default {
-  publish,
-  subscribe,
+  // Return ฟังก์ชันสำหรับยกเลิกการฟัง (Unsubscribe)
+  return () => {
+    emitter.off(channel, handler);
+  };
 };
