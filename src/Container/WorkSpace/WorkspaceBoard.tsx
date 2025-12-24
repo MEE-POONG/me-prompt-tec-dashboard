@@ -57,7 +57,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
-  // State สำหรับ Filter และ View
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentView, setCurrentView] = useState<
     "board" | "dashboard" | "timeline" | "report"
@@ -178,6 +179,47 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     if (!workspaceId) return;
     fetchBoard();
   }, [workspaceId, fetchBoard]);
+
+  useEffect(() => {
+    // Get Current User
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse user", e);
+        }
+      }
+    }
+  }, []);
+
+  // Calculate Read Only logic
+  useEffect(() => {
+    if (!workspaceInfo || !currentUser) {
+      return;
+    }
+
+    const isMember = (workspaceInfo.members || []).some(
+      (m: any) => {
+        const memberName = (m.name || "").toLowerCase();
+        const userName = (currentUser.name || "").toLowerCase();
+        // Fallback email check if available in future
+        const memberEmail = (m.email || "").toLowerCase();
+        const userEmail = (currentUser.email || "").toLowerCase();
+
+        // Check if member name matches user name OR user email (common case where invite email is used as name)
+        return memberName === userName || memberName === userEmail || (memberEmail && memberEmail === userEmail);
+      }
+    );
+
+    if (workspaceInfo.visibility === "PUBLIC" && !isMember) {
+      setIsReadOnly(true);
+    } else {
+      setIsReadOnly(false);
+    }
+
+  }, [workspaceInfo, currentUser]);
 
   // Real-time: subscribe to server-sent events for this board
   useEffect(() => {
@@ -557,10 +599,19 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
         isFilterOpen={isFilterOpen}
         onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
-        onOpenSettings={() => board.setIsSettingsOpen(true)}
-        onOpenMembers={() => board.setIsMembersOpen(true)}
+        onOpenSettings={() => {
+          if (isReadOnly) return alert("You don't have permission to edit settings.");
+          board.setIsSettingsOpen(true);
+        }}
+        onOpenMembers={() => {
+          if (isReadOnly) return alert("You don't have permission to manage members.");
+          board.setIsMembersOpen(true);
+        }}
         onRefresh={fetchBoard}
       />
+
+      {/* Debug Info (Optional - kept minimal if needed, otherwise removed) */}
+      {/* <div className="bg-yellow-100... hidden" /> */}
 
       {/* Error banner */}
       {error && (
@@ -706,8 +757,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                       onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
                       activeMenuId={board.activeMenuColumnId}
                       onMenuToggle={board.setActiveMenuColumnId}
+                      isReadOnly={isReadOnly}
                     >
-                      <Droppable droppableId={String(col.id)}>
+                      <Droppable droppableId={String(col.id)} isDropDisabled={isReadOnly}>
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
@@ -731,50 +783,52 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                             ))}
                             {provided.placeholder}
 
-                            {board.isAddingTask === col.id ? (
-                              <div className="bg-white p-3 rounded-xl shadow-lg border border-blue-200 animate-in fade-in zoom-in-95 duration-200 ring-4 ring-blue-50/50">
-                                <textarea
-                                  autoFocus
-                                  placeholder="Type task name..."
-                                  className="w-full text-sm resize-none outline-none text-gray-700 placeholder:text-gray-400 mb-2 font-medium bg-transparent"
-                                  rows={2}
-                                  value={board.newTaskTitle}
-                                  onChange={(e) =>
-                                    board.setNewTaskTitle(e.target.value)
-                                  }
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                      e.preventDefault();
-                                      handleAddTaskApi(col.id);
+                            {!isReadOnly && (
+                              board.isAddingTask === col.id ? (
+                                <div className="bg-white p-3 rounded-xl shadow-lg border border-blue-200 animate-in fade-in zoom-in-95 duration-200 ring-4 ring-blue-50/50">
+                                  <textarea
+                                    autoFocus
+                                    placeholder="Type task name..."
+                                    className="w-full text-sm resize-none outline-none text-gray-700 placeholder:text-gray-400 mb-2 font-medium bg-transparent"
+                                    rows={2}
+                                    value={board.newTaskTitle}
+                                    onChange={(e) =>
+                                      board.setNewTaskTitle(e.target.value)
                                     }
-                                  }}
-                                />
-                                <div className="flex items-center justify-between gap-2 mt-2">
-                                  <button
-                                    onClick={() => handleAddTaskApi(col.id)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm shadow-blue-200 transition-all active:scale-95"
-                                  >
-                                    Add Card
-                                  </button>
-                                  <button
-                                    onClick={() => board.setIsAddingTask(null)}
-                                    className="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                                  >
-                                    <X size={16} />
-                                  </button>
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleAddTaskApi(col.id);
+                                      }
+                                    }}
+                                  />
+                                  <div className="flex items-center justify-between gap-2 mt-2">
+                                    <button
+                                      onClick={() => handleAddTaskApi(col.id)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm shadow-blue-200 transition-all active:scale-95"
+                                    >
+                                      Add Card
+                                    </button>
+                                    <button
+                                      onClick={() => board.setIsAddingTask(null)}
+                                      className="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                      <X size={16} />
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => board.setIsAddingTask(col.id)}
-                                className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group"
-                              >
-                                <Plus
-                                  size={18}
-                                  className="text-gray-400 group-hover:text-blue-500"
-                                />
-                                Add Task
-                              </button>
+                              ) : (
+                                <button
+                                  onClick={() => board.setIsAddingTask(col.id)}
+                                  className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group"
+                                >
+                                  <Plus
+                                    size={18}
+                                    className="text-gray-400 group-hover:text-blue-500"
+                                  />
+                                  Add Task
+                                </button>
+                              )
                             )}
                           </div>
                         )}
@@ -784,47 +838,50 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 ))}
 
                 {/* Add New List Button */}
-                <div className="min-w-[320px] shrink-0">
-                  {board.isAddingColumn ? (
-                    <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
-                      <input
-                        autoFocus
-                        placeholder="Enter list title..."
-                        className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
-                        value={board.newColumnTitle}
-                        onChange={(e) =>
-                          board.setNewColumnTitle(e.target.value)
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAddColumnApi();
-                          if (e.key === "Escape")
-                            board.setIsAddingColumn(false);
-                        }}
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleAddColumnApi}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all"
-                        >
-                          Add List
-                        </button>
-                        <button
-                          onClick={() => board.setIsAddingColumn(false)}
-                          className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                        >
-                          <X size={18} />
-                        </button>
+                {!isReadOnly && (
+                  <div className="min-w-[320px] shrink-0">
+                    {board.isAddingColumn ? (
+                      <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
+                        <input
+                          autoFocus
+                          placeholder="Enter list title..."
+                          className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
+                          value={board.newColumnTitle}
+                          onChange={(e) =>
+                            board.setNewColumnTitle(e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddColumnApi();
+                            if (e.key === "Escape")
+                              board.setIsAddingColumn(false);
+                          }}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleAddColumnApi}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all"
+                          >
+                            Add List
+                          </button>
+                          <button
+                            onClick={() => board.setIsAddingColumn(false)}
+                            className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => board.setIsAddingColumn(true)}
-                      className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all"
-                    >
-                      <Plus size={20} /> Add New List
-                    </button>
-                  )}
-                </div>
+                    ) : (
+                      <button
+                        onClick={() => board.setIsAddingColumn(true)}
+                        className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all"
+                        disabled={isReadOnly} // Added disabled check
+                      >
+                        <Plus size={20} /> Add New List
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </DragDropContext>
           </div>
