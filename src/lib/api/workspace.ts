@@ -67,6 +67,7 @@ export const createColumn = async (data: {
   title: string;
   order?: number;
   color?: string;
+  user?: string; // ✅ เพิ่ม user
 }) => {
   const res = await fetch("/api/workspace/column", {
     method: "POST",
@@ -79,7 +80,7 @@ export const createColumn = async (data: {
 
 export const updateColumn = async (
   id: string,
-  data: { title?: string; order?: number; color?: string }
+  data: { title?: string; order?: number; color?: string; user?: string } // ✅ เพิ่ม user
 ) => {
   const res = await fetch(`/api/workspace/column/${id}`, {
     method: "PUT",
@@ -130,6 +131,7 @@ export const createTask = async (data: {
   startDate?: string;
   endDate?: string;
   assigneeIds?: string[];
+  user?: string; // ✅ เพิ่ม user
 }) => {
   const res = await fetch("/api/workspace/task", {
     method: "POST",
@@ -157,6 +159,7 @@ export const updateTask = async (
     attachments?: number;
     checklist?: number;
     assigneeIds?: string[];
+    user?: string; // ✅ เพิ่ม user
   }
 ) => {
   const res = await fetch(`/api/workspace/task/${id}`, {
@@ -391,3 +394,4 @@ export const deleteLabel = async (id: string) => {
   if (!res.ok) throw new Error("Failed to delete label");
   return res.ok;
 };
+

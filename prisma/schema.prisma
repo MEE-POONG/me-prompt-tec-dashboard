@@ -651,3 +651,24 @@ model BoardLabel {
 
   @@unique([boardId, name])
 }
+
+// Notification System
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId // แจ้งเตือนใคร (ถ้า null = แจ้งทุกคนในบอร์ด)
+  boardId   String   @db.ObjectId // แจ้งเตือนในบอร์ดไหน
+  
+  actorName String   // ชื่อคนทำ (เช่น "Admin")
+  action    String   // การกระทำ (เช่น "created task")
+  target    String   // เป้าหมาย (เช่น "Task 1")
+  type      String   // ประเภท (create, update, delete, comment)
+  
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relation (Optional: เชื่อมกับบอร์ดได้ถ้าต้องการ)
+  board     ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  
+  @@index([boardId])
+  @@index([createdAt])
+}

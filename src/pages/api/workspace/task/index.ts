@@ -64,7 +64,7 @@ export default async function handler(
         endDate,
         checklist,
         assigneeIds,
-        user, // รับชื่อคนทำรายการ (ถ้ามีส่งมา)
+        user, // ✅ รับชื่อ user จาก Frontend
       } = req.body;
 
       if (!columnId || !title) {
@@ -123,7 +123,7 @@ export default async function handler(
         },
       });
 
-      // ✅ Publish Notification
+      // ✅ Publish Notification พร้อมชื่อ User
       try {
         const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } });
         
@@ -131,8 +131,7 @@ export default async function handler(
             publish(String(col.boardId), { 
                 type: "task:created", 
                 payload: task,
-                // ข้อมูลสำหรับ Notification
-                user: user || "System", 
+                user: user || "System", // ✅ ใช้ user ที่ส่งมา ถ้าไม่มีใช้ System
                 action: "created task", 
                 target: task.title
             });

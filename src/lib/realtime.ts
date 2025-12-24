@@ -1,39 +1,30 @@
 import { EventEmitter } from "events";
 
-// 1. ใช้ Global Variable เพื่อกัน Event หายตอน Next.js Compile ใหม่ (สำคัญมาก)
+// ประกาศ Global Interface เพื่อไม่ให้ TypeScript ฟ้อง error ในโหมด Dev
 declare global {
-  var activeBus: EventEmitter | undefined;
+  var realtimeEmitter: EventEmitter | undefined;
 }
 
-const bus = global.activeBus || new EventEmitter();
+// ใช้ Global Emitter เพื่อป้องกันการสร้าง Instance ใหม่ทุกครั้งที่ Hot Reload
+const emitter = global.realtimeEmitter || new EventEmitter();
 
-// ป้องกันการสร้าง instance ใหม่ซ้ำๆ ในโหมด Development
 if (process.env.NODE_ENV !== "production") {
-  global.activeBus = bus;
+  global.realtimeEmitter = emitter;
 }
 
-// 2. ขยาย Type ให้รองรับ fields ของระบบแจ้งเตือน (user, action, target)
-// ใส่ [key: string]: any เพื่อให้ยืดหยุ่น ไม่กระทบโค้ดเก่า
-export type RealtimeEvent = {
-  type: string;
-  payload?: any;
-  user?: string;    // เพิ่ม
-  action?: string;  // เพิ่ม
-  target?: string;  // เพิ่ม
-  [key: string]: any; // รับค่าอื่นๆ ได้หมด
+// ฟังก์ชันสำหรับส่งข้อมูล (Publish) - เรียกใช้ตอน Create/Update/Delete ใน Backend
+export const publish = (channel: string, data: any) => {
+  // console.log(`📢 Realtime Publish to [${channel}]:`, data.type); // เปิดคอมเมนต์ถ้าอยาก Debug
+  emitter.emit(channel, data);
 };
 
-export const publish = (channel: string, event: RealtimeEvent) => {
-  bus.emit(channel, event);
-};
+// ฟังก์ชันสำหรับรับข้อมูล (Subscribe) - เรียกใช้โดย SSE API Endpoint
+export const subscribe = (channel: string, callback: (data: any) => void) => {
+  const handler = (data: any) => callback(data);
+  emitter.on(channel, handler);
 
-export const subscribe = (channel: string, handler: (ev: RealtimeEvent) => void) => {
-  const wrapper = (event: RealtimeEvent) => handler(event);
-  bus.on(channel, wrapper);
-  return () => bus.off(channel, wrapper);
-};
-
-export default {
-  publish,
-  subscribe,
+  // Return ฟังก์ชันสำหรับยกเลิกการฟัง (Unsubscribe)
+  return () => {
+    emitter.off(channel, handler);
+  };
 };

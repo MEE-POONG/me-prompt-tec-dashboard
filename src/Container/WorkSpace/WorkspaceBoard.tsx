@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import {
@@ -62,8 +62,55 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
   // ✅ State สำหรับ Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  
+  // ✅ เพิ่มตัวแปรนี้: เช็คว่าโหลดข้อมูลเสร็จหรือยัง (กันบันทึกทับ)
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Helper: map a color name or board label to Tailwind classes
+  // ✅ Ref สำหรับจำ ID ของกิจกรรมล่าสุด
+  const lastActivityIdRef = useRef<string | null>(null);
+
+  // ✅ Helper: ดึงชื่อ User ปัจจุบัน
+  const getCurrentUserName = () => {
+    if (currentUser?.name) return currentUser.name;
+    if (typeof window !== "undefined") {
+        const u = localStorage.getItem("user");
+        if (u) {
+            try { return JSON.parse(u).name; } catch(e) {}
+        }
+    }
+    return "Someone";
+  };
+
+  // ✅ 1. โหลดข้อมูล (Load): ทำงานแค่ครั้งเดียวเมื่อเข้าหน้านี้
+  useEffect(() => {
+      if (typeof window !== "undefined" && workspaceId) {
+          const saved = localStorage.getItem(`notifications_${workspaceId}`);
+          if (saved) {
+              try {
+                  const parsed = JSON.parse(saved);
+                  // แปลง string date กลับเป็น object Date
+                  const withDate = parsed.map((n: any) => ({
+                      ...n,
+                      timestamp: new Date(n.timestamp)
+                  }));
+                  setNotifications(withDate);
+              } catch (e) { console.error("Error loading notifications", e); }
+          }
+          // บอกว่าโหลดเสร็จแล้วนะ อนุญาตให้บันทึกได้
+          setIsLoaded(true);
+      }
+  }, [workspaceId]);
+
+  // ✅ 2. บันทึกข้อมูล (Save): ทำงานเมื่อข้อมูลเปลี่ยน และต้องโหลดเสร็จแล้วเท่านั้น (isLoaded === true)
+  useEffect(() => {
+      // ถ้ายังโหลดไม่เสร็จ ห้ามบันทึกเด็ดขาด! (ไม่งั้นจะบันทึกค่าว่างทับของเก่า)
+      if (!isLoaded) return;
+
+      if (typeof window !== "undefined" && workspaceId) {
+          localStorage.setItem(`notifications_${workspaceId}`, JSON.stringify(notifications));
+      }
+  }, [notifications, workspaceId, isLoaded]);
+
   const getLabelColors = useCallback((tag: string, tagColor?: string, currentLabels: any[] = []) => {
     const labelData = currentLabels.find(l => l.name === tag);
     if (labelData) {
@@ -84,7 +131,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     return mapping[color] || mapping.slate;
   }, []);
 
-  // Helper: map API task -> WorkspaceTask
   const mapApiTaskToWorkspaceTask = useCallback((task: any, currentLabels: any[] = []) => {
     let dateLabel = "No date";
     try {
@@ -126,10 +172,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     };
   }, [getLabelColors]);
 
-  // Fetch board details
   const fetchBoard = useCallback(async () => {
     if (!workspaceId) return;
-    setLoading(true);
     setError(null);
 
     try {
@@ -164,13 +208,15 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     }
   }, [workspaceId, mapApiTaskToWorkspaceTask]);
 
+  // Initial Load Only
   useEffect(() => {
-    if (!workspaceId) return;
-    fetchBoard();
-  }, [workspaceId, fetchBoard]);
+    if (workspaceId) {
+        setLoading(true);
+        fetchBoard();
+    }
+  }, [workspaceId]);
 
   useEffect(() => {
-    // Get Current User
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("user");
       if (stored) {
@@ -183,7 +229,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     }
   }, []);
 
-  // Calculate Read Only logic
   useEffect(() => {
     if (!workspaceInfo || !currentUser) {
       return;
@@ -208,72 +253,61 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
   }, [workspaceInfo, currentUser]);
 
-  // Real-time: subscribe to server-sent events for this board
+  // ✅ ระบบ Polling: เช็ค Activity ใหม่ทุกๆ 2 วินาที
   useEffect(() => {
     if (!workspaceId) return;
-    const url = `/api/realtime/stream?channel=${encodeURIComponent(String(workspaceId))}`;
-    const es = new EventSource(url);
 
-    es.onmessage = (ev) => {
-      try {
-        const data = JSON.parse(ev.data);
-        
-        // 1. Refresh Board Data
-        fetchBoard();
+    const checkUpdates = async () => {
+        try {
+            const res = await fetch(`/api/workspace/activity?boardId=${workspaceId}&limit=1`);
+            if (res.ok) {
+                const data = await res.json();
+                const latestActivity = data[0];
 
-        // 2. Handle Notifications
-        if (data.type) { // ตัดเงื่อนไข user !== "Me" ออกเพื่อให้เห็นแจ้งเตือนตัวเองช่วงเทส
-            let actionText = "อัปเดต";
-            let notifType: NotificationItem["type"] = "update";
+                if (latestActivity && latestActivity.id !== lastActivityIdRef.current) {
+                    
+                    if (lastActivityIdRef.current !== null) {
+                        // 1. Refresh ข้อมูลกระดาน
+                        fetchBoard();
 
-            const actionLower = (data.action || "").toLowerCase();
-            
-            if (actionLower.includes("created task")) { 
-                actionText = "สร้างงานใหม่"; 
-                notifType = "create"; 
-            } else if (actionLower.includes("created list")) {
-                actionText = "สร้างลิสต์ใหม่";
-                notifType = "create";
-            } else if (actionLower.includes("comment")) { 
-                actionText = "คอมเมนต์ใน"; 
-                notifType = "comment"; 
-            } else if (actionLower.includes("moved")) { 
-                actionText = "ย้ายงาน"; 
-                notifType = "update"; 
-            } else if (actionLower.includes("deleted")) { 
-                actionText = "ลบ"; 
-                notifType = "delete"; 
-            } else if (actionLower.includes("renamed")) {
-                actionText = "เปลี่ยนชื่อ";
-                notifType = "update";
+                        // 2. สร้างการแจ้งเตือน
+                        let actionText = "อัปเดต";
+                        let notifType: NotificationItem["type"] = "update";
+                        const act = (latestActivity.action || "").toLowerCase();
+
+                        if (act.includes("created task")) { actionText = "สร้างงานใหม่"; notifType = "create"; } 
+                        else if (act.includes("created list")) { actionText = "สร้างลิสต์ใหม่"; notifType = "create"; } 
+                        else if (act.includes("comment")) { actionText = "คอมเมนต์ใน"; notifType = "comment"; } 
+                        else if (act.includes("moved")) { actionText = "ย้ายงาน"; notifType = "update"; } 
+                        else if (act.includes("deleted")) { actionText = "ลบ"; notifType = "delete"; } 
+                        else if (act.includes("renamed")) { actionText = "เปลี่ยนชื่อ"; notifType = "update"; }
+
+                        const newNotif: NotificationItem = {
+                            id: Date.now().toString(),
+                            user: latestActivity.user || "System",
+                            action: actionText,
+                            target: latestActivity.target || "งาน",
+                            timestamp: new Date(),
+                            type: notifType
+                        };
+
+                        setNotifications(prev => [newNotif, ...prev]);
+                    }
+                    
+                    lastActivityIdRef.current = latestActivity.id;
+                } else if (lastActivityIdRef.current === null && latestActivity) {
+                    lastActivityIdRef.current = latestActivity.id;
+                }
             }
-
-            const newNotif: NotificationItem = {
-                id: Date.now().toString(),
-                user: data.user || "System",
-                action: actionText,
-                target: data.target || "งาน",
-                timestamp: new Date(),
-                type: notifType
-            };
-
-            setNotifications(prev => [newNotif, ...prev]);
+        } catch (e) {
+            console.error("Polling error", e);
         }
-
-      } catch (e) {
-        console.error("Invalid realtime message", e);
-      }
     };
 
-    es.onerror = (e) => {
-      console.error("SSE error", e);
-      es.close();
-    };
-
-    return () => es.close();
+    const intervalId = setInterval(checkUpdates, 2000); 
+    return () => clearInterval(intervalId);
   }, [workspaceId, fetchBoard]);
 
-  // API-backed handlers
   const handleAddTaskApi = async (columnId: string | number) => {
     if (!board.newTaskTitle?.trim()) return;
     const title = board.newTaskTitle;
@@ -303,7 +337,17 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         columnId: String(columnId),
         title,
         order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0,
+        user: getCurrentUserName(),
       });
+      await createActivity({
+        boardId: String(workspaceId),
+        user: getCurrentUserName(),
+        action: "created task",
+        target: created.title,
+        projectId: String(workspaceId),
+        taskId: created.id,
+      });
+      
       const mapped = mapApiTaskToWorkspaceTask(created, labels);
       board.setColumns((prev) =>
         prev.map((c) =>
@@ -317,28 +361,15 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             : c
         )
       );
-      await createActivity({
-        boardId: String(workspaceId),
-        user: "System",
-        action: "created task",
-        target: created.title,
-        projectId: String(workspaceId),
-        taskId: created.id,
-      });
     } catch (err) {
       console.error("Failed to create task", err);
-      board.setColumns((prev) =>
-        prev.map((c) =>
-          c.id === columnId
-            ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== tempId) }
-            : c
-        )
-      );
+      board.setColumns((prev) => prev.map((c) => c.id === columnId ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== tempId) } : c));
     }
   };
 
   const handleDeleteTaskApi = async (columnId: string | number, taskId: string | number) => {
     if (!confirm("Delete this task?")) return;
+    const taskTitle = board.columns.find(c => c.id === columnId)?.tasks?.find(t => t.id === taskId)?.title || "task";
     const prev = board.columns;
     board.setColumns(
       board.columns.map((c) =>
@@ -349,6 +380,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     );
     try {
       await deleteTask(String(taskId));
+      await createActivity({
+        boardId: String(workspaceId),
+        user: getCurrentUserName(),
+        action: "deleted task",
+        target: taskTitle,
+        projectId: String(workspaceId),
+      });
     } catch (err) {
       console.error("Failed to delete task", err);
       board.setColumns(prev);
@@ -368,6 +406,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         boardId: String(workspaceId),
         title,
         order: board.columns.length,
+        user: getCurrentUserName(),
       });
       const mappedCol = {
         id: created.id,
@@ -382,7 +421,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       });
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "created list",
         target: created.title,
         projectId: String(workspaceId),
@@ -406,10 +445,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         startDate,
         endDate: new Date(new Date(startDate).getTime() + duration * 24 * 60 * 60 * 1000).toISOString(),
         order: board.columns.find((c) => c.id === columnId)?.tasks?.length ?? 0,
+        user: getCurrentUserName(),
       });
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "created task",
         target: created.title,
         projectId: String(workspaceId),
@@ -432,10 +472,10 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       board.columns.map((c) => (c.id === colId ? { ...c, title } : c))
     );
     try {
-      await updateColumn(String(colId), { title });
+      await updateColumn(String(colId), { title, user: getCurrentUserName() });
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "renamed list",
         target: title,
         projectId: String(workspaceId),
@@ -454,7 +494,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       await deleteColumn(String(colId));
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "deleted list",
         target: String(colId),
         projectId: String(workspaceId),
@@ -478,7 +518,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       );
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "cleared list",
         target: String(colId),
         projectId: String(workspaceId),
@@ -498,47 +538,18 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
     try {
       const isTemp = String(draggableId).startsWith("temp-") || !/^[a-fA-F0-9]{24}$/.test(String(draggableId));
-      if (isTemp) {
-        const destCol = board.columns.find((c) => c.id === destination.droppableId);
-        const movedTask = destCol?.tasks?.find((t: any) => String(t.id) === String(draggableId));
-        if (movedTask) {
-          const created = await createTask({
-            columnId: String(destination.droppableId),
-            title: movedTask.title,
-            order: destination.index,
-            dueDate: (movedTask as any).rawDueDate || undefined,
-            startDate: (movedTask as any).startDate || undefined,
-            endDate: (movedTask as any).endDate || undefined,
-          });
-          const mapped = mapApiTaskToWorkspaceTask(created, labels);
-          board.setColumns((prev) =>
-            prev.map((c) =>
-              c.id === destination.droppableId
-                ? { ...c, tasks: (c.tasks || []).map((t: any) => (t.id === draggableId ? mapped : t)) }
-                : c
-            )
-          );
-          await createActivity({
-            boardId: String(workspaceId),
-            user: "System",
-            action: "created task",
-            target: created.title,
-            projectId: String(workspaceId),
-            taskId: created.id,
-          });
-          await fetchBoard();
-          return;
-        }
-      }
+      if (isTemp) return;
+
       await updateTask(String(draggableId), {
         columnId: String(destination.droppableId),
         order: destination.index,
+        user: getCurrentUserName(),
       });
       await createActivity({
         boardId: String(workspaceId),
-        user: "System",
+        user: getCurrentUserName(),
         action: "moved task",
-        target: String(draggableId),
+        target: "task",
         projectId: String(workspaceId),
         taskId: String(draggableId),
       });
@@ -556,7 +567,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         </div>
       )}
 
-      {/* 1. Header (Updated) */}
+      {/* 1. Header */}
       <WorkspaceHeader
         workspaceInfo={
           workspaceInfo || {
@@ -579,11 +590,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           board.setIsMembersOpen(true);
         }}
         onRefresh={fetchBoard}
-        // ✅ Props แจ้งเตือน
         notifications={notifications}
+        // ✅ แก้ไข: ลบข้อมูลจาก LocalStorage
         onClearNotifications={() => {
-            // ล้างการแจ้งเตือน
-            setNotifications([]); 
+            if(!confirm("ต้องการลบประวัติการแจ้งเตือนทั้งหมดใช่ไหม?")) return;
+            setNotifications([]);
+            localStorage.removeItem(`notifications_${workspaceId}`);
         }}
       />
 
@@ -653,7 +665,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         )}
       </div>
 
-      {/* 3. Main Content Area */}
       <div className="flex-1 w-full h-full overflow-hidden bg-white relative">
         {currentView === "board" && !loading && (
           <div className="h-full pt-6">
@@ -662,65 +673,28 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 {board.columns.map((col) => (
                   <div key={col.id} className="min-w-[320px] w-[320px] flex flex-col bg-gray-50/50 rounded-2xl border border-gray-200/60 h-full max-h-full transition-colors shrink-0">
                     <WorkspaceBoardColumn
-                      column={col}
-                      onAddTask={board.setIsAddingTask}
-                      onCreateTask={handleAddTaskApi}
-                      onRenameStart={board.handleRenameColumnStart}
-                      onClearColumn={() => handleClearColumnApi(col.id)}
-                      onDeleteColumn={() => handleDeleteColumnApi(col.id)}
-                      editingId={board.editingColumnId}
-                      tempTitle={board.tempColumnTitle}
-                      onTitleChange={board.setTempColumnTitle}
-                      onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
-                      activeMenuId={board.activeMenuColumnId}
-                      onMenuToggle={board.setActiveMenuColumnId}
-                      isReadOnly={isReadOnly}
+                      column={col} onAddTask={board.setIsAddingTask} onCreateTask={handleAddTaskApi}
+                      onRenameStart={board.handleRenameColumnStart} onClearColumn={() => handleClearColumnApi(col.id)} onDeleteColumn={() => handleDeleteColumnApi(col.id)}
+                      editingId={board.editingColumnId} tempTitle={board.tempColumnTitle} onTitleChange={board.setTempColumnTitle} onSaveTitle={() => handleRenameColumnSaveApi(col.id)}
+                      activeMenuId={board.activeMenuColumnId} onMenuToggle={board.setActiveMenuColumnId} isReadOnly={isReadOnly}
                     >
                       <Droppable droppableId={String(col.id)} isDropDisabled={isReadOnly}>
                         {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] transition-colors rounded-b-2xl scrollbar-hide ${snapshot.isDraggingOver ? "bg-blue-50/30 ring-2 ring-inset ring-blue-100" : ""}`}
-                          >
+                          <div ref={provided.innerRef} {...provided.droppableProps} className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] rounded-b-2xl scrollbar-hide ${snapshot.isDraggingOver ? "bg-blue-50/30" : ""}`}>
                             {board.filterTasks(col.tasks).map((task, index) => (
-                              <WorkspaceTaskCard
-                                key={task.id}
-                                task={task}
-                                columnId={col.id}
-                                index={index}
-                                onDelete={(cid, tid) => handleDeleteTaskApi(cid, tid)}
-                                onClick={board.handleOpenTaskModal}
-                              />
+                              <WorkspaceTaskCard key={task.id} task={task} columnId={col.id} index={index} onDelete={(cid, tid) => handleDeleteTaskApi(cid, tid)} onClick={board.handleOpenTaskModal} />
                             ))}
                             {provided.placeholder}
                             {board.isAddingTask === col.id ? (
                               <div className="bg-white p-3 rounded-xl shadow-lg border border-blue-200 animate-in fade-in zoom-in-95 duration-200 ring-4 ring-blue-50/50">
-                                <textarea
-                                  autoFocus
-                                  placeholder="Type task name..."
-                                  className="w-full text-sm resize-none outline-none text-gray-700 placeholder:text-gray-400 mb-2 font-medium bg-transparent"
-                                  rows={2}
-                                  value={board.newTaskTitle}
-                                  onChange={(e) => board.setNewTaskTitle(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                      e.preventDefault();
-                                      handleAddTaskApi(col.id);
-                                    }
-                                  }}
-                                />
+                                <textarea autoFocus placeholder="Type task name..." className="w-full text-sm resize-none outline-none text-gray-700 placeholder:text-gray-400 mb-2 font-medium bg-transparent" rows={2} value={board.newTaskTitle} onChange={(e) => board.setNewTaskTitle(e.target.value)} onKeyDown={(e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddTaskApi(col.id); } }} />
                                 <div className="flex items-center justify-between gap-2 mt-2">
                                   <button onClick={() => handleAddTaskApi(col.id)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm shadow-blue-200 transition-all active:scale-95">Add Card</button>
                                   <button onClick={() => board.setIsAddingTask(null)} className="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><X size={16} /></button>
                                 </div>
                               </div>
-                            ) : (
-                              !isReadOnly && (
-                                <button onClick={() => board.setIsAddingTask(col.id)} className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group">
-                                  <Plus size={18} className="text-gray-400 group-hover:text-blue-500" /> Add Task
-                                </button>
-                              )
+                            ) : !isReadOnly && (
+                              <button onClick={() => board.setIsAddingTask(col.id)} className="w-full py-2.5 flex items-center justify-start px-4 gap-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all text-sm font-semibold group"><Plus size={18} className="text-gray-400 group-hover:text-blue-500" /> Add Task</button>
                             )}
                           </div>
                         )}
@@ -728,32 +702,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                     </WorkspaceBoardColumn>
                   </div>
                 ))}
-                
-                {/* Add List Button - ซ่อนถ้า Read Only */}
                 {!isReadOnly && (
                   <div className="min-w-[320px] shrink-0">
                     {board.isAddingColumn ? (
-                      <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50">
-                        <input
-                          autoFocus
-                          placeholder="Enter list title..."
-                          className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
-                          value={board.newColumnTitle}
-                          onChange={(e) => board.setNewColumnTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleAddColumnApi();
-                            if (e.key === "Escape") board.setIsAddingColumn(false);
-                          }}
-                        />
-                        <div className="flex items-center gap-2">
-                          <button onClick={handleAddColumnApi} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all">Add List</button>
-                          <button onClick={() => board.setIsAddingColumn(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
-                        </div>
-                      </div>
+                      <div className="bg-white p-4 rounded-2xl shadow-xl border border-blue-200 animate-in fade-in zoom-in-95 ring-4 ring-blue-50/50"><input autoFocus placeholder="List title..." className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1" value={board.newColumnTitle} onChange={(e) => board.setNewColumnTitle(e.target.value)} onKeyDown={(e) => { if(e.key === "Enter") handleAddColumnApi(); if(e.key === "Escape") board.setIsAddingColumn(false); }} /><div className="flex items-center gap-2"><button onClick={handleAddColumnApi} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all">Add List</button><button onClick={() => board.setIsAddingColumn(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button></div></div>
                     ) : (
-                      <button onClick={() => board.setIsAddingColumn(true)} className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all">
-                        <Plus size={20} /> Add New List
-                      </button>
+                      <button onClick={() => board.setIsAddingColumn(true)} className="w-full h-[60px] flex items-center justify-center gap-2 bg-slate-50/50 hover:bg-slate-100/80 text-slate-500 font-bold rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 transition-all"><Plus size={20} /> Add New List</button>
                     )}
                   </div>
                 )}
@@ -761,32 +715,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             </DragDropContext>
           </div>
         )}
-
         {currentView === "dashboard" && <ProjectDashboard boardId={workspaceId} tasks={board.columns.flatMap(c => c.tasks || [])} members={members} />}
         {currentView === "timeline" && <ProjectTimeline tasks={board.columns.flatMap(c => c.tasks || [])} labels={labels} onCreateTask={handleCreateTaskFromTimeline} />}
         {currentView === "report" && <ProjectReport tasks={board.columns.flatMap(c => c.tasks || [])} members={members} />}
       </div>
-
-      {board.selectedTask && (
-        <ModalsWorkflow
-          isOpen={board.isModalOpen}
-          onClose={() => board.setIsModalOpen(false)}
-          task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
-          onTaskUpdated={fetchBoard}
-        />
-      )}
-
-      <WorkspaceSettingsSidebar
-        isOpen={board.isSettingsOpen}
-        onClose={() => board.setIsSettingsOpen(false)}
-        workspaceInfo={workspaceInfo || { name: "", description: "", progress: 0, dueDate: "", members: [], activities: [] }}
-      />
-
-      <MembersManageModal
-        isOpen={board.isMembersOpen}
-        onClose={() => board.setIsMembersOpen(false)}
-        members={members}
-      />
+      {board.selectedTask && <ModalsWorkflow isOpen={board.isModalOpen} onClose={() => board.setIsModalOpen(false)} task={{ ...board.selectedTask, id: String(board.selectedTask.id) }} onTaskUpdated={fetchBoard} />}
+      <WorkspaceSettingsSidebar isOpen={board.isSettingsOpen} onClose={() => board.setIsSettingsOpen(false)} workspaceInfo={workspaceInfo || { name: "", description: "", progress: 0, dueDate: "", members: [], activities: [] }} />
+      <MembersManageModal isOpen={board.isMembersOpen} onClose={() => board.setIsMembersOpen(false)} members={members} />
     </div>
   );
 }

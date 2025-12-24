@@ -23,7 +23,6 @@ export default async function handler(
                 select: {
                   id: true,
                   userId: true,
-                  // assignedAt: true, // เอาออกถ้าไม่มีใน Schema
                   user: {
                     select: {
                       id: true,
@@ -47,7 +46,7 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { boardId, title, order, color, user } = req.body; // รับ user เพิ่ม
+      const { boardId, title, order, color, user } = req.body; // ✅ รับ user
 
       if (!boardId || !title) {
         return res
@@ -67,13 +66,12 @@ export default async function handler(
         },
       });
 
-      // ✅ Publish Notification (แจ้งเตือนสร้าง List)
+      // ✅ Publish Notification พร้อม User
       try { 
         publish(String(boardId), { 
             type: "column:created", 
             payload: column,
-            // ข้อมูลสำหรับ Notification
-            user: user || "System",
+            user: user || "System", // ✅ ใช้ชื่อคนสร้าง
             action: "created list",
             target: column.title
         }); 

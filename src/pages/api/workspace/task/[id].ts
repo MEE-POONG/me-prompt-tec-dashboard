@@ -64,7 +64,7 @@ export default async function handler(
         attachments,
         checklist,
         assigneeIds,
-        user, // รับชื่อคนแก้ไข
+        user, // ✅ รับชื่อคนแก้ไข
       } = req.body;
 
       const updateData: any = {};
@@ -143,12 +143,11 @@ export default async function handler(
         },
       });
 
-      // ✅ Publish Notification
+      // ✅ Publish Notification พร้อมชื่อ User
       try {
         const boardId = task.column?.boardId || (await prisma.boardColumn.findUnique({ where: { id: task.columnId }, select: { boardId: true } }))?.boardId;
         
         if (boardId) {
-            // Determine Action Text
             let actionText = "updated task";
             if (columnId !== undefined) actionText = "moved task";
             if (title !== undefined) actionText = "renamed task";
@@ -156,8 +155,7 @@ export default async function handler(
             publish(String(boardId), { 
                 type: "task:updated", 
                 payload: task,
-                // Notification Data
-                user: user || "System",
+                user: user || "System", // ✅ ใช้ชื่อคนแก้ไข
                 action: actionText,
                 target: task.title
             });
@@ -187,7 +185,6 @@ export default async function handler(
                 publish(String(boardId), { 
                     type: "task:deleted", 
                     payload: { id },
-                    // Notification Data
                     user: "System",
                     action: "deleted task",
                     target: existing.title
