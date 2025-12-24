@@ -23,12 +23,52 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { boardId, name, role, avatar, color } = req.body;
+      const { boardId, name, role, avatar, color, email } = req.body;
 
-      if (!boardId || !name || !role) {
+      if (!boardId) {
+        return res.status(400).json({ message: "boardId is required" });
+      }
+
+      // Logic 1: Invite by Email (Priority)
+      if (email) {
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!user) {
+          return res.status(404).json({ message: "อีเมลนี้ไม่มีอยู่ในระบบ" });
+        }
+
+        // Check if already a member
+        const existingMember = await prisma.boardMember.findFirst({
+          where: {
+            boardId,
+            name: user.name || user.email, // Simple check by name/email mapping for now
+          },
+        });
+
+        if (existingMember) {
+          return res.status(409).json({ message: "User is already a member of this board" });
+        }
+
+        const newMember = await prisma.boardMember.create({
+          data: {
+            boardId,
+            name: user.name || user.email, // Use Name or Email as display name
+            role: role || "Viewer",
+            avatar: user.avatar || undefined, // Use user avatar if available
+            color: color || "bg-blue-500", // Default color
+          },
+        });
+
+        return res.status(201).json(newMember);
+      }
+
+      // Logic 2: Direct Add (Legacy/Mockup support)
+      if (!name || !role) {
         return res
           .status(400)
-          .json({ message: "boardId, name, and role are required" });
+          .json({ message: "If not inviting by email, name and role are required" });
       }
 
       const member = await prisma.boardMember.create({

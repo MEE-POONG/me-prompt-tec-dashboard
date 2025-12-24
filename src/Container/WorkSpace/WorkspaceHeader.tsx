@@ -112,8 +112,7 @@ export default function WorkspaceHeader({
               ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
               : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
           }`}
-        >
-          <Filter size={16} />
+        > 
           Filter
         </button>
 
@@ -122,7 +121,7 @@ export default function WorkspaceHeader({
           className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium border border-transparent hover:border-gray-200 transition-all shrink-0"
         >
           <Users size={16} />
-          Members
+            
         </button>
 
         <button
