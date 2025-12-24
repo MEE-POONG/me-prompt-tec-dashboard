@@ -225,7 +225,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
-        setAssignedMembers((data.assignees || []).map((a: any) => a.id).filter(Boolean));
+        // setAssignedMembers((data.assignees || []).map((a: any) => a.id).filter(Boolean));
         setBoardId(data.column?.board?.id || data.column?.boardId || null);
 
         if (data.startDate || data.endDate) {
@@ -250,7 +250,10 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
 
           try {
             const mems: any[] = await getMembers(boardId);
-            setMembersList(mems.map(m => ({ id: m.id, name: m.name || m.user || "Member", color: m.color || "bg-slate-400", short: (m.name || "").slice(0, 1).toUpperCase() })));
+            setMembersList(mems.map(m => ({ id: m.id, name: m.name || m.user || "Member", color: m.color || "bg-slate-400", short: (m.name || "").slice(0, 1).toUpperCase(), userId: m.userId })));
+            const taskUserIds = (data.assignees || []).map((a: any) => a.userId);
+            const matchedBoardIds = mems.filter((m: any) => taskUserIds.includes(m.userId)).map((m: any) => m.id);
+            setAssignedMembers(matchedBoardIds);
           } catch (err) { }
 
           let currentLabels: TagItem[] = [];
@@ -686,7 +689,11 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     if (!taskId) return;
     const newMembers = assignedMembers.includes(memberId) ? assignedMembers.filter(id => id !== memberId) : [...assignedMembers, memberId];
     setAssignedMembers(newMembers);
-    try { await updateTask(String(taskId), { assigneeIds: newMembers }); const member = membersList.find(m => m.id === memberId); logActivity(`${newMembers.includes(memberId) ? 'assigned' : 'removed'} ${member?.name || memberId}`); } catch (err) { console.error("Failed to update assignees", err); }
+
+    // Map Board IDs to User IDs for API
+    const userIds = newMembers.map(bid => membersList.find((m: any) => m.id === bid)?.userId).filter(Boolean);
+
+    try { await updateTask(String(taskId), { assigneeIds: userIds }); const member = membersList.find(m => m.id === memberId); logActivity(`${newMembers.includes(memberId) ? 'assigned' : 'removed'} ${member?.name || memberId}`); } catch (err) { console.error("Failed to update assignees", err); }
   };
 
   const handleSaveDate = async () => {

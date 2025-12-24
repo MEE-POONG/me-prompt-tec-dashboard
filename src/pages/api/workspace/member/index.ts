@@ -19,7 +19,16 @@ export default async function handler(
         orderBy: { name: "asc" },
       });
 
-      return res.status(200).json(members);
+      // Fetch users to map userId
+      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+
+      const membersWithUserId = members.map((m) => {
+        // Attempt to find user by email (stored in name) or name
+        const user = users.find(u => u.email === m.name || u.name === m.name);
+        return { ...m, userId: user?.id };
+      });
+
+      return res.status(200).json(membersWithUserId);
     }
 
     if (req.method === "POST") {
