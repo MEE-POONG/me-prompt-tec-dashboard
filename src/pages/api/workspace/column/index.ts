@@ -24,7 +24,6 @@ export default async function handler(
                 select: {
                   id: true,
                   userId: true,
-                  assignedAt: true,
                   user: {
                     select: {
                       id: true,

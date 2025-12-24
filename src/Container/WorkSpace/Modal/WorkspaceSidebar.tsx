@@ -33,6 +33,39 @@ export default function WorkspaceSidebar({
   const [showLabels, setShowLabels] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
+  // Activity summary helpers (preview & counts)
+  const activities = workspaceInfo?.activities ?? [];
+  const timeAgo = (date: Date) => {
+    const diff = Date.now() - date.getTime();
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return "just now";
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min} min${min > 1 ? "s" : ""} ago`;
+    const hrs = Math.floor(min / 60);
+    if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString();
+  };
+
+  const latestActivity = activities.length > 0
+    ? activities.reduce((a: any, b: any) => {
+        const aTime = a.time ?? a.createdAt ?? a.updatedAt ?? null;
+        const bTime = b.time ?? b.createdAt ?? b.updatedAt ?? null;
+        const aDate = aTime ? new Date(aTime) : new Date(0);
+        const bDate = bTime ? new Date(bTime) : new Date(0);
+        return aDate > bDate ? a : b;
+      })
+    : null;
+
+  const activityTimeStr = latestActivity ? (latestActivity.time ?? (latestActivity as any).createdAt ?? (latestActivity as any).updatedAt ?? null) : null;
+  const activityDate = activityTimeStr ? new Date(activityTimeStr) : null;
+  const hasValidDate = activityDate && !isNaN(activityDate.getTime());
+
+  const activityPreview = latestActivity
+    ? `${latestActivity.user} ${latestActivity.action} ${latestActivity.target}${hasValidDate ? ` · ${timeAgo(activityDate as Date)}` : ''}`
+    : "No recent activity";
+
   const TAG_OPTIONS = [
     { id: '1', name: 'High Priority', bg: 'bg-red-100', text: 'text-red-700', color: 'red' },
     { id: '2', name: 'Design', bg: 'bg-purple-100', text: 'text-purple-700', color: 'purple' },
@@ -108,8 +141,19 @@ export default function WorkspaceSidebar({
                     ? "text-blue-600 border-b-2 border-blue-600"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
+                title={activityPreview}
               >
-                Activity
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-2">
+                    <span>Activity</span>
+                    {activities.length > 0 && (
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
+                        {activities.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1 line-clamp-1 w-full">{activityPreview}</div>
+                </div>
               </button>
             </>
           ) : null}

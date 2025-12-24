@@ -739,7 +739,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           <div className="h-full pt-6">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="flex h-full overflow-x-auto gap-6 px-6 items-start pb-4 custom-scrollbar">
-                {board.columns.map((col) => (
+                {board.columns.filter((col) => col.title !== 'Archived').map((col) => (
                   <div
                     key={col.id}
                     className="min-w-[320px] w-[320px] flex flex-col bg-gray-50/50 rounded-2xl border border-gray-200/60 h-full max-h-full transition-colors shrink-0"
@@ -939,6 +939,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             activities: [],
           }
         }
+        boardId={workspaceId}
+        onBoardChanged={fetchBoard}
       />
 
       <MembersManageModal

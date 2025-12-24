@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X, CheckCircle2, CheckSquare, Tag as TagIcon, Calendar, Paperclip,
   Plus, MoreHorizontal, Layout, Trash2, ChevronRight, ChevronLeft,
   Link as LinkIcon, FileText, AlignLeft, MessageSquare, Activity, Send,
-  Edit2, Smile, UploadCloud, User, Monitor, Search, Clock, GripVertical
+  Edit2, Smile, UploadCloud, User, Monitor, Search, Clock, GripVertical, Archive
 } from "lucide-react";
 import { format } from "date-fns";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { getTask, updateTask, getActivities, createActivity, getMembers, getChecklistItems, createChecklistItem, updateChecklistItem, deleteChecklistItem, getComments, createComment, deleteComment as apiDeleteComment, getLabels, createLabel, updateLabel, deleteLabel } from "@/lib/api/workspace";
+import { getTask, updateTask, getActivities, createActivity, getMembers, getChecklistItems, createChecklistItem, updateChecklistItem, deleteChecklistItem, getComments, createComment, deleteComment as apiDeleteComment, getLabels, createLabel, updateLabel, deleteLabel, getColumns, createColumn, deleteTask } from "@/lib/api/workspace";
 
 // --- 1. CSS Styles ---
 const customStyles = `
@@ -120,6 +121,25 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
   const [loadingTask, setLoadingTask] = useState(false);
   const [membersList, setMembersList] = useState<Member[]>(ALL_MEMBERS);
   const [checklistCount, setChecklistCount] = useState(0);
+
+  // More dropdown state
+  const [moreOpen, setMoreOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties | null>(null);
+  // Portal node to render floating dropdown into document.body to avoid clipping
+  const portalNodeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const node = document.createElement('div');
+    node.className = 'modal-dropdown-portal';
+    document.body.appendChild(node);
+    portalNodeRef.current = node;
+    return () => {
+      try { document.body.removeChild(node); } catch (e) { /* ignore */ }
+      portalNodeRef.current = null;
+    };
+  }, []);
 
   // --- Effect: Load full task when modal opens ---
   useEffect(() => {
@@ -314,6 +334,62 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     return () => es.close();
   }, [isOpen, taskId]);
 
+  // Close More dropdown when modal closes or on outside click
+  useEffect(() => {
+    if (!isOpen) {
+      setMoreOpen(false);
+      setDropdownStyle(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!(e.target instanceof Node)) return;
+      const insideMenu = menuRef.current && menuRef.current.contains(e.target);
+      const insideDropdown = dropdownRef.current && dropdownRef.current.contains(e.target);
+      if (!insideMenu && !insideDropdown) {
+        setMoreOpen(false);
+        setDropdownStyle(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuRef, dropdownRef]);
+
+  // Toggle and position the floating dropdown (rendered fixed to avoid overflow clipping)
+  const toggleMore = () => {
+    const open = !moreOpen;
+    if (open && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const width = 176; // approx (w-44)
+      let left = rect.right - width;
+      if (left < 8) left = rect.left;
+      const top = rect.bottom + 6 + window.scrollY;
+      setDropdownStyle({ position: 'fixed', top, left, minWidth: width, zIndex: 9999 });
+    } else {
+      setDropdownStyle(null);
+    }
+    setMoreOpen(open);
+  };
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const reposition = () => {
+      if (!menuRef.current) return;
+      const rect = menuRef.current.getBoundingClientRect();
+      const width = 176;
+      let left = rect.right - width;
+      if (left < 8) left = rect.left;
+      const top = rect.bottom + 6 + window.scrollY;
+      setDropdownStyle({ position: 'fixed', top, left, minWidth: width, zIndex: 9999 });
+    };
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
+  }, [moreOpen]);
 
   // --- Handlers ---
   const logActivity = (action: string) => {
@@ -326,6 +402,52 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     // Persist activity (best-effort)
     if (boardId) {
       createActivity({ boardId, user: "You", action, target: title, projectId: boardId, taskId: taskId || undefined }).catch(e => console.error("createActivity failed", e));
+    }
+  };
+
+  // Archive a single task by moving it to (or creating) an "Archived" column
+  const handleArchiveTask = async () => {
+    if (!taskId || !boardId) return;
+    if (!confirm('Archive this task?')) return;
+    try {
+      setIsSaving(true);
+      let cols: any[] = [];
+      try { cols = await getColumns(boardId); } catch (e) { cols = []; }
+      let archived = cols.find(c => (c.name || '').toLowerCase() === 'archived');
+      if (!archived) {
+        archived = await createColumn({ boardId, title: 'Archived' });
+      }
+
+      await updateTask(String(taskId), { columnId: archived.id });
+      await createActivity({ boardId: String(boardId), user: 'You', action: 'archived', target: title, projectId: String(boardId), taskId: taskId || undefined });
+      logActivity('archived this task');
+      try { onTaskUpdated?.(); } catch (e) { /* ignore */ }
+      onClose();
+    } catch (err) {
+      console.error('Failed to archive task', err);
+      alert('Failed to archive task');
+    } finally {
+      setIsSaving(false);
+      setMoreOpen(false);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!taskId) return;
+    if (!confirm('Delete this task? This cannot be undone.')) return;
+    try {
+      setIsSaving(true);
+      await deleteTask(String(taskId));
+      await createActivity({ boardId: String(boardId), user: 'You', action: 'deleted', target: title, projectId: String(boardId), taskId: taskId || undefined });
+      logActivity('deleted');
+      try { onTaskUpdated?.(); } catch (e) { /* ignore */ }
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete task', err);
+      alert('Failed to delete task');
+    } finally {
+      setIsSaving(false);
+      setMoreOpen(false);
     }
   };
 
@@ -759,7 +881,18 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
             </div>
             <div className="flex gap-2 items-center">
               <button onClick={handleSaveAll} disabled={isSaving} className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isSaving ? 'bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-all disabled:opacity-60`}>{isSaving ? 'Saving...' : 'Save'}</button>
-              <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><MoreHorizontal size={20} /></button>
+
+              <div className="relative" ref={menuRef}>
+                <button onClick={toggleMore} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><MoreHorizontal size={20} /></button>
+              </div>
+              {moreOpen && dropdownStyle && portalNodeRef.current && createPortal(
+                <div ref={dropdownRef} style={dropdownStyle} className="bg-white rounded-md border shadow-lg z-9999">
+                  <button onClick={handleArchiveTask} className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-sm text-slate-700"><Archive size={16} /> Archive task</button>
+                  <button onClick={handleDeleteTask} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 text-sm"><Trash2 size={16} /> Delete task</button>
+                </div>,
+                portalNodeRef.current
+              )}
+
               <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" onClick={onClose}><X size={20} /></button>
             </div>
           </div>

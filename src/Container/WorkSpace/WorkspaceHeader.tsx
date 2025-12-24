@@ -41,6 +41,41 @@ export default function WorkspaceHeader({
     }
   };
 
+  // 🔧 Compute latest activity & human-friendly "time ago"
+  const timeAgo = (date: Date) => {
+    const diff = Date.now() - date.getTime();
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return "just now";
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min} min${min > 1 ? "s" : ""} ago`;
+    const hrs = Math.floor(min / 60);
+    if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString();
+  };
+
+  const latestActivity = workspaceInfo?.activities && workspaceInfo.activities.length > 0
+    ? workspaceInfo.activities.reduce((a: any, b: any) => {
+        const aTime = a.time ?? a.createdAt ?? a.updatedAt ?? null;
+        const bTime = b.time ?? b.createdAt ?? b.updatedAt ?? null;
+        const aDate = aTime ? new Date(aTime) : new Date(0);
+        const bDate = bTime ? new Date(bTime) : new Date(0);
+        return aDate > bDate ? a : b;
+      })
+    : null;
+
+  // Prefer `time` property, otherwise fall back to `createdAt`/`updatedAt`
+  const activityTimeStr = latestActivity ? (latestActivity.time ?? (latestActivity as any).createdAt ?? (latestActivity as any).updatedAt ?? null) : null;
+  const activityDate = activityTimeStr ? new Date(activityTimeStr) : null;
+  const hasValidDate = activityDate && !isNaN(activityDate.getTime());
+
+  const lastActivityLabel = latestActivity
+    ? hasValidDate
+      ? `Last updated ${timeAgo(activityDate as Date)} by ${latestActivity.user}`
+      : `Last updated by ${latestActivity.user}`
+    : "No recent activity";
+
   return (
     <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm">
       {/* Left: Project Info */}
@@ -77,8 +112,11 @@ export default function WorkspaceHeader({
               />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Last updated 2 hours ago
+          <p
+            className="text-xs text-gray-400 mt-0.5"
+            title={hasValidDate && activityDate ? (activityDate as Date).toLocaleString() : undefined}
+          >
+            {lastActivityLabel}
           </p>
         </div>
       </div>

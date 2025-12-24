@@ -7,6 +7,7 @@ import {
   User, 
 } from "lucide-react";
 import { WorkspaceInfo, WorkspaceMember } from "@/types/workspace";
+import { getColumns, createColumn, getTasks, updateTask, deleteTask, createActivity } from "@/lib/api/workspace";
 
 // --- Types ---
 type TabType = 'settings' | 'difficulty' | 'archived' | 'activities';
@@ -22,15 +23,21 @@ export function WorkspaceSettingsSidebar({
   isOpen,
   onClose,
   workspaceInfo,
+  boardId,
+  onBoardChanged,
 }: {
   isOpen: boolean;
   onClose: () => void;
   workspaceInfo: WorkspaceInfo;
+  boardId?: string;
+  onBoardChanged?: () => void;
 }) {
   
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>('settings');
   const [showMenu, setShowMenu] = useState(false);
+  const [archivedTasks, setArchivedTasks] = useState<any[]>([]);
+  const [isProcessingArchive, setIsProcessingArchive] = useState(false);
   
   // Form States (Settings)
   const [shortName, setShortName] = useState("MPT");
@@ -62,6 +69,24 @@ export function WorkspaceSettingsSidebar({
         setTempDescription(description); // Reset temp description to saved value
     }
   }, [isOpen, workspaceInfo, description]);
+
+  // load archived tasks when the archived tab is active
+  useEffect(() => {
+    const loadArchived = async () => {
+      if (!boardId) return;
+      try {
+        const cols = await getColumns(String(boardId));
+        const arch = cols.find((c: any) => c.title === 'Archived');
+        if (!arch) { setArchivedTasks([]); return; }
+        const ats = await getTasks({ columnId: String(arch.id) });
+        setArchivedTasks(ats || []);
+      } catch (e) {
+        console.error('Failed to load archived tasks', e);
+      }
+    };
+
+    if (activeTab === 'archived') loadArchived();
+  }, [activeTab, boardId]);
 
   // Click Outside to Close Menus
   useEffect(() => {
@@ -156,6 +181,7 @@ export function WorkspaceSettingsSidebar({
                 </div>
                 
                 <div className="relative" ref={menuRef}>
+                    <div className="relative" ref={menuRef}>
                     <button 
                         onClick={() => setShowMenu(!showMenu)}
                         className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
@@ -170,12 +196,73 @@ export function WorkspaceSettingsSidebar({
                             <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                                 <Copy size={14}/> Copy Board
                             </button>
+                            <button onClick={async () => {
+                                if (!boardId) return alert('Board ID missing');
+                                if (!confirm('Archive all tasks? This will move them to the Archived tab.')) return;
+                                setIsProcessingArchive(true);
+                                try {
+                                  // find or create archived column
+                                  const cols: any[] = await getColumns(String(boardId));
+                                  let arch = cols.find(c => c.title === 'Archived');
+                                  if (!arch) {
+                                    arch = await createColumn({ boardId: String(boardId), title: 'Archived', color: 'bg-gray-200' });
+                                  }
+                                  // fetch tasks for board and move them
+                                  const tasks: any[] = await getTasks({ boardId: String(boardId) });
+                                  await Promise.all(tasks.map(t => updateTask(String(t.id), { columnId: String(arch.id) })));
+                                  // create an activity
+                                  await createActivity({ boardId: String(boardId), user: 'System', action: 'archived all tasks', target: 'All tasks' });
+                                  // reload board and archived list
+                                  if (onBoardChanged) await onBoardChanged();
+                                  // set active tab to archived
+                                  setActiveTab('activities');
+                                  // small delay to ensure fresh data
+                                  setTimeout(async () => {
+                                    // reload archived tasks view
+                                    const cols2: any[] = await getColumns(String(boardId));
+                                    const arch2 = cols2.find(c => c.title === 'Archived');
+                                    if (arch2) {
+                                      const archivedTasksRes: any[] = await getTasks({ columnId: String(arch2.id) });
+                                      setArchivedTasks(archivedTasksRes);
+                                    }
+                                  }, 600);
+                                } catch (e) {
+                                  console.error('Archive failed', e);
+                                  alert('Failed to archive tasks');
+                                } finally {
+                                  setIsProcessingArchive(false);
+                                  setShowMenu(false);
+                                  setActiveTab('archived');
+                                }
+                            }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <Archive size={14}/> Archive tasks
+                            </button>
+
+                            <button onClick={async () => {
+                                if (!boardId) return alert('Board ID missing');
+                                if (!confirm('Delete ALL tasks on this board? This is irreversible.')) return;
+                                try {
+                                  const tasks: any[] = await getTasks({ boardId: String(boardId) });
+                                  await Promise.all(tasks.map(t => deleteTask(String(t.id))));
+                                  if (onBoardChanged) await onBoardChanged();
+                                  alert('All tasks deleted');
+                                } catch (e) {
+                                  console.error('Delete all tasks failed', e);
+                                  alert('Failed to delete tasks');
+                                } finally {
+                                  setShowMenu(false);
+                                }
+                            }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                <Trash2 size={14}/> Delete all tasks
+                            </button>
+
                             <div className="h-px bg-slate-100 my-1"></div>
                             <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                                 <Trash2 size={14}/> Delete Board
                             </button>
                         </div>
                     )}
+                </div>
                 </div>
             </div>
 
@@ -374,7 +461,7 @@ export function WorkspaceSettingsSidebar({
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium text-slate-800">Archived tasks</h3>
-                        <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-all shadow-sm active:scale-95">
+                        <button onClick={() => window.alert('Switching to columns view not implemented yet')} className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-all shadow-sm active:scale-95">
                             Switch to columns
                         </button>
                     </div>
@@ -387,16 +474,63 @@ export function WorkspaceSettingsSidebar({
                         />
                     </div>
                     
-                    {/* Empty State */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center mt-4">
-                        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
-                            <div className="w-16 h-12 bg-blue-600 rounded-md shadow-lg flex items-center justify-center relative z-10 rotate-[-10deg]">
-                                <Archive size={24} className="text-white"/>
+                    {/* Archived list */}
+                    <div className="space-y-3 mt-3">
+                      {archivedTasks.length > 0 ? (
+                        archivedTasks.map((t) => (
+                          <div key={t.id} className="bg-white p-3 rounded-lg border border-slate-100 flex items-center justify-between">
+                            <div>
+                              <div className="text-sm font-bold text-slate-900">{t.title}</div>
+                              <div className="text-xs text-slate-500">{t.dueDate ? new Date(t.dueDate).toLocaleString() : new Date(t.createdAt).toLocaleString()}</div>
                             </div>
-                            <div className="absolute w-14 h-4 bg-blue-800/20 rounded-full blur-md bottom-4"></div>
-                        </div>
-                        <h4 className="text-lg font-bold text-slate-800 mb-1">No items</h4>
-                        <p className="text-sm text-slate-500">You can archive tasks or columns here.</p>
+                            <div className="flex gap-2">
+                              <button onClick={async () => {
+                                if (!confirm('Restore this task to first column?')) return;
+                                try {
+                                  // find a first non-Archived column
+                                  const cols: any[] = await getColumns(String(boardId));
+                                  const first = cols.find((c: any) => c.title !== 'Archived');
+                                  if (!first) throw new Error('No destination column');
+                                  await updateTask(String(t.id), { columnId: String(first.id) });
+                                  if (onBoardChanged) await onBoardChanged();
+                                  // refresh archived list
+                                  const cols2: any[] = await getColumns(String(boardId));
+                                  const arch = cols2.find((c: any) => c.title === 'Archived');
+                                  if (arch) {
+                                    const ats = await getTasks({ columnId: String(arch.id) });
+                                    setArchivedTasks(ats);
+                                  }
+                                } catch (e) {
+                                  console.error(e);
+                                  alert('Failed to restore task');
+                                }
+                              }} className="px-2 py-1 text-xs border rounded">Restore</button>
+                              <button onClick={async () => {
+                                if (!confirm('Delete this archived task?')) return;
+                                try {
+                                  await deleteTask(String(t.id));
+                                  if (onBoardChanged) await onBoardChanged();
+                                  setArchivedTasks(prev => prev.filter(x => x.id !== t.id));
+                                } catch (e) {
+                                  console.error(e);
+                                  alert('Failed to delete task');
+                                }
+                              }} className="px-2 py-1 text-xs bg-red-50 text-red-600 border rounded">Delete</button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center mt-4">
+                          <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
+                              <div className="w-16 h-12 bg-blue-600 rounded-md shadow-lg flex items-center justify-center relative z-10 rotate-[-10deg]">
+                                  <Archive size={24} className="text-white"/>
+                              </div>
+                              <div className="absolute w-14 h-4 bg-blue-800/20 rounded-full blur-md bottom-4"></div>
+                          </div>
+                          <h4 className="text-lg font-bold text-slate-800 mb-1">No items</h4>
+                          <p className="text-sm text-slate-500">You can archive tasks or columns here.</p>
+                      </div>
+                      )}
                     </div>
                 </div>
             )}
@@ -404,26 +538,44 @@ export function WorkspaceSettingsSidebar({
             {/* TAB 4: ACTIVITIES */}
             {activeTab === 'activities' && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                     <h3 className="text-sm font-bold text-slate-800 mb-4">Tuesday 18 November 2025</h3>
-                     
-                     <div className="space-y-6 pl-2 relative border-l-2 border-slate-100 ml-3">
-                        {[1, 2, 3].map((_, i) => (
-                            <div key={i} className="flex gap-3 relative -ml-[19px]">
+                    {workspaceInfo.activities && workspaceInfo.activities.length > 0 ? (
+                      // Group activities by date (friendly heading)
+                      Object.entries(
+                        workspaceInfo.activities.reduce((acc: any, act: any) => {
+                          const timeStr = act.time ?? act.createdAt ?? act.updatedAt ?? null;
+                          const d = timeStr ? new Date(timeStr) : null;
+                          const dateKey = d ? d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown date';
+                          acc[dateKey] = acc[dateKey] || [];
+                          acc[dateKey].push({ ...act, _date: d });
+                          return acc;
+                        }, {})
+                      ).map(([dateKey, acts]: any) => (
+                        <div key={dateKey}>
+                          <h3 className="text-sm font-bold text-slate-800 mb-4">{dateKey}</h3>
+                          <div className="space-y-6 pl-2 relative border-l-2 border-slate-100 ml-3">
+                            {acts.map((act: any, i: number) => (
+                              <div key={i} className="flex gap-3 relative -ml-[19px]">
                                 <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm">
-                                    T
+                                  {act.user ? String(act.user).trim().charAt(0).toUpperCase() : '?'}
                                 </div>
                                 <div className="flex flex-col pt-1">
-                                    <div className="text-sm text-slate-800 leading-snug">
-                                        <span className="font-bold hover:underline cursor-pointer">ธนภัทร โพธิ์ศรี</span>
-                                        {i === 0 && " invited siwakorn.pn@rmuti.ac.th to join this board."}
-                                        {i === 1 && " invited nuysupansa09@gmail.com to join this board."}
-                                        {i === 2 && " created this board."}
-                                    </div>
-                                    <span className="text-xs text-slate-400 mt-1 font-medium">November 18 at 11:05</span>
+                                  <div className="text-sm text-slate-800 leading-snug">
+                                    <span className="font-bold hover:underline cursor-pointer">{act.user}</span>
+                                    {' '}
+                                    {act.action}
+                                    {' '}
+                                    <span className="font-medium text-blue-600">{act.target}</span>
+                                  </div>
+                                  <span className="text-xs text-slate-400 mt-1 font-medium">{act._date ? act._date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                 </div>
-                            </div>
-                        ))}
-                     </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-slate-500">No recent activity</div>
+                    )}
                 </div>
             )}
 
