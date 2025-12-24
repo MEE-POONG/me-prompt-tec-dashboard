@@ -751,6 +751,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         isOpen={board.isMembersOpen}
         onClose={() => board.setIsMembersOpen(false)}
         members={members}
+        workspaceId={String(workspaceId)}
+        onMemberAdded={fetchBoard}
+        currentUser={currentUser}
       />
     </div >
   );

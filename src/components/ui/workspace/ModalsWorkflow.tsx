@@ -10,11 +10,11 @@ import {
 import { format } from "date-fns";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { 
-  getTask, updateTask, getActivities, createActivity, getMembers, 
-  getChecklistItems, createChecklistItem, updateChecklistItem, deleteChecklistItem, 
-  getComments, createComment, updateComment, deleteComment as apiDeleteComment, 
-  getLabels, createLabel, updateLabel, deleteLabel, getColumns, createColumn, deleteTask 
+import {
+  getTask, updateTask, getActivities, createActivity, getMembers,
+  getChecklistItems, createChecklistItem, updateChecklistItem, deleteChecklistItem,
+  getComments, createComment, updateComment, deleteComment as apiDeleteComment,
+  getLabels, createLabel, updateLabel, deleteLabel, getColumns, createColumn, deleteTask
 } from "@/lib/api/workspace";
 
 // --- 1. CSS Styles ---
@@ -80,8 +80,8 @@ const EMOJI_LIST = ['👍', '👎', '😀', '😂', '🥰', '😎', '🎉', '�
 
 // Helper: Extract Filename for display from a single file string
 const getFileNameFromCode = (code: string) => {
-    const match = /\[file::(.*?)::/.exec(code);
-    return match ? match[1] : "Unknown File";
+  const match = /\[file::(.*?)::/.exec(code);
+  return match ? match[1] : "Unknown File";
 };
 
 // Helper: Render Comment Content (Download Links)
@@ -100,14 +100,14 @@ const renderCommentContent = (text: string) => {
     const fileData = match[2];
     parts.push(
       <div key={`file-${match.index}`} className="block my-1">
-        <a 
-            href={fileData} 
-            download={fileName}
-            className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg border border-blue-200 transition-colors font-semibold no-underline"
+        <a
+          href={fileData}
+          download={fileName}
+          className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg border border-blue-200 transition-colors font-semibold no-underline"
         >
-            <FileIcon size={16} />
-            {fileName}
-            <Download size={14} className="ml-1 opacity-50"/>
+          <FileIcon size={16} />
+          {fileName}
+          <Download size={14} className="ml-1 opacity-50" />
         </a>
       </div>
     );
@@ -143,11 +143,11 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
   ]);
   const [commentInput, setCommentInput] = useState("");
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
-  
+
   // ✅ Edit Comment State (Improved for Multiple Files)
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
-  const [editingFileParts, setEditingFileParts] = useState<string[]>([]); 
+  const [editingFileParts, setEditingFileParts] = useState<string[]>([]);
 
   // ✅ Comment File Upload State
   const [commentFile, setCommentFile] = useState<File | null>(null);
@@ -225,9 +225,9 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
-        setAssignedMembers((data.assignees || []).map((a: any) => a.user?.id || a.userId).filter(Boolean));
+        setAssignedMembers((data.assignees || []).map((a: any) => a.id).filter(Boolean));
         setBoardId(data.column?.board?.id || data.column?.boardId || null);
-        
+
         if (data.startDate || data.endDate) {
           try {
             const from = data.startDate ? new Date(data.startDate) : (data.dueDate ? new Date(data.dueDate) : undefined);
@@ -278,7 +278,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
               setBlocks([checklistBlock]);
             } else { setBlocks([]); }
           } catch (err) { setBlocks([]); }
-          
+
           try {
             if (data.tag) {
               const found = currentLabels.find(t => t.name === data.tag);
@@ -291,7 +291,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
               }
             }
           } catch (e) { }
-          
+
           try {
             const coms: any[] = await getComments(data.id);
             setComments(coms.map(c => ({ id: c.id, user: c.author || 'Unknown', text: c.content, time: new Date(c.createdAt).toLocaleString(), color: 'bg-slate-400', isEdited: (c.updatedAt && c.updatedAt !== c.createdAt) })));
@@ -553,19 +553,19 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
   };
 
   // --- Comment System ---
-  
+
   // ✅ 1. Handle Multiple File Selection
   const handleCommentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-        const selectedFiles = Array.from(e.target.files);
-        // Validate each file size
-        const validFiles = selectedFiles.filter(file => file.size <= 2 * 1024 * 1024); // Limit 2MB
-        
-        if (validFiles.length !== selectedFiles.length) {
-            alert("บางไฟล์มีขนาดใหญ่เกิน 2MB และจะไม่ถูกแนบ");
-        }
+      const selectedFiles = Array.from(e.target.files);
+      // Validate each file size
+      const validFiles = selectedFiles.filter(file => file.size <= 2 * 1024 * 1024); // Limit 2MB
 
-        setCommentFiles(prev => [...prev, ...validFiles]);
+      if (validFiles.length !== selectedFiles.length) {
+        alert("บางไฟล์มีขนาดใหญ่เกิน 2MB และจะไม่ถูกแนบ");
+      }
+
+      setCommentFiles(prev => [...prev, ...validFiles]);
     }
   };
 
@@ -577,43 +577,43 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
   // ✅ 3. Send Comment (With Multiple Base64 Files)
   const sendComment = async () => {
     if ((!commentInput.trim() && commentFiles.length === 0) || !taskId) return;
-    
+
     let content = commentInput.trim();
 
     // Helper to read file as base64
     const readFileAsBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     };
 
     try {
-        // Convert all files to base64 strings
-        const fileStrings = await Promise.all(commentFiles.map(async (file) => {
-            const base64 = await readFileAsBase64(file);
-            return `\n[file::${file.name}::${base64}]`;
-        }));
+      // Convert all files to base64 strings
+      const fileStrings = await Promise.all(commentFiles.map(async (file) => {
+        const base64 = await readFileAsBase64(file);
+        return `\n[file::${file.name}::${base64}]`;
+      }));
 
-        // Append all file strings to content
-        const finalContent = content + fileStrings.join('');
-        await submitComment(finalContent);
-        
-        setCommentFiles([]); // Reset files
+      // Append all file strings to content
+      const finalContent = content + fileStrings.join('');
+      await submitComment(finalContent);
+
+      setCommentFiles([]); // Reset files
     } catch (error) {
-        console.error("Error reading files:", error);
+      console.error("Error reading files:", error);
     }
   };
 
   const submitComment = async (content: string) => {
     setCommentInput("");
-    if(chatFileRef.current) chatFileRef.current.value = ""; 
+    if (chatFileRef.current) chatFileRef.current.value = "";
 
     const temp = { id: `temp-${Date.now()}`, user: 'You', text: content, time: 'Just now', color: 'bg-blue-600' };
     setComments(prev => [temp, ...prev]);
-    
+
     try {
       const created: any = await createComment({ taskId: String(taskId), content, author: 'You' });
       setComments(prev => prev.map(c => c.id === temp.id ? { id: created.id, user: created.author || 'You', text: created.content, time: new Date(created.createdAt).toLocaleString(), color: 'bg-blue-600' } : c));
@@ -632,12 +632,12 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
   // ✅ Handle Start Edit: Extract ALL file codes (Corrected Logic)
   const handleStartEdit = (comment: Comment) => {
     setEditingCommentId(comment.id);
-    
+
     // 1. แยกไฟล์ทั้งหมดออกมา
     const fileRegex = /\[file::(.*?)::(.*?)\]/g;
     const fileMatches = [...comment.text.matchAll(fileRegex)];
     const fileParts = fileMatches.map(m => m[0]); // เอามาทั้งก้อน [file::...::...]
-    
+
     // 2. แยกข้อความออกมา (ลบโค้ดไฟล์ออกให้หมด)
     const textOnly = comment.text.replace(fileRegex, "").trim();
 
@@ -650,7 +650,7 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     setEditingText("");
     setEditingFileParts([]);
   };
-  
+
   // ✅ ลบไฟล์ออกจากรายการแก้ไข (ทีละไฟล์)
   const removeEditingFile = (index: number) => {
     setEditingFileParts(prev => prev.filter((_, i) => i !== index));
@@ -660,18 +660,18 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
     // เอาข้อความใหม่ รวมกับไฟล์ที่เหลืออยู่ (เติม \n หน้าแต่ละไฟล์)
     const filesContent = editingFileParts.length > 0 ? editingFileParts.map(part => '\n' + part).join('') : '';
     const finalContent = editingText.trim() + filesContent;
-    
+
     // Update Local UI
     setComments(prev => prev.map(c => c.id === commentId ? { ...c, text: finalContent, isEdited: true } : c));
-    
+
     setEditingCommentId(null);
     setEditingFileParts([]);
 
     try {
-        if (!commentId.startsWith('temp-')) {
-            await updateComment(commentId, { content: finalContent });
-            logActivity('updated comment');
-        }
+      if (!commentId.startsWith('temp-')) {
+        await updateComment(commentId, { content: finalContent });
+        logActivity('updated comment');
+      }
     } catch (err) { console.error('Failed to update comment', err); }
   };
 
@@ -850,15 +850,15 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
                       <div className="flex-1 relative">
                         {/* ✅ Multiple Files Preview Area */}
                         {commentFiles.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-2">
-                                {commentFiles.map((file, index) => (
-                                    <div key={index} className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200 shadow-sm">
-                                        <FileIcon size={14} className="text-blue-500"/>
-                                        <span className="text-xs text-slate-600 truncate max-w-[150px]">{file.name}</span>
-                                        <button onClick={() => removeCommentFile(index)} className="text-slate-400 hover:text-red-500"><X size={14}/></button>
-                                    </div>
-                                ))}
-                            </div>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {commentFiles.map((file, index) => (
+                              <div key={index} className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200 shadow-sm">
+                                <FileIcon size={14} className="text-blue-500" />
+                                <span className="text-xs text-slate-600 truncate max-w-[150px]">{file.name}</span>
+                                <button onClick={() => removeCommentFile(index)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                              </div>
+                            ))}
+                          </div>
                         )}
                         <textarea value={commentInput} onChange={e => setCommentInput(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none min-h-[60px] text-slate-900" placeholder="Write a comment..." onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }} />
                         <div className="flex items-center gap-2 mt-2 justify-end">
@@ -889,47 +889,47 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
                           </div>
                           <div className="flex items-start gap-2 group/bubble">
                             {editingCommentId === c.id ? (
-                                <div className="bg-slate-50 p-3 rounded-xl border border-blue-200 w-full max-w-[85%]">
-                                    <textarea 
-                                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-100"
-                                        rows={3}
-                                        value={editingText}
-                                        onChange={(e) => setEditingText(e.target.value)}
-                                    />
-                                    {/* ✅ แสดงกล่องไฟล์แนบเดิม (ถ้ามี) แบบเป็นรายการ ตามภาพที่ต้องการ */}
-                                    {editingFileParts.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                            <p className="text-xs font-bold text-slate-500 mb-1">ไฟล์แนบเดิม:</p>
-                                            {editingFileParts.map((fileCode, idx) => (
-                                                <div key={idx} className="flex items-center gap-2 bg-blue-50 p-2 rounded border border-blue-100 text-xs text-blue-600 justify-between">
-                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                        <FileIcon size={12} className="shrink-0"/>
-                                                        <span className="truncate">{getFileNameFromCode(fileCode)}</span>
-                                                    </div>
-                                                    <button onClick={() => removeEditingFile(idx)} className="text-red-500 hover:underline shrink-0 ml-2" title="ลบไฟล์นี้">
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
+                              <div className="bg-slate-50 p-3 rounded-xl border border-blue-200 w-full max-w-[85%]">
+                                <textarea
+                                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-100"
+                                  rows={3}
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                />
+                                {/* ✅ แสดงกล่องไฟล์แนบเดิม (ถ้ามี) แบบเป็นรายการ ตามภาพที่ต้องการ */}
+                                {editingFileParts.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-xs font-bold text-slate-500 mb-1">ไฟล์แนบเดิม:</p>
+                                    {editingFileParts.map((fileCode, idx) => (
+                                      <div key={idx} className="flex items-center gap-2 bg-blue-50 p-2 rounded border border-blue-100 text-xs text-blue-600 justify-between">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                          <FileIcon size={12} className="shrink-0" />
+                                          <span className="truncate">{getFileNameFromCode(fileCode)}</span>
                                         </div>
-                                    )}
-                                    <div className="flex gap-2 mt-2 justify-end">
-                                        <button onClick={handleCancelEdit} className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1">Cancel</button>
-                                        <button onClick={() => handleSaveEdit(c.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-1"><SaveIcon size={12}/> Save</button>
-                                    </div>
+                                        <button onClick={() => removeEditingFile(idx)} className="text-red-500 hover:underline shrink-0 ml-2" title="ลบไฟล์นี้">
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-2 justify-end">
+                                  <button onClick={handleCancelEdit} className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1">Cancel</button>
+                                  <button onClick={() => handleSaveEdit(c.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-1"><SaveIcon size={12} /> Save</button>
                                 </div>
+                              </div>
                             ) : (
-                                <div className="text-sm text-slate-800 bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm inline-block font-medium leading-relaxed max-w-[85%] whitespace-pre-wrap">
-                                    {renderCommentContent(c.text)}
-                                </div>
+                              <div className="text-sm text-slate-800 bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm inline-block font-medium leading-relaxed max-w-[85%] whitespace-pre-wrap">
+                                {renderCommentContent(c.text)}
+                              </div>
                             )}
                             {editingCommentId !== c.id && (
-                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity self-center">
-                                   <button onClick={() => handleCopyComment(c.text)} className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Copy"><Copy size={14} /></button>
-                                   <button onClick={() => handleStartEdit(c)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit"><Edit2 size={14} /></button>
-                                   <button onClick={() => deleteComment(c.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={14} /></button>
-                                </div>
-                             )}
+                              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity self-center">
+                                <button onClick={() => handleCopyComment(c.text)} className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Copy"><Copy size={14} /></button>
+                                <button onClick={() => handleStartEdit(c)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit"><Edit2 size={14} /></button>
+                                <button onClick={() => deleteComment(c.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={14} /></button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -960,11 +960,11 @@ export default function ModalsWorkflow({ isOpen, onClose, task, onTaskUpdated }:
                   <SidebarBtn icon={Calendar} label="Dates" active={activePopover === 'dates'} onClick={() => setActivePopover('dates')} />
                   <SidebarBtn icon={Paperclip} label="Attachment" active={activePopover === 'attachment'} onClick={() => setActivePopover('attachment')} />
                   {/* ... Popovers ... */}
-                   {activePopover === 'members' && (<PopoverContainer title="Members" onClose={() => setActivePopover(null)}><div className="space-y-1"><input className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2" placeholder="Search members..." />{membersList.map(m => (<button key={m.id} onClick={() => toggleMember(m.id)} className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}>{m.short}</div><span className="flex-1">{m.name}</span>{assignedMembers.includes(m.id) && <CheckCircle2 size={14} className="text-blue-600" />}</button>))}</div></PopoverContainer>)}
-                   {activePopover === 'tags' && (<PopoverContainer title={tagView === 'list' ? "Labels" : tagView === 'create' ? "Create Label" : "Edit Label"} onClose={() => setActivePopover(null)} width="w-80" showBack={tagView !== 'list'} onBack={() => setTagView('list')}>{tagView === 'list' ? (<div className="space-y-1"><input placeholder="Search labels..." className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500" value={tagSearch} onChange={e => setTagSearch(e.target.value)} /><p className="text-xs font-bold text-slate-500 mb-1 mt-2">LABELS</p>{availableTags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase())).map(t => (<div key={t.id} className="flex items-center gap-2 mb-1 group"><div onClick={() => toggleTag(t.id)} className={`flex-1 h-8 rounded px-3 flex items-center justify-between text-sm font-bold shadow-sm transition-all cursor-pointer ${t.bgColor} ${t.textColor} hover:opacity-90`}>{t.name}{selectedTagIds.includes(t.id) && <CheckCircle2 size={16} />}</div><button onClick={() => startEditTag(t)} className="p-1 text-slate-400 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={14} /></button></div>))}<button onClick={startCreateTag} className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors">Create a new label</button></div>) : (<div className="space-y-3"><div className="h-24 bg-slate-50 rounded-lg flex items-center justify-center mb-2 border border-slate-100"><span className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm ${newTagColor.labelBg} ${newTagColor.labelText}`}>{newTagName || "Label Name"}</span></div><input className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder="Name" /><div className="grid grid-cols-5 gap-2">{TAG_COLORS.map(c => (<div key={c.name} onClick={() => setNewTagColor(c)} className={`h-8 rounded cursor-pointer ${c.bg} ${newTagColor.name === c.name ? 'ring-2 ring-blue-600 ring-offset-1' : 'hover:opacity-80'}`}></div>))}</div><div className="flex gap-2"><button onClick={tagView === 'create' ? handleCreateTag : handleUpdateTag} className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Save</button>{tagView === 'edit' && <button onClick={handleDeleteTag} className="bg-red-50 text-red-600 px-3 rounded text-sm font-bold hover:bg-red-100">Delete</button>}</div></div>)}</PopoverContainer>)}
-                   {activePopover === 'checklist' && (<PopoverContainer title="Add checklist" onClose={() => setActivePopover(null)}><div className="space-y-3"><input autoFocus className="w-full border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 text-slate-900" placeholder="Title" value={newChecklistTitle} onChange={e => setNewChecklistTitle(e.target.value)} /><button onClick={addChecklistBlock} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Add</button></div></PopoverContainer>)}
-                   {activePopover === 'dates' && (<PopoverContainer title="Dates" onClose={() => setActivePopover(null)} width="w-auto"><div className="p-1"><DayPicker mode="range" defaultMonth={new Date()} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} /></div><div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl"><button onClick={async () => { if (isSavingDate) return; setDateRange(undefined); await handleSaveDate(); }} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200" disabled={isSavingDate}>{isSavingDate ? 'Saving...' : 'Clear'}</button><button onClick={handleSaveDate} disabled={!dateRange?.from || isSavingDate} className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">{isSavingDate ? 'Saving...' : 'Save'}</button></div></PopoverContainer>)}
-                   {activePopover === 'attachment' && (<PopoverContainer title="Attach" onClose={() => setActivePopover(null)}><div className="flex gap-2 mb-3 border-b border-slate-100 pb-2"><button onClick={() => setAttachmentTab('file')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'file' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Computer</button><button onClick={() => setAttachmentTab('link')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'link' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Link</button></div>{attachmentTab === 'file' ? (<div className="border-2 border-dashed border-slate-200 rounded-xl py-6 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition-all" onClick={() => fileInputRef.current?.click()}><UploadCloud size={24} className="mx-auto mb-2 text-slate-400" /> Click to upload file<input type="file" className="hidden" ref={fileInputRef} onChange={(e) => { if (e.target.files?.[0]) handleAddAttachment('file', e.target.files[0].name); }} /></div>) : (<div className="space-y-3"><input placeholder="Paste any link..." className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} /><input placeholder="Link name (optional)" className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkText} onChange={e => setLinkText(e.target.value)} /><button onClick={() => handleAddAttachment('link', linkUrl, linkText)} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Attach</button></div>)}</PopoverContainer>)}
+                  {activePopover === 'members' && (<PopoverContainer title="Members" onClose={() => setActivePopover(null)}><div className="space-y-1"><input className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2" placeholder="Search members..." />{membersList.map(m => (<button key={m.id} onClick={() => toggleMember(m.id)} className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}>{m.short}</div><span className="flex-1">{m.name}</span>{assignedMembers.includes(m.id) && <CheckCircle2 size={14} className="text-blue-600" />}</button>))}</div></PopoverContainer>)}
+                  {activePopover === 'tags' && (<PopoverContainer title={tagView === 'list' ? "Labels" : tagView === 'create' ? "Create Label" : "Edit Label"} onClose={() => setActivePopover(null)} width="w-80" showBack={tagView !== 'list'} onBack={() => setTagView('list')}>{tagView === 'list' ? (<div className="space-y-1"><input placeholder="Search labels..." className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500" value={tagSearch} onChange={e => setTagSearch(e.target.value)} /><p className="text-xs font-bold text-slate-500 mb-1 mt-2">LABELS</p>{availableTags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase())).map(t => (<div key={t.id} className="flex items-center gap-2 mb-1 group"><div onClick={() => toggleTag(t.id)} className={`flex-1 h-8 rounded px-3 flex items-center justify-between text-sm font-bold shadow-sm transition-all cursor-pointer ${t.bgColor} ${t.textColor} hover:opacity-90`}>{t.name}{selectedTagIds.includes(t.id) && <CheckCircle2 size={16} />}</div><button onClick={() => startEditTag(t)} className="p-1 text-slate-400 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={14} /></button></div>))}<button onClick={startCreateTag} className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors">Create a new label</button></div>) : (<div className="space-y-3"><div className="h-24 bg-slate-50 rounded-lg flex items-center justify-center mb-2 border border-slate-100"><span className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm ${newTagColor.labelBg} ${newTagColor.labelText}`}>{newTagName || "Label Name"}</span></div><input className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder="Name" /><div className="grid grid-cols-5 gap-2">{TAG_COLORS.map(c => (<div key={c.name} onClick={() => setNewTagColor(c)} className={`h-8 rounded cursor-pointer ${c.bg} ${newTagColor.name === c.name ? 'ring-2 ring-blue-600 ring-offset-1' : 'hover:opacity-80'}`}></div>))}</div><div className="flex gap-2"><button onClick={tagView === 'create' ? handleCreateTag : handleUpdateTag} className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Save</button>{tagView === 'edit' && <button onClick={handleDeleteTag} className="bg-red-50 text-red-600 px-3 rounded text-sm font-bold hover:bg-red-100">Delete</button>}</div></div>)}</PopoverContainer>)}
+                  {activePopover === 'checklist' && (<PopoverContainer title="Add checklist" onClose={() => setActivePopover(null)}><div className="space-y-3"><input autoFocus className="w-full border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 text-slate-900" placeholder="Title" value={newChecklistTitle} onChange={e => setNewChecklistTitle(e.target.value)} /><button onClick={addChecklistBlock} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Add</button></div></PopoverContainer>)}
+                  {activePopover === 'dates' && (<PopoverContainer title="Dates" onClose={() => setActivePopover(null)} width="w-auto"><div className="p-1"><DayPicker mode="range" defaultMonth={new Date()} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} /></div><div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl"><button onClick={async () => { if (isSavingDate) return; setDateRange(undefined); await handleSaveDate(); }} className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200" disabled={isSavingDate}>{isSavingDate ? 'Saving...' : 'Clear'}</button><button onClick={handleSaveDate} disabled={!dateRange?.from || isSavingDate} className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">{isSavingDate ? 'Saving...' : 'Save'}</button></div></PopoverContainer>)}
+                  {activePopover === 'attachment' && (<PopoverContainer title="Attach" onClose={() => setActivePopover(null)}><div className="flex gap-2 mb-3 border-b border-slate-100 pb-2"><button onClick={() => setAttachmentTab('file')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'file' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Computer</button><button onClick={() => setAttachmentTab('link')} className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === 'link' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>Link</button></div>{attachmentTab === 'file' ? (<div className="border-2 border-dashed border-slate-200 rounded-xl py-6 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition-all" onClick={() => fileInputRef.current?.click()}><UploadCloud size={24} className="mx-auto mb-2 text-slate-400" /> Click to upload file<input type="file" className="hidden" ref={fileInputRef} onChange={(e) => { if (e.target.files?.[0]) handleAddAttachment('file', e.target.files[0].name); }} /></div>) : (<div className="space-y-3"><input placeholder="Paste any link..." className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} /><input placeholder="Link name (optional)" className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900" value={linkText} onChange={e => setLinkText(e.target.value)} /><button onClick={() => handleAddAttachment('link', linkUrl, linkText)} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700">Attach</button></div>)}</PopoverContainer>)}
                 </div>
               </div>
               <div>

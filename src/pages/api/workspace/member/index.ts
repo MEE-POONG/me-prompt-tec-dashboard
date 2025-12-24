@@ -39,6 +39,10 @@ export default async function handler(
           return res.status(404).json({ message: "อีเมลนี้ไม่มีอยู่ในระบบ" });
         }
 
+        if (!user.isVerified) {
+          return res.status(400).json({ message: "อีเมลนี้ยังไม่ได้ยืนยันตัวตนในระบบ" });
+        }
+
         // Check if already a member
         const existingMember = await prisma.boardMember.findFirst({
           where: {
@@ -82,6 +86,24 @@ export default async function handler(
       });
 
       return res.status(201).json(member);
+    }
+
+    if (req.method === "PUT") {
+      const { id, role } = req.body;
+
+      if (!id || !role) {
+        return res.status(400).json({ message: "Member ID and Role are required" });
+      }
+
+      try {
+        const updatedMember = await prisma.boardMember.update({
+          where: { id },
+          data: { role },
+        });
+        return res.status(200).json(updatedMember);
+      } catch (error) {
+        return res.status(500).json({ message: "Failed to update member role" });
+      }
     }
 
     if (req.method === "DELETE") {
