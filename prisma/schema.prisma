@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -11,7 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------- Enums ----------------
+// =========================================
+// Enums
+// =========================================
+
 enum Role {
   admin
   staff
@@ -45,11 +47,23 @@ enum MediaType {
   video
   file
 }
+
+// ✅ Enum สำหรับการมองเห็น Project (Private/Public)
 enum Visibility {
   PRIVATE
   PUBLIC
 }
-// ---------------- Composite Types (Embedded) ----------------
+
+enum TaskPriority {
+  High
+  Medium
+  Low
+}
+
+// =========================================
+// Composite Types (Embedded)
+// =========================================
+
 type Name {
   first   String
   last    String
@@ -136,12 +150,12 @@ type ContactInfo {
 }
 
 type Resume {
-  summary     String?
-  skills      Skill[]
-  educations  Education[]
-  experiences Experience[]
-  projects    ResumeProject[]
-  links       Link[]
+  summary      String?
+  skills       Skill[]
+  educations   Education[]
+  experiences  Experience[]
+  projects     ResumeProject[]
+  links        Link[]
 }
 
 type ResumeProject {
@@ -151,7 +165,9 @@ type ResumeProject {
   links       Link[]
 }
 
-// ---------------- Core Models ----------------
+// =========================================
+// Core Models (Company & Users)
+// =========================================
 
 // ผู้ใช้งานหลังบ้าน (Backend Users)
 model User {
@@ -167,21 +183,19 @@ model User {
   name     String? // ชื่อ-นามสกุล (ใช้แทน fullName)
   phone    String? // เบอร์โทร
   position String? // ตำแหน่ง
-  avatar   String? // [NEW] รูปโปรไฟล์สำหรับแสดงใน Board
+  avatar   String? // รูปโปรไฟล์สำหรับแสดงใน Board
 
+  // Tasks ที่ user ถูก assign (ผ่าน TaskAssignee)
   taskAssignees TaskAssignee[]
-  // ✅ tasks ที่ user ถูก assign
-  // tasks BoardTask[] @relation("TaskAssignees")
 
-  // ------------------------
-  // โปรไฟล์ที่เชื่อม (อย่างใดอย่างหนึ่งหรือว่างได้)
+  // โปรไฟล์ที่เชื่อม
   memberId String? @db.ObjectId
   member   Member? @relation(fields: [memberId], references: [id])
 
   internId String? @db.ObjectId
   intern   Intern? @relation(fields: [internId], references: [id])
 
-  // relation: Contact messages handled by this user
+  // Contact messages handled by this user
   handledMessages ContactMessage[]
 
   createdAt DateTime @default(now())
@@ -281,7 +295,7 @@ model Project {
   links        Link[]
   featured     Boolean       @default(false)
 
-  // [NEW] Fields for Internal Workspace
+  // Fields for Internal Workspace
   color            String  @default("#3B82F6") // Hex or Tailwind Class
   isCustomColor    Boolean @default(false)
   internalProgress Int     @default(0) // 0-100
@@ -368,7 +382,9 @@ model MediaAsset {
   @@index([ownerType, ownerId])
 }
 
-// ---------------- Join Models (Many-to-Many) ----------------
+// =========================================
+// Join Models (Many-to-Many)
+// =========================================
 
 // สำหรับ Public Profile (Credit ผลงาน)
 model ProjectMember {
@@ -464,18 +480,19 @@ model NewsletterSubscriber {
   @@index([createdAt])
 }
 
-/**
- * =========================
- * บอร์ดหลัก (ของเดิม)
- * =========================
- */
+// =========================================
+// PROJECT WORKSPACE (Board / Kanban System)
+// =========================================
+
+// บอร์ดหลัก (Workspace Board)
 model ProjectBoard {
   id          String  @id @default(auto()) @map("_id") @db.ObjectId
   name        String  @unique
   description String?
   color       String  @default("#3B82F6")
-  
-  visibility  Visibility @default(PRIVATE)
+
+  // ✅ Visibility (Private/Public)
+  visibility Visibility @default(PRIVATE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -487,11 +504,7 @@ model ProjectBoard {
   boardLabels BoardLabel[]
 }
 
-/**
- * =========================
- * คอลัมน์ (To Do / Done)
- * =========================
- */
+// คอลัมน์ (To Do / Done)
 model BoardColumn {
   id    String  @id @default(auto()) @map("_id") @db.ObjectId
   title String
@@ -507,11 +520,7 @@ model BoardColumn {
   updatedAt DateTime @updatedAt
 }
 
-/**
- * =========================
- * การ์ดงาน (Task)
- * =========================
- */
+// การ์ดงาน (Task)
 model BoardTask {
   id          String  @id @default(auto()) @map("_id") @db.ObjectId
   title       String
@@ -522,9 +531,8 @@ model BoardTask {
   priority  TaskPriority @default(Medium)
   checklist Int          @default(0)
 
-  order   Int
-  dueDate DateTime?
-  // Support date ranges for tasks
+  order     Int
+  dueDate   DateTime?
   startDate DateTime?
   endDate   DateTime?
 
@@ -536,39 +544,30 @@ model BoardTask {
 
   assignees      TaskAssignee[]
   checklistItems ChecklistItem[]
+  taskComments   TaskComment[]
+  taskMembers    TaskMember[]
+  activities     BoardActivity[]
 
-  // relation: task comments (TaskComment model)
-  taskComments TaskComment[]
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
   // timestamp when task was moved to a completed column
-  completedAt  DateTime?
-  taskMembers TaskMember[]
-  activities  BoardActivity[]
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-/**
- * =========================
- * Comments
- * =========================
- */
+// Comments in Task
 model TaskComment {
-  id      String    @id @default(auto()) @map("_id") @db.ObjectId
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
   content String
   author  String
-  taskId  String    @db.ObjectId
+  taskId  String @db.ObjectId
   task    BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-/**
- * =========================
- * Checklist Items
- * =========================
- */
+// Checklist Items in Task
 model ChecklistItem {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
   text      String
@@ -582,11 +581,7 @@ model ChecklistItem {
   updatedAt DateTime @updatedAt
 }
 
-/**
- * =========================
- * สมาชิกใน Task
- * =========================
- */
+// สมาชิกที่แสดงใน Task (Simple View)
 model TaskMember {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
   name   String
@@ -596,11 +591,7 @@ model TaskMember {
   task   BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
-/**
- * =========================
- * สมาชิกใน Project
- * =========================
- */
+// สมาชิกใน Project Board
 model BoardMember {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
   name   String
@@ -612,11 +603,7 @@ model BoardMember {
   board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
-/**
- * =========================
- * Activity Log
- * =========================
- */
+// Activity Log
 model BoardActivity {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   user   String
@@ -626,26 +613,16 @@ model BoardActivity {
   boardId String       @db.ObjectId
   board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  project   Project? @relation(fields: [projectId], references: [id])
   projectId String?  @db.ObjectId
+  project   Project? @relation(fields: [projectId], references: [id])
 
-  // optional task relation to tie activity to a specific BoardTask
-  task   BoardTask? @relation(fields: [taskId], references: [id])
   taskId String?    @db.ObjectId
+  task   BoardTask? @relation(fields: [taskId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
-/**
- * =========================
- * Enum
- * =========================
- */
-enum TaskPriority {
-  High
-  Medium
-  Low
-}
-
+// Join Model: Task <-> User (Assignees)
 model TaskAssignee {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -658,11 +635,7 @@ model TaskAssignee {
   @@unique([taskId, userId])
 }
 
-/**
- * =========================
- * Board Labels
- * =========================
- */
+// Custom Labels for Board
 model BoardLabel {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   name      String

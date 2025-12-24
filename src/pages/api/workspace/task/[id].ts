@@ -1,4 +1,3 @@
-// pages/api/workspace/task/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
@@ -22,7 +21,6 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              // assignedAt: true, <--- ลบออกแล้ว
               user: {
                 select: {
                   id: true,
@@ -66,6 +64,7 @@ export default async function handler(
         attachments,
         checklist,
         assigneeIds,
+        user, // รับชื่อคนแก้ไข
       } = req.body;
 
       const updateData: any = {};
@@ -84,10 +83,9 @@ export default async function handler(
       if (attachments !== undefined) updateData.attachments = attachments;
       if (checklist !== undefined) updateData.checklist = checklist;
 
-      // If columnId changes, set or clear completedAt based on target column title
+      // Logic for completedAt based on column move
       if (columnId !== undefined) {
         try {
-          // get existing to compare
           const existing = await prisma.boardTask.findUnique({ where: { id }, select: { columnId: true } });
           if (!existing || existing.columnId !== columnId) {
             const col = await prisma.boardColumn.findUnique({ where: { id: String(columnId) }, select: { title: true } });
@@ -103,19 +101,17 @@ export default async function handler(
         }
       }
 
-      // Handle assignees separately
+      // Handle assignees
       if (assigneeIds !== undefined) {
-        // First, disconnect all current assignees
         await prisma.boardTask.update({
           where: { id },
           data: {
             assignees: {
-              set: [], // Clear all assignees
+              set: [], 
             },
           },
         });
 
-        // Then connect new assignees
         if (assigneeIds.length > 0) {
           updateData.assignees = {
             connect: assigneeIds.map((userId: string) => ({ id: userId })),
@@ -131,7 +127,6 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              // assignedAt: true, <--- ลบออกแล้ว
               user: {
                 select: {
                   id: true,
@@ -148,10 +143,25 @@ export default async function handler(
         },
       });
 
-      // publish update to board channel
+      // ✅ Publish Notification
       try {
         const boardId = task.column?.boardId || (await prisma.boardColumn.findUnique({ where: { id: task.columnId }, select: { boardId: true } }))?.boardId;
-        if (boardId) publish(String(boardId), { type: "task:updated", payload: task });
+        
+        if (boardId) {
+            // Determine Action Text
+            let actionText = "updated task";
+            if (columnId !== undefined) actionText = "moved task";
+            if (title !== undefined) actionText = "renamed task";
+
+            publish(String(boardId), { 
+                type: "task:updated", 
+                payload: task,
+                // Notification Data
+                user: user || "System",
+                action: actionText,
+                target: task.title
+            });
+        }
       } catch (e) {
         console.error("publish failed", e);
       }
@@ -160,12 +170,30 @@ export default async function handler(
     }
 
     if (req.method === "DELETE") {
-      // fetch task to get boardId/column
-      const existing = await prisma.boardTask.findUnique({ where: { id }, select: { id: true, columnId: true } });
+      // fetch task first to get name and boardId
+      const existing = await prisma.boardTask.findUnique({ 
+          where: { id }, 
+          select: { id: true, title: true, columnId: true } 
+      });
+
       await prisma.boardTask.delete({ where: { id } });
+
+      // ✅ Publish Notification
       try {
-        const boardId = existing ? (await prisma.boardColumn.findUnique({ where: { id: existing.columnId }, select: { boardId: true } }))?.boardId : null;
-        if (boardId) publish(String(boardId), { type: "task:deleted", payload: { id } });
+        if (existing) {
+            const boardId = (await prisma.boardColumn.findUnique({ where: { id: existing.columnId }, select: { boardId: true } }))?.boardId;
+            
+            if (boardId) {
+                publish(String(boardId), { 
+                    type: "task:deleted", 
+                    payload: { id },
+                    // Notification Data
+                    user: "System",
+                    action: "deleted task",
+                    target: existing.title
+                });
+            }
+        }
       } catch (e) { console.error("publish failed", e); }
 
       return res.status(204).end();

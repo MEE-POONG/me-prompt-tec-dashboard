@@ -1,4 +1,3 @@
-// pages/api/workspace/column/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
@@ -36,7 +35,7 @@ export default async function handler(
     }
 
     if (req.method === "PUT") {
-      const { title, order, color } = req.body;
+      const { title, order, color, user } = req.body; // รับ user เพิ่ม
 
       const column = await prisma.boardColumn.update({
         where: { id },
@@ -50,15 +49,54 @@ export default async function handler(
         },
       });
 
-      try { publish(String(column.boardId), { type: "column:updated", payload: column }); } catch (e) { console.error(e); }
+      // ✅ Publish Notification (แจ้งเตือนแก้ไข/ย้าย List)
+      try { 
+        let actionText = "updated list";
+        if (title) actionText = "renamed list"; // ถ้าเปลี่ยนชื่อ
+        
+        // ถ้าแค่ย้ายตำแหน่ง (order) อาจจะไม่ต้องแจ้งเตือน user ทั่วไปก็ได้ หรือจะแจ้งเป็น "reordered list"
+        
+        if (title) { // แจ้งเตือนเฉพาะเปลี่ยนชื่อ
+            publish(String(column.boardId), { 
+                type: "column:updated", 
+                payload: column,
+                user: user || "System",
+                action: actionText,
+                target: column.title
+            }); 
+        } else {
+            // กรณีแค่อัปเดตอื่นๆ ส่ง payload เพื่อ refresh หน้าจอเฉยๆ
+            publish(String(column.boardId), { type: "column:updated", payload: column });
+        }
+
+      } catch (e) { 
+        console.error("publish failed", e); 
+      }
+      
       return res.status(200).json(column);
     }
 
     if (req.method === "DELETE") {
       // fetch boardId then delete
-      const existing = await prisma.boardColumn.findUnique({ where: { id }, select: { boardId: true } });
+      const existing = await prisma.boardColumn.findUnique({ where: { id }, select: { boardId: true, title: true } });
+      
       await prisma.boardColumn.delete({ where: { id } });
-      try { if (existing?.boardId) publish(String(existing.boardId), { type: "column:deleted", payload: { id } }); } catch (e) { console.error(e); }
+      
+      // ✅ Publish Notification (แจ้งเตือนลบ List)
+      try { 
+        if (existing?.boardId) { 
+            publish(String(existing.boardId), { 
+                type: "column:deleted", 
+                payload: { id },
+                user: "System",
+                action: "deleted list",
+                target: existing.title
+            }); 
+        } 
+      } catch (e) { 
+        console.error("publish failed", e); 
+      }
+      
       return res.status(204).end();
     }
 
