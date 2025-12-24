@@ -499,6 +499,23 @@ export function MembersManageModal({
         }
     };
 
+    const handleRemoveMember = async (memberId: string) => {
+        if (!confirm("Are you sure you want to remove this member?")) return;
+
+        try {
+            const res = await fetch(`/api/workspace/member?id=${memberId}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) throw new Error("Failed to remove member");
+
+            if (onMemberAdded) onMemberAdded(); // Refresh list
+        } catch (error) {
+            console.error(error);
+            alert("Failed to remove member");
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -560,18 +577,26 @@ export function MembersManageModal({
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Members ({members.length})</h4>
                     <div className="space-y-1">
                         {members.map((member, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                            <div key={index} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors group">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(' ')[0]?.replace('text-', 'bg-') || 'bg-slate-400'}`}>
                                         {member.avatar}
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-slate-800">{member.name}</span>
-                                        {/* Ideally we should show the actual email if available in member object */}
                                         <span className="text-xs text-slate-500">Member</span>
                                     </div>
                                 </div>
-                                <button className="text-xs font-bold text-slate-600 px-3 py-1.5 bg-slate-100 rounded-lg">{member.role || "Viewer"}</button>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-600 px-3 py-1.5 bg-slate-100 rounded-lg">{member.role || "Viewer"}</span>
+                                    <button
+                                        onClick={() => handleRemoveMember(member.id)}
+                                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Remove member"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

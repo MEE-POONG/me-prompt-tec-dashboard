@@ -25,6 +25,7 @@ export type WorkspaceTask = {
 };
 
 export type WorkspaceMember = {
+    id: string; // [added]
     name: string;
     role: string;
     avatar: string;
