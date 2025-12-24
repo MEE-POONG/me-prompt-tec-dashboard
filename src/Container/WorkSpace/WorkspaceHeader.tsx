@@ -156,16 +156,16 @@ export default function WorkspaceHeader({
           {isNotiOpen && (
             <>
               <div 
-                className="fixed inset-0 z-[998]" 
+                className="fixed inset-0 z-998" 
                 onClick={() => setIsNotiOpen(false)}
               ></div>
 
               <div 
-                className="fixed top-[75px] right-[24px] w-[360px] bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[999]"
+                className="fixed top-[75px] right-6 w-[360px] bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-999"
                 style={{ top: "80px", right: "20px" }}
               >
                 
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 pb-8 relative overflow-hidden flex justify-between items-start">
+                <div className="bg-linear-to-r from-purple-600 to-indigo-600 p-5 pb-8 relative overflow-hidden flex justify-between items-start">
                   <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                   <div className="absolute bottom-[-10%] left-[-10%] w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
                   
@@ -188,7 +188,7 @@ export default function WorkspaceHeader({
                 </div>
 
                 <div className="bg-white rounded-t-3xl -mt-4 relative z-20 px-2 pt-2 pb-2 min-h-[300px] flex flex-col">
-                  <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-2 max-h-[320px]">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-2 max-h-80">
                     
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-[200px] text-center space-y-3">
@@ -211,7 +211,7 @@ export default function WorkspaceHeader({
                             <p className="text-sm text-slate-700 leading-snug">
                               <span className="font-bold text-slate-900">{notif.user}</span> 
                               <span className="mx-1 text-slate-500">{notif.action}</span>
-                              <span className="font-bold text-purple-600 break-words">"{notif.target}"</span>
+                              <span className="font-bold text-purple-600 wrap-break-word">"{notif.target}"</span>
                             </p>
                             <p className="text-[11px] text-slate-400 mt-1 font-medium flex items-center gap-1">
                               {notif.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
