@@ -110,6 +110,8 @@ export default async function handler(
         };
       }
 
+      console.log("Update Task Data:", JSON.stringify(updateData, null, 2));
+
       const task = await prisma.boardTask.update({
         where: { id },
         data: updateData,
@@ -118,15 +120,15 @@ export default async function handler(
             select: {
               id: true,
               userId: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
-                  position: true,
-                },
-              },
+              // user: {
+              //   select: {
+              //     id: true,
+              //     name: true,
+              //     email: true,
+              //     avatar: true,
+              //     position: true,
+              //   },
+              // },
             },
           },
           taskMembers: true,

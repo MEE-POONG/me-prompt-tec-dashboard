@@ -100,6 +100,6 @@ export default async function handler(
     if ((error as any).code === "P2002") {
       return res.status(409).json({ message: "Workspace name already exists" });
     }
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: `Server error: ${(error as any).message}` });
   }
 }

@@ -10,7 +10,10 @@ export const getBoards = async () => {
 
 export const getBoard = async (id: string) => {
   const res = await fetch(`/api/workspace/board/${id}`);
-  if (!res.ok) throw new Error("Failed to fetch board");
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch board: ${res.status} ${res.statusText} - ${text}`);
+  }
   return res.json();
 };
 
