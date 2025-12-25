@@ -35,10 +35,11 @@ export type WorkspaceMember = {
 };
 
 export type WorkspaceActivity = {
+    id: string;
     user: string;
     action: string;
     target: string;
-    time: string;
+    createdAt: string; // ISO Date string
 };
 
 export type WorkspaceInfo = {
@@ -46,6 +47,7 @@ export type WorkspaceInfo = {
     description: string;
     progress: number;
     dueDate: string;
+    createdAt?: string;
     visibility?: "PRIVATE" | "PUBLIC";
     members: WorkspaceMember[];
     activities: WorkspaceActivity[];

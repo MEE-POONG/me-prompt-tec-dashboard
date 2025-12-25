@@ -74,6 +74,16 @@ export default async function handler(
           },
         });
 
+        // ✅ Log Activity
+        await prisma.boardActivity.create({
+            data: {
+                boardId,
+                user: "You", // TODO: Should get current user name from session/token if possible
+                action: "invited",
+                target: user.email,
+            }
+        });
+
         return res.status(201).json(newMember);
       }
 
@@ -94,6 +104,16 @@ export default async function handler(
         },
       });
 
+      // ✅ Log Activity
+      await prisma.boardActivity.create({
+        data: {
+            boardId,
+            user: "You", 
+            action: "added member",
+            target: name,
+        }
+    });
+
       return res.status(201).json(member);
     }
 
@@ -109,6 +129,17 @@ export default async function handler(
           where: { id },
           data: { role },
         });
+
+        // ✅ Log Activity
+        await prisma.boardActivity.create({
+            data: {
+                boardId: updatedMember.boardId,
+                user: "You",
+                action: "changed role of",
+                target: `${updatedMember.name} to ${role}`,
+            }
+        });
+
         return res.status(200).json(updatedMember);
       } catch (error) {
         return res.status(500).json({ message: "Failed to update member role" });
@@ -122,9 +153,23 @@ export default async function handler(
         return res.status(400).json({ message: "Member ID is required" });
       }
 
-      await prisma.boardMember.delete({
-        where: { id },
-      });
+      const memberToDelete = await prisma.boardMember.findUnique({ where: { id } });
+
+      if (memberToDelete) {
+        await prisma.boardMember.delete({
+            where: { id },
+        });
+
+        // ✅ Log Activity
+        await prisma.boardActivity.create({
+            data: {
+                boardId: memberToDelete.boardId,
+                user: "You",
+                action: "removed member",
+                target: memberToDelete.name,
+            }
+        });
+      }
 
       return res.status(200).json({ message: "Member removed successfully" });
     }

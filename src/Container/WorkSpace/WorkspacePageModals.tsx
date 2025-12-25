@@ -18,14 +18,16 @@ import {
   AlertCircle,
   Lock,
   CalendarClock, // [เพิ่ม]
-  Globe, // [เพิ่ม]
+  Globe, //  Globe,
   User,
 } from "lucide-react";
+import { format, isToday, isYesterday } from "date-fns"; // [เพิ่ม]
 import {
   WorkspaceInfo,
   WorkspaceMember,
   WorkspaceTask,
 } from "@/types/workspace";
+import { updateBoard } from "@/lib/api/workspace"; // [เพิ่ม]
 
 // --- Types ---
 type TabType = "settings" | "difficulty" | "archived" | "activities";
@@ -53,11 +55,13 @@ export function WorkspaceSettingsSidebar({
   const [showMenu, setShowMenu] = useState(false);
 
   // Form States (Settings)
-  const [shortName, setShortName] = useState("MPT");
-  const [description, setDescription] = useState("แผนงานโปรเจคเว็บบริษัท"); // ค่าที่บันทึกแล้ว
+  const [projectName, setProjectName] = useState(workspaceInfo.name || ""); // [แก้ไข] เปลี่ยน shortName เป็น projectName
+  const [description, setDescription] = useState(
+    workspaceInfo.description || ""
+  ); // [แก้ไข] รับค่าจาก db
   const [tempDescription, setTempDescription] = useState(
-    "แผนงานโปรเจคเว็บบริษัท"
-  ); // ค่าที่กำลังพิมพ์
+    workspaceInfo.description || ""
+  ); // [แก้ไข] รับค่าจาก db
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
 
   // Member States
@@ -156,9 +160,11 @@ export function WorkspaceSettingsSidebar({
   useEffect(() => {
     if (isOpen) {
       setMembers(workspaceInfo.members);
-      setTempDescription(description); // Reset temp description to saved value
+      setProjectName(workspaceInfo.name || ""); // [แก้ไข]
+      setDescription(workspaceInfo.description || ""); // [แก้ไข]
+      setTempDescription(workspaceInfo.description || ""); // [แก้ไข]
     }
-  }, [isOpen, workspaceInfo, description]);
+  }, [isOpen, workspaceInfo]);
 
   // Click Outside to Close Menus
   useEffect(() => {
@@ -178,28 +184,66 @@ export function WorkspaceSettingsSidebar({
   }, []);
 
   // --- Handlers (Settings) ---
-  const handleSaveDescription = () => {
-    setDescription(tempDescription);
-    alert(`Saved Description: ${tempDescription}`);
+  const handleSaveDescription = async () => {
+    if (!boardId) return;
+    try {
+      await updateBoard(boardId, { description: tempDescription });
+      setDescription(tempDescription);
+      alert("Saved Description successfully!");
+    } catch (error) {
+      console.error("Failed to update description", error);
+      alert("Failed to save description");
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!boardId) return;
+    try {
+      await updateBoard(boardId, { name: projectName });
+      alert("Saved Project Name successfully!");
+    } catch (error) {
+      console.error("Failed to update name", error);
+      alert("Failed to save name");
+    }
   };
 
   const handleCancelDescription = () => {
     setTempDescription(description); // Revert to saved description
   };
 
-  const handleRoleChange = (index: number, newRole: string) => {
-    const updatedMembers = [...members];
-    updatedMembers[index].role = newRole;
-    setMembers(updatedMembers);
-    setOpenMemberDropdownId(null);
+  const handleRoleChange = async (index: number, newRole: string) => {
+    const member = members[index];
+    try {
+      const res = await fetch("/api/workspace/member", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: member.id, role: newRole }),
+      });
+      if (!res.ok) throw new Error("Failed to update role");
+      const updatedMembers = [...members];
+      updatedMembers[index].role = newRole;
+      setMembers(updatedMembers);
+      setOpenMemberDropdownId(null);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update role");
+    }
   };
 
-  const handleRemoveMember = (index: number) => {
-    if (
-      window.confirm(`Are you sure you want to remove ${members[index].name}?`)
-    ) {
-      const updatedMembers = members.filter((_, i) => i !== index);
-      setMembers(updatedMembers);
+  const handleRemoveMember = async (index: number) => {
+    const member = members[index];
+    if (window.confirm(`Are you sure you want to remove ${member.name}?`)) {
+      try {
+        const res = await fetch(`/api/workspace/member?id=${member.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to remove member");
+        const updatedMembers = members.filter((_, i) => i !== index);
+        setMembers(updatedMembers);
+      } catch (error) {
+        console.error(error);
+        alert("Failed to remove member");
+      }
     }
     setOpenMemberDropdownId(null);
   };
@@ -253,11 +297,13 @@ export function WorkspaceSettingsSidebar({
                   {workspaceInfo.name}
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Created by{" "}
-                  <span className="text-slate-600 font-medium">
-                    ธนภัทร โพธิ์ศรี
-                  </span>{" "}
-                  on November 18 at 10:55
+                  Created{" "}
+                  {workspaceInfo.createdAt
+                    ? `on ${format(
+                        new Date(workspaceInfo.createdAt),
+                        "MMMM d 'at' HH:mm"
+                      )}`
+                    : "recently"}
                 </p>
               </div>
             </div>
@@ -320,17 +366,25 @@ export function WorkspaceSettingsSidebar({
           {/* TAB 1: SETTINGS */}
           {activeTab === "settings" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col min-h-full">
-              {/* Short Name */}
-              <div className="space-y-1.5">
+              {/* Project Name */}
+              <div className="space-y-1.5 ">
                 <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
-                  <Edit2 size={12} className="text-slate-400" /> Short Name{" "}
+                  <Edit2 size={12} className="text-slate-400" /> Project Name{" "}
                   <span className="text-slate-400 text-xs font-normal">ⓘ</span>
                 </label>
-                <input
-                  value={shortName}
-                  onChange={(e) => setShortName(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
-                />
+                <div className="flex gap-2">
+                  <input
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
 
               {/* Description */}
@@ -462,11 +516,8 @@ export function WorkspaceSettingsSidebar({
                             </button>
                           ))}
                           <div className="h-px bg-slate-100 my-1"></div>
-                          <button
-                            onClick={() => handleRemoveMember(i)}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                          >
-                            Remove Member
+                          <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center justify-between">
+                            Remove
                           </button>
                         </div>
                       )}
@@ -475,12 +526,13 @@ export function WorkspaceSettingsSidebar({
                 </div>
               </div>
 
-              <div className="pt-6 mt-auto">
+              {/* Leave Board */}
+              <div className="pt-4 mt-2 border-t border-slate-200">
                 <button
                   onClick={handleLeaveBoard}
-                  className="w-full py-2.5 border border-blue-500 text-blue-500 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors active:scale-95"
+                  className="w-full py-2 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors"
                 >
-                  Leave Board
+                  <Trash2 size={16} /> Leave Board
                 </button>
               </div>
             </div>
@@ -489,16 +541,21 @@ export function WorkspaceSettingsSidebar({
           {/* TAB 2: DIFFICULTY LEVEL */}
           {activeTab === "difficulty" && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-medium text-slate-800">
-                  Difficulty Level
-                </h3>
-                <button
-                  onClick={handleAddDifficulty}
-                  className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-700 transition-all shadow-sm active:scale-95"
-                >
-                  <Plus size={14} /> Create
-                </button>
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+                    <BarChart3 size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">
+                      Level Management
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Define difficulty levels for tasks to help calculate
+                      workload and project progress more accurately.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="relative">
@@ -507,26 +564,45 @@ export function WorkspaceSettingsSidebar({
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
                 <input
-                  placeholder="Search"
+                  placeholder="Search levels"
                   value={difficultySearch}
                   onChange={(e) => setDifficultySearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
 
-              <div className="space-y-3">
-                {filteredDifficulties.map((d) => (
+              <div className="space-y-2">
+                {filteredDifficulties.map((diff) => (
                   <div
-                    key={d.id}
-                    className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:border-blue-200 transition-colors cursor-pointer group"
+                    key={diff.id}
+                    className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-all group cursor-pointer"
                   >
-                    <p className="text-xs text-slate-500 font-medium mb-1 group-hover:text-blue-500">
-                      Level : {d.level}
-                    </p>
-                    <p className="text-sm font-bold text-slate-800">{d.name}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
+                        {diff.level}
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">
+                        {diff.name}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded">
+                        <Edit2 size={14} />
+                      </button>
+                      <button className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
+
+              <button
+                onClick={handleAddDifficulty}
+                className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors border border-transparent hover:border-slate-300 flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Add New Level
+              </button>
             </div>
           )}
 
@@ -622,35 +698,72 @@ export function WorkspaceSettingsSidebar({
 
           {/* TAB 4: ACTIVITIES */}
           {activeTab === "activities" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <h3 className="text-sm font-bold text-slate-800 mb-4">
-                Tuesday 18 November 2025
-              </h3>
-
-              <div className="space-y-6 pl-2 relative border-l-2 border-slate-100 ml-3">
-                {[1, 2, 3].map((_, i) => (
-                  <div key={i} className="flex gap-3 relative -ml-[19px]">
-                    <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm">
-                      T
-                    </div>
-                    <div className="flex flex-col pt-1">
-                      <div className="text-sm text-slate-800 leading-snug">
-                        <span className="font-bold hover:underline cursor-pointer">
-                          ธนภัทร โพธิ์ศรี
-                        </span>
-                        {i === 0 &&
-                          " invited siwakorn.pn@rmuti.ac.th to join this board."}
-                        {i === 1 &&
-                          " invited nuysupansa09@gmail.com to join this board."}
-                        {i === 2 && " created this board."}
-                      </div>
-                      <span className="text-xs text-slate-400 mt-1 font-medium">
-                        November 18 at 11:05
-                      </span>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-full pb-10">
+              {workspaceInfo.activities &&
+              workspaceInfo.activities.length > 0 ? (
+                (
+                  Object.entries(
+                    (workspaceInfo.activities || []).reduce(
+                      (groups: Record<string, any[]>, activity: any) => {
+                        const date = new Date(activity.createdAt);
+                        const key = isToday(date)
+                          ? "Today"
+                          : isYesterday(date)
+                          ? "Yesterday"
+                          : format(date, "EEEE d MMMM yyyy");
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(activity);
+                        return groups;
+                      },
+                      {}
+                    )
+                  ) as [string, any[]][]
+                ).map(([dateLabel, acts]) => (
+                  <div key={dateLabel} className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-800 sticky top-0 bg-slate-50/95 py-2 z-10">
+                      {dateLabel}
+                    </h3>
+                    <div className="space-y-6 pl-2 relative border-l-2 border-slate-200 ml-3">
+                      {acts.map((activity) => (
+                        <div
+                          key={activity.id}
+                          className="flex gap-3 relative -ml-[19px] group"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
+                            {activity.user.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col pt-1">
+                            <div className="text-sm text-slate-800 leading-snug">
+                              <span className="font-bold hover:underline cursor-pointer">
+                                {activity.user}
+                              </span>{" "}
+                              {activity.action}{" "}
+                              {activity.target && (
+                                <span className="font-medium text-slate-600">
+                                  "{activity.target}"
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-400 mt-1 font-medium group-hover:text-slate-500 transition-colors">
+                              {format(
+                                new Date(activity.createdAt),
+                                "MMMM d 'at' HH:mm"
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <History className="text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 text-sm">No recent activity</p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -225,6 +225,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         dueDate: data.dueDate || "",
         members: data.members || [],
         activities: data.activities || [],
+        createdAt: data.createdAt,
       });
       setMembers(data.members || []);
       setActivities(data.activities || []);
