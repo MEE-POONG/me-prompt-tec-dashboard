@@ -48,11 +48,13 @@ export function WorkspaceSettingsSidebar({
   onClose,
   workspaceInfo,
   boardId, // [เพิ่ม]
+  isReadOnly = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
   workspaceInfo: WorkspaceInfo;
   boardId: string; // [เพิ่ม]
+  isReadOnly?: boolean;
 }) {
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
@@ -400,9 +402,11 @@ export function WorkspaceSettingsSidebar({
                     <Copy size={14} /> Copy Board
                   </button>
                   <div className="h-px bg-slate-100 my-1"></div>
-                  <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                    <Trash2 size={14} /> Delete Board
-                  </button>
+                  {!isReadOnly && (
+                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                      <Trash2 size={14} /> Delete Board
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -456,7 +460,8 @@ export function WorkspaceSettingsSidebar({
                   />
                   <button
                     onClick={handleSaveName}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors"
+                    disabled={isReadOnly}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Save
                   </button>
@@ -484,7 +489,8 @@ export function WorkspaceSettingsSidebar({
                     </button>
                     <button
                       onClick={handleSaveDescription}
-                      className="px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95"
+                      disabled={isReadOnly}
+                      className="px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Save
                     </button>
@@ -602,15 +608,16 @@ export function WorkspaceSettingsSidebar({
                 </div>
               </div>
 
-              {/* Leave Board */}
-              <div className="pt-4 mt-2 border-t border-slate-200">
-                <button
-                  onClick={handleLeaveBoard}
-                  className="w-full py-2 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors"
-                >
-                  <Trash2 size={16} /> Leave Board
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="pt-4 mt-2 border-t border-slate-200">
+                  <button
+                    onClick={handleLeaveBoard}
+                    className="w-full py-2 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors"
+                  >
+                    <Trash2 size={16} /> Leave Board
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

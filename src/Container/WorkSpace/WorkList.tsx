@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import {
   Folder,
   MoreVertical,
@@ -12,9 +13,10 @@ import {
   ChevronRight,
   Plus,
   Loader2,
-  Lock,  // [เพิ่ม]
+  Lock, // [เพิ่ม]
   Globe, // [เพิ่ม]
 } from "lucide-react";
+import ModalError from "@/components/ui/Modals/ModalError";
 
 // --- Types ---
 interface Project {
@@ -41,6 +43,7 @@ export default function WorkList({
 }: WorkListProps) {
   // --- State ---
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
@@ -48,9 +51,16 @@ export default function WorkList({
   const [currentCalendarDate, setCurrentCalendarDate] = useState(
     new Date(2025, 11, 1)
   );
-  
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [permissionModal, setPermissionModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "my" | "joined">("all");
 
   // --- Fetch Data ---
   const fetchProjects = async () => {
@@ -70,6 +80,17 @@ export default function WorkList({
 
   useEffect(() => {
     fetchProjects();
+    // Get current user from localStorage
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setCurrentUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -113,7 +134,39 @@ export default function WorkList({
     return Math.round((completedTasks / allTasks.length) * 100);
   };
 
+  const getUserMemberData = (project: Project) => {
+    if (!currentUser) return null;
+    const userName = (currentUser.name || "").toLowerCase();
+    const userEmail = (currentUser.email || "").toLowerCase();
+
+    return (project.members || []).find((m: any) => {
+      const memberName = (m.name || "").toLowerCase();
+      const memberEmail = (m.email || "").toLowerCase();
+      return (
+        memberName === userName ||
+        memberName === userEmail ||
+        (memberEmail && memberEmail === userEmail)
+      );
+    });
+  };
+
+  const isUserMember = (project: Project) => !!getUserMemberData(project);
+
+  const isUserAdmin = (project: Project) => {
+    const member = getUserMemberData(project);
+    return member?.role === "Admin" || member?.role === "Owner";
+  };
+
   const filteredProjects = projects.filter((p) => {
+    // 1. Filter by Category Tab
+    if (activeTab === "my") {
+      if (!isUserAdmin(p)) return false;
+    } else if (activeTab === "joined") {
+      // Joined = Member but NOT Admin
+      if (!isUserMember(p) || isUserAdmin(p)) return false;
+    }
+
+    // 3. Filter by Search and Date
     const matchesSearch =
       p.name.toLowerCase().includes(searchItem.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchItem.toLowerCase());
@@ -125,6 +178,15 @@ export default function WorkList({
   });
 
   const handleEditClick = (project: Project) => {
+    if (!isUserAdmin(project)) {
+      setPermissionModal({
+        open: true,
+        message: "คุณไม่มีสิทธิ์แก้ไขโปรเจกต์นี้",
+        description:
+          "คุณต้องเป็น Admin หรือเจ้าของเพื่อแก้ไขรายละเอียดโปรเจกต์นี้",
+      });
+      return;
+    }
     setEditingProject(project);
     setIsEditModalOpen(true);
     setActiveDropdownId(null);
@@ -173,9 +235,19 @@ export default function WorkList({
           activeDropdownId === project.id ? "z-50" : "z-0"
         }`}
       >
-        <Link
-          href={`/workspace/${project.id}`}
-          className="absolute inset-0 z-0"
+        <div
+          className="absolute inset-0 z-0 cursor-pointer"
+          onClick={(e) => {
+            if (project.visibility === "PRIVATE" && !isUserMember(project)) {
+              setPermissionModal({
+                open: true,
+                message: "คุณไม่มีสิทธิ์เข้าร่วม",
+                description: "โปรเจกต์นี้เป็นแบบส่วนตัวเฉพาะสมาชิกเท่านั้น",
+              });
+              return;
+            }
+            router.push(`/workspace/${project.id}`);
+          }}
         />
 
         <div
@@ -199,21 +271,27 @@ export default function WorkList({
                   <h3 className="text-lg font-bold text-gray-900 truncate flex-1">
                     {project.name}
                   </h3>
-                  
+
                   {/* แสดงสถานะ Private/Public (แก้ไขแล้ว: ใส่ title ที่ div) */}
                   {project.visibility === "PUBLIC" ? (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold shrink-0 border border-blue-200" title="Public Workspace">
-                       <Globe size={12} />
-                       <span>Public</span>
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold shrink-0 border border-blue-200"
+                      title="Public Workspace"
+                    >
+                      <Globe size={12} />
+                      <span>Public</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200" title="Private Workspace">
-                       <Lock size={12} />
-                       <span>Private</span>
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200"
+                      title="Private Workspace"
+                    >
+                      <Lock size={12} />
+                      <span>Private</span>
                     </div>
                   )}
                 </div>
-                
+
                 <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">
                   {project.description}
                 </p>
@@ -235,7 +313,7 @@ export default function WorkList({
                     <h3 className="text-lg font-bold text-gray-900 truncate">
                       {project.name}
                     </h3>
-                    
+
                     {/* ป้ายสถานะใน List View (แก้ไขแล้ว: ย้าย title ไปใส่ div หุ้ม) */}
                     {project.visibility === "PUBLIC" ? (
                       <div title="Public">
@@ -254,66 +332,68 @@ export default function WorkList({
               </div>
             )}
 
-            <div className="relative pointer-events-auto ml-auto">
-              <button
-                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setActiveDropdownId(
-                    activeDropdownId === project.id ? null : project.id
-                  );
-                }}
-              >
-                <MoreVertical size={20} />
-              </button>
-              {activeDropdownId === project.id && (
-                <div
-                  ref={dropdownRef}
+            {isUserAdmin(project) && (
+              <div className="relative pointer-events-auto ml-auto">
+                <button
+                  className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    setActiveDropdownId(
+                      activeDropdownId === project.id ? null : project.id
+                    );
                   }}
-                  className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50"
                 >
-                  <button
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  <MoreVertical size={20} />
+                </button>
+                {activeDropdownId === project.id && (
+                  <div
+                    ref={dropdownRef}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleEditClick(project);
                     }}
+                    className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50"
                   >
-                    <Folder size={16} className="text-blue-500" />
-                    <span>Edit Details</span>
-                  </button>
+                    <button
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleEditClick(project);
+                      }}
+                    >
+                      <Folder size={16} className="text-blue-500" />
+                      <span>Edit Details</span>
+                    </button>
 
-                  <div className="h-px bg-gray-100 my-1"></div>
+                    <div className="h-px bg-gray-100 my-1"></div>
 
-                  <button
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-                    onClick={() => handleDeleteProject(project.id)}
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete Project</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                    <button
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      <Trash2 size={16} />
+                      <span>Delete Project</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {viewType === "grid" && (
             <>
               <div className="flex items-center gap-3 mb-4">
-                 <div
-                    className="p-3 rounded-xl bg-blue-50 text-blue-600 max-w-max"
-                    style={{
-                      backgroundColor: `${project.color}20`,
-                      color: project.color,
-                    }}
-                  >
-                    <Folder size={28} strokeWidth={1.5} />
-                  </div>
+                <div
+                  className="p-3 rounded-xl bg-blue-50 text-blue-600 max-w-max"
+                  style={{
+                    backgroundColor: `${project.color}20`,
+                    color: project.color,
+                  }}
+                >
+                  <Folder size={28} strokeWidth={1.5} />
+                </div>
               </div>
 
               <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
@@ -378,9 +458,35 @@ export default function WorkList({
           </div>
         )}
 
+        {/* --- Category Tabs --- */}
+        <div className="flex items-center gap-2 bg-gray-100/50 p-1 rounded-xl w-fit">
+          {[
+            { id: "all", label: "All Projects", icon: Folder },
+            { id: "my", label: "My Projects", icon: Plus },
+            { id: "joined", label: "Joined Projects", icon: Users },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === tab.id
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            All Projects{" "}
+            {activeTab === "all"
+              ? "All Projects"
+              : activeTab === "my"
+              ? "My Projects"
+              : "Joined Projects"}{" "}
             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
               {filteredProjects.length}
             </span>
@@ -397,7 +503,7 @@ export default function WorkList({
               <ProjectCard key={project.id} project={project} />
             ))}
 
-            {!selectedDate && (
+            {activeTab !== "joined" && !selectedDate && (
               <Link href="/workspace/add" className="block h-full">
                 <div
                   className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${
@@ -609,6 +715,13 @@ export default function WorkList({
           </div>
         </div>
       )}
+
+      <ModalError
+        open={permissionModal.open}
+        message={permissionModal.message}
+        description={permissionModal.description}
+        onClose={() => setPermissionModal({ ...permissionModal, open: false })}
+      />
     </div>
   );
 }

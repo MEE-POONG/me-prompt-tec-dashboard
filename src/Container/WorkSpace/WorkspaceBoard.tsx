@@ -311,12 +311,21 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       );
     });
 
-    if (workspaceInfo.visibility === "PUBLIC" && !isMember) {
+    if (!isMember) {
+      if (workspaceInfo.visibility === "PRIVATE") {
+        setErrorModal({
+          open: true,
+          message: "คุณไม่มีสิทธิ์เข้าร่วม",
+          description: "โปรเจกต์นี้เป็นแบบส่วนตัวเฉพาะสมาชิกเท่านั้น",
+        });
+        // We will handle redirect in the Modal's onClose or by checking if we should redirect
+        return;
+      }
       setIsReadOnly(true);
     } else {
       setIsReadOnly(false);
     }
-  }, [workspaceInfo, currentUser]);
+  }, [workspaceInfo, currentUser, router]);
 
   // ✅ ระบบ Polling: เช็ค Activity ใหม่ทุกๆ 2 วินาที
   useEffect(() => {
@@ -657,6 +666,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    if (isReadOnly) return;
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (
@@ -1052,6 +1062,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         isOpen={board.isSettingsOpen}
         onClose={() => board.setIsSettingsOpen(false)}
         boardId={String(workspaceId)} // [เพิ่ม]
+        isReadOnly={isReadOnly}
         workspaceInfo={
           workspaceInfo || {
             name: "",
@@ -1084,7 +1095,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         open={errorModal.open}
         message={errorModal.message}
         description={errorModal.description}
-        onClose={() => setErrorModal({ ...errorModal, open: false })}
+        onClose={() => {
+          setErrorModal({ ...errorModal, open: false });
+          if (errorModal.message === "คุณไม่มีสิทธิ์เข้าร่วม") {
+            router.push("/workspace");
+          }
+        }}
       />
 
       <ModalDelete
