@@ -295,7 +295,7 @@ export default function ModalsWorkflow({
   const [activeTab, setActiveTab] = useState<"comments" | "activity">(
     "comments"
   );
-  const [isAccepted, setIsAccepted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
   const [isSavingDate, setIsSavingDate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -320,7 +320,7 @@ export default function ModalsWorkflow({
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Activities & Comments State
@@ -401,6 +401,15 @@ export default function ModalsWorkflow({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    const u = localStorage.getItem("user");
+    if (u) {
+      try {
+        setCurrentUser(JSON.parse(u));
+      } catch (e) { }
+    }
+  }, []);
+
   // --- Effect: Load full task when modal opens ---
   useEffect(() => {
     const load = async () => {
@@ -425,8 +434,8 @@ export default function ModalsWorkflow({
             const from = data.startDate
               ? new Date(data.startDate)
               : data.dueDate
-              ? new Date(data.dueDate)
-              : undefined;
+                ? new Date(data.dueDate)
+                : undefined;
             const to = data.endDate ? new Date(data.endDate) : undefined;
             if (from && !isNaN(from.getTime())) setDateRange({ from, to });
             else setDateRange(undefined);
@@ -475,7 +484,7 @@ export default function ModalsWorkflow({
               .filter((m: any) => taskUserIds.includes(m.userId))
               .map((m: any) => m.id);
             setAssignedMembers(matchedBoardIds);
-          } catch (err) {}
+          } catch (err) { }
 
           let currentLabels: TagItem[] = [];
           try {
@@ -536,7 +545,7 @@ export default function ModalsWorkflow({
                 setSelectedTagIds([newId]);
               }
             }
-          } catch (e) {}
+          } catch (e) { }
 
           try {
             const coms: any[] = await getComments(data.id);
@@ -550,7 +559,7 @@ export default function ModalsWorkflow({
                 isEdited: c.updatedAt && c.updatedAt !== c.createdAt,
               }))
             );
-          } catch (e) {}
+          } catch (e) { }
         }
       } catch (err) {
         console.error("Failed to load task", err);
@@ -596,16 +605,16 @@ export default function ModalsWorkflow({
             return prev.map((b) =>
               b.type === "checklist"
                 ? {
-                    ...b,
-                    items: [
-                      ...(b.items || []),
-                      {
-                        id: item.id,
-                        text: item.text,
-                        isChecked: item.isChecked,
-                      },
-                    ],
-                  }
+                  ...b,
+                  items: [
+                    ...(b.items || []),
+                    {
+                      id: item.id,
+                      text: item.text,
+                      isChecked: item.isChecked,
+                    },
+                  ],
+                }
                 : b
             );
           });
@@ -616,17 +625,17 @@ export default function ModalsWorkflow({
             prev.map((b) =>
               b.type === "checklist"
                 ? {
-                    ...b,
-                    items: b.items?.map((i) =>
-                      i.id === item.id
-                        ? {
-                            id: item.id,
-                            text: item.text,
-                            isChecked: item.isChecked,
-                          }
-                        : i
-                    ),
-                  }
+                  ...b,
+                  items: b.items?.map((i) =>
+                    i.id === item.id
+                      ? {
+                        id: item.id,
+                        text: item.text,
+                        isChecked: item.isChecked,
+                      }
+                      : i
+                  ),
+                }
                 : b
             )
           );
@@ -660,13 +669,13 @@ export default function ModalsWorkflow({
             prev.map((cm) =>
               cm.id === c.id
                 ? {
-                    id: c.id,
-                    user: c.author || "Unknown",
-                    text: c.content,
-                    time: new Date(c.updatedAt || c.createdAt).toLocaleString(),
-                    color: "bg-slate-400",
-                    isEdited: true,
-                  }
+                  id: c.id,
+                  user: c.author || "Unknown",
+                  text: c.content,
+                  time: new Date(c.updatedAt || c.createdAt).toLocaleString(),
+                  color: "bg-slate-400",
+                  isEdited: true,
+                }
                 : cm
             )
           );
@@ -1082,12 +1091,12 @@ export default function ModalsWorkflow({
       prev.map((b) =>
         b.id === blockId
           ? {
-              ...b,
-              items: [
-                ...(b.items || []),
-                { id: tempId, text, isChecked: false },
-              ],
-            }
+            ...b,
+            items: [
+              ...(b.items || []),
+              { id: tempId, text, isChecked: false },
+            ],
+          }
           : b
       )
     );
@@ -1102,17 +1111,17 @@ export default function ModalsWorkflow({
         prev.map((b) =>
           b.id === blockId
             ? {
-                ...b,
-                items: b.items?.map((i) =>
-                  i.id === tempId
-                    ? {
-                        id: created.id,
-                        text: created.text,
-                        isChecked: created.isChecked,
-                      }
-                    : i
-                ),
-              }
+              ...b,
+              items: b.items?.map((i) =>
+                i.id === tempId
+                  ? {
+                    id: created.id,
+                    text: created.text,
+                    isChecked: created.isChecked,
+                  }
+                  : i
+              ),
+            }
             : b
         )
       );
@@ -1157,17 +1166,17 @@ export default function ModalsWorkflow({
             prev.map((b) =>
               b.id === blockId
                 ? {
-                    ...b,
-                    items: b.items?.map((i) =>
-                      i.id === itemId
-                        ? {
-                            id: created.id,
-                            text: created.text,
-                            isChecked: created.isChecked,
-                          }
-                        : i
-                    ),
-                  }
+                  ...b,
+                  items: b.items?.map((i) =>
+                    i.id === itemId
+                      ? {
+                        id: created.id,
+                        text: created.text,
+                        isChecked: created.isChecked,
+                      }
+                      : i
+                  ),
+                }
                 : b
             )
           );
@@ -1180,17 +1189,17 @@ export default function ModalsWorkflow({
           prev.map((b) =>
             b.id === blockId
               ? {
-                  ...b,
-                  items: b.items?.map((i) =>
-                    i.id === itemId
-                      ? {
-                          id: updated.id,
-                          text: updated.text,
-                          isChecked: updated.isChecked,
-                        }
-                      : i
-                  ),
-                }
+                ...b,
+                items: b.items?.map((i) =>
+                  i.id === itemId
+                    ? {
+                      id: updated.id,
+                      text: updated.text,
+                      isChecked: updated.isChecked,
+                    }
+                    : i
+                ),
+              }
               : b
           )
         );
@@ -1201,13 +1210,13 @@ export default function ModalsWorkflow({
         prev.map((b) =>
           b.id === blockId
             ? {
-                ...b,
-                items: b.items?.map((i) =>
-                  i.id === itemId
-                    ? { ...i, isChecked: currentItem?.isChecked ?? false }
-                    : i
-                ),
-              }
+              ...b,
+              items: b.items?.map((i) =>
+                i.id === itemId
+                  ? { ...i, isChecked: currentItem?.isChecked ?? false }
+                  : i
+              ),
+            }
             : b
         )
       );
@@ -1239,11 +1248,11 @@ export default function ModalsWorkflow({
       prev.map((b) =>
         b.id === blockId
           ? {
-              ...b,
-              items: b.items?.map((i) =>
-                i.id === itemId ? { ...i, text } : i
-              ),
-            }
+            ...b,
+            items: b.items?.map((i) =>
+              i.id === itemId ? { ...i, text } : i
+            ),
+          }
           : b
       )
     );
@@ -1409,12 +1418,12 @@ export default function ModalsWorkflow({
         prev.map((c) =>
           c.id === temp.id
             ? {
-                id: created.id,
-                user: created.author || "You",
-                text: created.content,
-                time: new Date(created.createdAt).toLocaleString(),
-                color: "bg-blue-600",
-              }
+              id: created.id,
+              user: created.author || "You",
+              text: created.content,
+              time: new Date(created.createdAt).toLocaleString(),
+              color: "bg-blue-600",
+            }
             : c
         )
       );
@@ -1535,8 +1544,7 @@ export default function ModalsWorkflow({
       await updateTask(String(taskId), { assigneeIds: userIds });
       const member = membersList.find((m) => m.id === memberId);
       logActivity(
-        `${newMembers.includes(memberId) ? "assigned" : "removed"} ${
-          member?.name || memberId
+        `${newMembers.includes(memberId) ? "assigned" : "removed"} ${member?.name || memberId
         }`
       );
     } catch (err) {
@@ -1618,20 +1626,37 @@ export default function ModalsWorkflow({
           <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setIsAccepted(!isAccepted)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${
-                  isAccepted
+                onClick={() => {
+                  const myMember = membersList.find(
+                    (m) => m.userId === currentUser?.id
+                  );
+                  if (myMember) toggleMember(myMember.id);
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${membersList.find((m) => m.userId === currentUser?.id) &&
+                    assignedMembers.includes(
+                      membersList.find((m) => m.userId === currentUser?.id)!.id
+                    )
                     ? "bg-green-100 text-green-700 border-green-200"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <CheckCircle2
                   size={16}
                   className={
-                    isAccepted ? "fill-green-600 text-white" : "text-slate-400"
+                    membersList.find((m) => m.userId === currentUser?.id) &&
+                      assignedMembers.includes(
+                        membersList.find((m) => m.userId === currentUser?.id)!.id
+                      )
+                      ? "fill-green-600 text-white"
+                      : "text-slate-400"
                   }
                 />
-                {isAccepted ? "รับงานแล้ว" : "รับงาน"}
+                {membersList.find((m) => m.userId === currentUser?.id) &&
+                  assignedMembers.includes(
+                    membersList.find((m) => m.userId === currentUser?.id)!.id
+                  )
+                  ? "รับงานแล้ว"
+                  : "รับงาน"}
               </button>
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
               <div className="flex -space-x-1">
@@ -1658,9 +1683,8 @@ export default function ModalsWorkflow({
               <button
                 onClick={handleSaveAll}
                 disabled={isSaving}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${
-                  isSaving ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
-                } text-white transition-all disabled:opacity-60`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isSaving ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
+                  } text-white transition-all disabled:opacity-60`}
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>
@@ -1813,7 +1837,7 @@ export default function ModalsWorkflow({
                               ((block.items?.filter((i) => i.isChecked)
                                 .length || 0) /
                                 (block.items?.length || 1)) *
-                                100
+                              100
                             )}
                             %
                           </span>
@@ -1821,12 +1845,11 @@ export default function ModalsWorkflow({
                             <div
                               className="h-full bg-emerald-500 transition-all duration-300"
                               style={{
-                                width: `${
-                                  ((block.items?.filter((i) => i.isChecked)
+                                width: `${((block.items?.filter((i) => i.isChecked)
                                     .length || 0) /
                                     (block.items?.length || 1)) *
                                   100
-                                }%`,
+                                  }%`,
                               }}
                             ></div>
                           </div>
@@ -1858,11 +1881,10 @@ export default function ModalsWorkflow({
                                     e.target.value
                                   )
                                 }
-                                className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${
-                                  item.isChecked
+                                className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${item.isChecked
                                     ? "line-through text-slate-400"
                                     : ""
-                                }`}
+                                  }`}
                               />
                               <button
                                 onClick={() =>
@@ -1915,11 +1937,10 @@ export default function ModalsWorkflow({
                             className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white relative group/att"
                           >
                             <div
-                              className={`w-10 h-10 rounded flex items-center justify-center text-white ${
-                                att.type === "link"
+                              className={`w-10 h-10 rounded flex items-center justify-center text-white ${att.type === "link"
                                   ? "bg-blue-500"
                                   : "bg-red-500"
-                              }`}
+                                }`}
                             >
                               {att.type === "link" ? (
                                 <LinkIcon size={18} />
@@ -1956,21 +1977,19 @@ export default function ModalsWorkflow({
                 <div className="flex gap-6 mb-6">
                   <button
                     onClick={() => setActiveTab("comments")}
-                    className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${
-                      activeTab === "comments"
+                    className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === "comments"
                         ? "border-blue-600 text-blue-700"
                         : "border-transparent text-slate-500 hover:text-slate-700"
-                    }`}
+                      }`}
                   >
                     <MessageSquare size={16} /> Comments
                   </button>
                   <button
                     onClick={() => setActiveTab("activity")}
-                    className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${
-                      activeTab === "activity"
+                    className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === "activity"
                         ? "border-blue-600 text-blue-700"
                         : "border-transparent text-slate-500 hover:text-slate-700"
-                    }`}
+                      }`}
                   >
                     <Activity size={16} /> Activity
                   </button>
@@ -2272,8 +2291,8 @@ export default function ModalsWorkflow({
                         tagView === "list"
                           ? "Labels"
                           : tagView === "create"
-                          ? "Create Label"
-                          : "Edit Label"
+                            ? "Create Label"
+                            : "Edit Label"
                       }
                       onClose={() => setActivePopover(null)}
                       width="w-80"
@@ -2346,13 +2365,11 @@ export default function ModalsWorkflow({
                               <div
                                 key={c.name}
                                 onClick={() => setNewTagColor(c)}
-                                className={`h-8 rounded cursor-pointer ${
-                                  c.bg
-                                } ${
-                                  newTagColor.name === c.name
+                                className={`h-8 rounded cursor-pointer ${c.bg
+                                  } ${newTagColor.name === c.name
                                     ? "ring-2 ring-blue-600 ring-offset-1"
                                     : "hover:opacity-80"
-                                }`}
+                                  }`}
                               ></div>
                             ))}
                           </div>
@@ -2447,21 +2464,19 @@ export default function ModalsWorkflow({
                       <div className="flex gap-2 mb-3 border-b border-slate-100 pb-2">
                         <button
                           onClick={() => setAttachmentTab("file")}
-                          className={`text-xs font-bold px-2 py-1 rounded ${
-                            attachmentTab === "file"
+                          className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "file"
                               ? "bg-blue-50 text-blue-600"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           Computer
                         </button>
                         <button
                           onClick={() => setAttachmentTab("link")}
-                          className={`text-xs font-bold px-2 py-1 rounded ${
-                            attachmentTab === "link"
+                          className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "link"
                               ? "bg-blue-50 text-blue-600"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           Link
                         </button>
@@ -2579,11 +2594,10 @@ function CustomModals({
 const SidebarBtn = ({ icon: Icon, label, onClick, active }: any) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-      active
+    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${active
         ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 shadow-sm"
         : "text-slate-700 hover:bg-slate-200/70 active:bg-slate-200"
-    }`}
+      }`}
   >
     <Icon size={18} className={active ? "text-blue-600" : "text-slate-500"} />{" "}
     {label}
