@@ -1627,34 +1627,46 @@ export default function ModalsWorkflow({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  const myMember = membersList.find(
-                    (m) => m.userId === currentUser?.id
-                  );
-                  if (myMember) toggleMember(myMember.id);
+                  const userId = currentUser?.id || currentUser?._id;
+                  const myMember = membersList.find((m) => m.userId === userId);
+
+                  if (myMember) {
+                    toggleMember(myMember.id);
+                  } else {
+                    setErrorModal({
+                      open: true,
+                      message: "ไม่พบข้อมูลสมาชิก",
+                      description:
+                        "คุณยังไม่ได้เป็นสมาชิกของบอร์ดนี้ กรุณาติดต่อผู้ดูแลเพื่อเชิญเข้าสู่บอร์ด",
+                    });
+                  }
                 }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${membersList.find((m) => m.userId === currentUser?.id) &&
-                    assignedMembers.includes(
-                      membersList.find((m) => m.userId === currentUser?.id)!.id
-                    )
-                    ? "bg-green-100 text-green-700 border-green-200"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${(() => {
+                  const userId = currentUser?.id || currentUser?._id;
+                  const myMember = membersList.find((m) => m.userId === userId);
+                  return myMember && assignedMembers.includes(myMember.id);
+                })()
+                  ? "bg-green-100 text-green-700 border-green-200"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                   }`}
               >
                 <CheckCircle2
                   size={16}
                   className={
-                    membersList.find((m) => m.userId === currentUser?.id) &&
-                      assignedMembers.includes(
-                        membersList.find((m) => m.userId === currentUser?.id)!.id
-                      )
+                    (() => {
+                      const userId = currentUser?.id || currentUser?._id;
+                      const myMember = membersList.find((m) => m.userId === userId);
+                      return myMember && assignedMembers.includes(myMember.id);
+                    })()
                       ? "fill-green-600 text-white"
                       : "text-slate-400"
                   }
                 />
-                {membersList.find((m) => m.userId === currentUser?.id) &&
-                  assignedMembers.includes(
-                    membersList.find((m) => m.userId === currentUser?.id)!.id
-                  )
+                {(() => {
+                  const userId = currentUser?.id || currentUser?._id;
+                  const myMember = membersList.find((m) => m.userId === userId);
+                  return myMember && assignedMembers.includes(myMember.id);
+                })()
                   ? "รับงานแล้ว"
                   : "รับงาน"}
               </button>
@@ -1846,8 +1858,8 @@ export default function ModalsWorkflow({
                               className="h-full bg-emerald-500 transition-all duration-300"
                               style={{
                                 width: `${((block.items?.filter((i) => i.isChecked)
-                                    .length || 0) /
-                                    (block.items?.length || 1)) *
+                                  .length || 0) /
+                                  (block.items?.length || 1)) *
                                   100
                                   }%`,
                               }}
@@ -1882,8 +1894,8 @@ export default function ModalsWorkflow({
                                   )
                                 }
                                 className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${item.isChecked
-                                    ? "line-through text-slate-400"
-                                    : ""
+                                  ? "line-through text-slate-400"
+                                  : ""
                                   }`}
                               />
                               <button
@@ -1938,8 +1950,8 @@ export default function ModalsWorkflow({
                           >
                             <div
                               className={`w-10 h-10 rounded flex items-center justify-center text-white ${att.type === "link"
-                                  ? "bg-blue-500"
-                                  : "bg-red-500"
+                                ? "bg-blue-500"
+                                : "bg-red-500"
                                 }`}
                             >
                               {att.type === "link" ? (
@@ -1978,8 +1990,8 @@ export default function ModalsWorkflow({
                   <button
                     onClick={() => setActiveTab("comments")}
                     className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === "comments"
-                        ? "border-blue-600 text-blue-700"
-                        : "border-transparent text-slate-500 hover:text-slate-700"
+                      ? "border-blue-600 text-blue-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     <MessageSquare size={16} /> Comments
@@ -1987,8 +1999,8 @@ export default function ModalsWorkflow({
                   <button
                     onClick={() => setActiveTab("activity")}
                     className={`pb-2 border-b-2 font-bold text-sm flex items-center gap-2 ${activeTab === "activity"
-                        ? "border-blue-600 text-blue-700"
-                        : "border-transparent text-slate-500 hover:text-slate-700"
+                      ? "border-blue-600 text-blue-700"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     <Activity size={16} /> Activity
@@ -2465,8 +2477,8 @@ export default function ModalsWorkflow({
                         <button
                           onClick={() => setAttachmentTab("file")}
                           className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "file"
-                              ? "bg-blue-50 text-blue-600"
-                              : "text-slate-500"
+                            ? "bg-blue-50 text-blue-600"
+                            : "text-slate-500"
                             }`}
                         >
                           Computer
@@ -2474,8 +2486,8 @@ export default function ModalsWorkflow({
                         <button
                           onClick={() => setAttachmentTab("link")}
                           className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "link"
-                              ? "bg-blue-50 text-blue-600"
-                              : "text-slate-500"
+                            ? "bg-blue-50 text-blue-600"
+                            : "text-slate-500"
                             }`}
                         >
                           Link
@@ -2595,8 +2607,8 @@ const SidebarBtn = ({ icon: Icon, label, onClick, active }: any) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${active
-        ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 shadow-sm"
-        : "text-slate-700 hover:bg-slate-200/70 active:bg-slate-200"
+      ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 shadow-sm"
+      : "text-slate-700 hover:bg-slate-200/70 active:bg-slate-200"
       }`}
   >
     <Icon size={18} className={active ? "text-blue-600" : "text-slate-500"} />{" "}

@@ -8,8 +8,8 @@ interface ModalErrorProps {
 }
 
 export default function ModalError({
-  message = "@4I-4%2!",
-  description = "D!H*2!2#3@42#DI #82%-C+!H-5#1I",
+  message = "เกิดข้อผิดพลาด!",
+  description = "ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง",
   open,
   onClose,
 }: ModalErrorProps) {
@@ -28,7 +28,7 @@ export default function ModalError({
           onClick={onClose}
           className="mt-6 px-6 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 hover:scale-105"
         >
-          4
+          ตกลง
         </button>
       </div>
     </div>
