@@ -66,7 +66,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // 1. ถ้ากำลังโชว์ Popup "ห้ามเข้า" ให้แสดงหน้านี้แทน
   if (showDeniedPopup) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center border border-white/50">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <XCircle className="w-10 h-10 text-red-500" />

@@ -45,9 +45,17 @@ import ProjectDashboard from "./Views/ProjectDashboard";
 import ProjectTimeline from "./Views/ProjectTimeline";
 import ProjectReport from "./Views/ProjectReport";
 
+// ✅ 1. Import useSocket Hook
+import { useSocket } from "@/hooks/useSocket";
+
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
+  // ✅ 2. เรียก Hooks ทั้งหมดไว้บนสุด (ห้ามมี if มาคั่น)
   const router = useRouter();
   const board = useWorkspaceBoard([]);
+  
+  // เรียกใช้ Socket Hook อย่างปลอดภัย
+  const socketData = useSocket(); 
+  const socket = socketData?.socket;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +87,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     message: "",
     onConfirm: () => { },
   });
-
   // ✅ State สำหรับ Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
@@ -231,7 +238,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     },
     [getLabelColors, members] // ✅ Updated dependency
   );
-
   const fetchBoard = useCallback(async () => {
     if (!workspaceId) return;
     setError(null);
@@ -280,6 +286,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     }
   }, [workspaceId]);
 
+  // Initial Fetch
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("user");
@@ -452,6 +459,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             : c
         )
       );
+
     } catch (err) {
       console.error("Failed to create task", err);
       board.setColumns((prev) =>
@@ -472,6 +480,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       board.columns
         .find((c) => c.id === columnId)
         ?.tasks?.find((t) => t.id === taskId)?.title || "task";
+
 
     setDeleteModal({
       open: true,
@@ -500,6 +509,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
       },
     });
+
   };
 
   const handleAddColumnApi = async () => {
@@ -537,6 +547,22 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         target: created.title,
         projectId: String(workspaceId),
       });
+
+      // ✅ Emit Socket Event
+      if (socket) {
+        socket.emit("send-notification", {
+          workspaceId,
+          user: "Someone",
+          avatarColor: "bg-purple-500",
+          action: "added list",
+          target: created.title,
+          time: "Just now",
+          isRead: false,
+          type: "update",
+        });
+        socket.emit("board-updated", workspaceId);
+      }
+
     } catch (err) {
       console.error("Failed to create column", err);
       board.setColumns((prev) => prev.filter((c) => c.id !== tempId));
@@ -604,6 +630,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         target: title,
         projectId: String(workspaceId),
       });
+      // ✅ Emit Socket Event
+      if (socket) socket.emit("board-updated", workspaceId);
     } catch (err) {
       console.error("Failed to rename column", err);
       board.setColumns(prev);
@@ -611,6 +639,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   };
 
   const handleDeleteColumnApi = async (colId: string | number) => {
+
     const colTitle = board.columns.find((c) => c.id === colId)?.title || "list";
     setDeleteModal({
       open: true,
@@ -663,6 +692,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
       },
     });
+
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -696,6 +726,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         projectId: String(workspaceId),
         taskId: String(draggableId),
       });
+
+      // ✅ Emit Socket Event
+      if (socket) {
+        socket.emit("board-updated", workspaceId);
+      }
     } catch (err) {
       console.error("Failed to move task", err);
       fetchBoard(); // revert

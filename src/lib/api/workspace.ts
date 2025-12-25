@@ -150,8 +150,10 @@ export const updateTask = async (
   data: {
     title?: string;
     description?: string;
-    tag?: string;
-    tagColor?: string;
+    tag?: string | null;
+    tagColor?: string | null;
+    // tag?: string;
+    // tagColor?: string;
     priority?: "High" | "Medium" | "Low";
     order?: number;
     dueDate?: string | null;

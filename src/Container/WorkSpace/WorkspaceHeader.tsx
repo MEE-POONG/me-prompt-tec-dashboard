@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
@@ -15,8 +16,11 @@ import {
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
+
 import { WorkspaceInfo } from "@/types/workspace";
 import Link from "next/link";
+// ✅ Import NotificationBell (ตรวจสอบ path ให้ถูกต้อง)
+import { NotificationBell } from "@/components/ui/NotificationBell"; 
 
 export interface NotificationItem {
   id: string;
@@ -49,9 +53,11 @@ export default function WorkspaceHeader({
   onClearNotifications,
 }: WorkspaceHeaderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [isNotiOpen, setIsNotiOpen] = useState(false);
 
   const notiRef = useRef<HTMLDivElement>(null);
+
 
   const handleRefresh = async () => {
     if (!onRefresh) {
@@ -101,7 +107,9 @@ export default function WorkspaceHeader({
   };
 
   return (
+
     <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm font-sans">
+
       <div className="flex items-center gap-4">
         <Link
           href="/workspace"
@@ -118,6 +126,7 @@ export default function WorkspaceHeader({
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
               In Progress
             </span>
+
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -149,8 +158,10 @@ export default function WorkspaceHeader({
         </div>
       </div>
 
+
       <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
         <div className="flex -space-x-3 mr-2 shrink-0 items-center">
+
           {workspaceInfo.members.slice(0, 3).map((m, i) => (
             <div
               key={i}
@@ -312,6 +323,9 @@ export default function WorkspaceHeader({
           <Users size={16} />
           Members
         </button>
+
+        {/* ✅ Notification Bell */}
+        <NotificationBell />
 
         <button
           onClick={onOpenSettings}
