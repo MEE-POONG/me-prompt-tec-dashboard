@@ -16,6 +16,13 @@ export default async function handler(
       const where: any = {};
       if (columnId) where.columnId = columnId;
       if (boardId) where.column = { boardId };
+      
+      // ✅ Default: Hide archived tasks
+      if (req.query.archived === "true") {
+        where.isArchived = true;
+      } else {
+        where.isArchived = false;
+      }
 
       const tasks = await prisma.boardTask.findMany({
         where,

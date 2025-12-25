@@ -159,7 +159,8 @@ export const updateTask = async (
     attachments?: number;
     checklist?: number;
     assigneeIds?: string[];
-    user?: string; // ✅ เพิ่ม user
+    user?: string;
+    isArchived?: boolean; // ✅ เพิ่ม isArchived
   }
 ) => {
   const res = await fetch(`/api/workspace/task/${id}`, {

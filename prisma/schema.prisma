@@ -150,12 +150,12 @@ type ContactInfo {
 }
 
 type Resume {
-  summary      String?
-  skills       Skill[]
-  educations   Education[]
-  experiences  Experience[]
-  projects     ResumeProject[]
-  links        Link[]
+  summary     String?
+  skills      Skill[]
+  educations  Education[]
+  experiences Experience[]
+  projects    ResumeProject[]
+  links       Link[]
 }
 
 type ResumeProject {
@@ -498,10 +498,11 @@ model ProjectBoard {
   updatedAt DateTime @updatedAt
 
   // relations
-  columns     BoardColumn[]
-  members     BoardMember[]
-  activities  BoardActivity[]
-  boardLabels BoardLabel[]
+  columns       BoardColumn[]
+  members       BoardMember[]
+  activities    BoardActivity[]
+  boardLabels   BoardLabel[]
+  notifications Notification[]
 }
 
 // คอลัมน์ (To Do / Done)
@@ -539,6 +540,8 @@ model BoardTask {
   comments    Int @default(0)
   attachments Int @default(0)
 
+  isArchived Boolean @default(false)
+
   columnId String      @db.ObjectId
   column   BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
@@ -557,10 +560,10 @@ model BoardTask {
 
 // Comments in Task
 model TaskComment {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  id      String    @id @default(auto()) @map("_id") @db.ObjectId
   content String
   author  String
-  taskId  String @db.ObjectId
+  taskId  String    @db.ObjectId
   task    BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -654,21 +657,21 @@ model BoardLabel {
 
 // Notification System
 model Notification {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String?  @db.ObjectId // แจ้งเตือนใคร (ถ้า null = แจ้งทุกคนในบอร์ด)
-  boardId   String   @db.ObjectId // แจ้งเตือนในบอร์ดไหน
-  
-  actorName String   // ชื่อคนทำ (เช่น "Admin")
-  action    String   // การกระทำ (เช่น "created task")
-  target    String   // เป้าหมาย (เช่น "Task 1")
-  type      String   // ประเภท (create, update, delete, comment)
-  
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String? @db.ObjectId // แจ้งเตือนใคร (ถ้า null = แจ้งทุกคนในบอร์ด)
+  boardId String  @db.ObjectId // แจ้งเตือนในบอร์ดไหน
+
+  actorName String // ชื่อคนทำ (เช่น "Admin")
+  action    String // การกระทำ (เช่น "created task")
+  target    String // เป้าหมาย (เช่น "Task 1")
+  type      String // ประเภท (create, update, delete, comment)
+
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   // Relation (Optional: เชื่อมกับบอร์ดได้ถ้าต้องการ)
-  board     ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  
+  board ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
   @@index([boardId])
   @@index([createdAt])
 }

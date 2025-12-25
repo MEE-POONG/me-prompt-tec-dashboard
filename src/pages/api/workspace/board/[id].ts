@@ -20,6 +20,7 @@ export default async function handler(
           columns: {
             include: {
               tasks: {
+                where: { isArchived: false }, // ✅ Filter out archived tasks
                 include: {
                   assignees: {
                     select: {

@@ -82,6 +82,7 @@ export default async function handler(
       if (comments !== undefined) updateData.comments = comments;
       if (attachments !== undefined) updateData.attachments = attachments;
       if (checklist !== undefined) updateData.checklist = checklist;
+      if (req.body.isArchived !== undefined) updateData.isArchived = req.body.isArchived;
 
       // Logic for completedAt based on column move
       if (columnId !== undefined) {
@@ -158,32 +159,40 @@ export default async function handler(
     }
 
     if (req.method === "DELETE") {
+      console.log(`[DELETE] Request for task ${id}`);
       // fetch task first to get name and boardId
       const existing = await prisma.boardTask.findUnique({
         where: { id },
-        select: { id: true, title: true, columnId: true }
+        select: { id: true, title: true, columnId: true, isArchived: true }
       });
 
-      await prisma.boardTask.delete({ where: { id } });
+      console.log(`[DELETE] Found existing task:`, existing);
+
+      if (!existing) return res.status(404).json({ message: "Task not found" });
+
+      // ✅ Soft Delete (Archive)
+      const updated = await prisma.boardTask.update({
+        where: { id },
+        data: { isArchived: true }
+      });
+      console.log(`[DELETE] Updated task ${id} isArchived to true`, updated);
 
       // ✅ Publish Notification
       try {
-        if (existing) {
-          const boardId = (await prisma.boardColumn.findUnique({ where: { id: existing.columnId }, select: { boardId: true } }))?.boardId;
+        const boardId = (await prisma.boardColumn.findUnique({ where: { id: existing.columnId }, select: { boardId: true } }))?.boardId;
 
-          if (boardId) {
-            publish(String(boardId), {
-              type: "task:deleted",
-              payload: { id },
-              user: "System",
-              action: "deleted task",
-              target: existing.title
-            });
-          }
+        if (boardId) {
+          publish(String(boardId), {
+            type: "task:updated", // Should be updated, not deleted, as it's just moving to archive
+            payload: updated,
+            user: "System",
+            action: "archived task",
+            target: existing.title
+          });
         }
       } catch (e) { console.error("publish failed", e); }
 
-      return res.status(204).end();
+      return res.status(200).json(updated);
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
