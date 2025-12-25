@@ -30,6 +30,9 @@ import {
 import WorkspaceTaskCard from "./Board/WorkspaceTaskCard";
 import WorkspaceBoardColumn from "./Board/WorkspaceBoardColumn";
 import WorkspaceHeader, { NotificationItem } from "./WorkspaceHeader";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
 // Modals
 import {
@@ -59,6 +62,23 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     "board" | "dashboard" | "timeline" | "report"
   >("board");
   const [labels, setLabels] = useState<any[]>([]);
+
+  // Custom Modal States
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => {},
+  });
 
   // ✅ State สำหรับ Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -425,32 +445,38 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
     columnId: string | number,
     taskId: string | number
   ) => {
-    if (!confirm("Delete this task?")) return;
     const taskTitle =
       board.columns
         .find((c) => c.id === columnId)
         ?.tasks?.find((t) => t.id === taskId)?.title || "task";
-    const prev = board.columns;
-    board.setColumns(
-      board.columns.map((c) =>
-        c.id === columnId
-          ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== taskId) }
-          : c
-      )
-    );
-    try {
-      await deleteTask(String(taskId));
-      await createActivity({
-        boardId: String(workspaceId),
-        user: getCurrentUserName(),
-        action: "deleted task",
-        target: taskTitle,
-        projectId: String(workspaceId),
-      });
-    } catch (err) {
-      console.error("Failed to delete task", err);
-      board.setColumns(prev);
-    }
+
+    setDeleteModal({
+      open: true,
+      message: `ต้องการลบงาน "${taskTitle}" ใช่หรือไม่?`,
+      onConfirm: async () => {
+        const prev = board.columns;
+        board.setColumns(
+          board.columns.map((c) =>
+            c.id === columnId
+              ? { ...c, tasks: (c.tasks || []).filter((t) => t.id !== taskId) }
+              : c
+          )
+        );
+        try {
+          await deleteTask(String(taskId));
+          await createActivity({
+            boardId: String(workspaceId),
+            user: getCurrentUserName(),
+            action: "deleted task",
+            target: taskTitle,
+            projectId: String(workspaceId),
+          });
+        } catch (err) {
+          console.error("Failed to delete task", err);
+          board.setColumns(prev);
+        }
+      },
+    });
   };
 
   const handleAddColumnApi = async () => {
@@ -562,46 +588,58 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   };
 
   const handleDeleteColumnApi = async (colId: string | number) => {
-    if (!confirm("Delete this list?")) return;
-    const prev = board.columns;
-    board.setColumns(board.columns.filter((c) => c.id !== colId));
-    try {
-      await deleteColumn(String(colId));
-      await createActivity({
-        boardId: String(workspaceId),
-        user: getCurrentUserName(),
-        action: "deleted list",
-        target: String(colId),
-        projectId: String(workspaceId),
-      });
-    } catch (err) {
-      console.error("Failed to delete column", err);
-      board.setColumns(prev);
-    }
+    const colTitle = board.columns.find((c) => c.id === colId)?.title || "list";
+    setDeleteModal({
+      open: true,
+      message: `ต้องการลบลิสต์ "${colTitle}" ใช่หรือไม่?`,
+      onConfirm: async () => {
+        const prev = board.columns;
+        board.setColumns(board.columns.filter((c) => c.id !== colId));
+        try {
+          await deleteColumn(String(colId));
+          await createActivity({
+            boardId: String(workspaceId),
+            user: getCurrentUserName(),
+            action: "deleted list",
+            target: colTitle,
+            projectId: String(workspaceId),
+          });
+        } catch (err) {
+          console.error("Failed to delete column", err);
+          board.setColumns(prev);
+        }
+      },
+    });
   };
 
   const handleClearColumnApi = async (colId: string | number) => {
-    if (!confirm("Clear all tasks?")) return;
-    const prev = board.columns;
-    const column = board.columns.find((c) => c.id === colId);
-    board.setColumns(
-      board.columns.map((c) => (c.id === colId ? { ...c, tasks: [] } : c))
-    );
-    try {
-      await Promise.all(
-        (column?.tasks || []).map((t) => deleteTask(String(t.id)))
-      );
-      await createActivity({
-        boardId: String(workspaceId),
-        user: getCurrentUserName(),
-        action: "cleared list",
-        target: String(colId),
-        projectId: String(workspaceId),
-      });
-    } catch (err) {
-      console.error("Failed to clear column", err);
-      board.setColumns(prev);
-    }
+    const colTitle = board.columns.find((c) => c.id === colId)?.title || "list";
+    setDeleteModal({
+      open: true,
+      message: `ต้องการล้างงานทั้งหมดในลิสต์ "${colTitle}" ใช่หรือไม่?`,
+      onConfirm: async () => {
+        const prev = board.columns;
+        const column = board.columns.find((c) => c.id === colId);
+        board.setColumns(
+          board.columns.map((c) => (c.id === colId ? { ...c, tasks: [] } : c))
+        );
+        try {
+          await Promise.all(
+            (column?.tasks || []).map((t) => deleteTask(String(t.id)))
+          );
+          await createActivity({
+            boardId: String(workspaceId),
+            user: getCurrentUserName(),
+            action: "cleared list",
+            target: colTitle,
+            projectId: String(workspaceId),
+          });
+        } catch (err) {
+          console.error("Failed to clear column", err);
+          board.setColumns(prev);
+        }
+      },
+    });
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -666,22 +704,37 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         isFilterOpen={isFilterOpen}
         onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
         onOpenSettings={() => {
-          if (isReadOnly)
-            return alert("You don't have permission to edit settings.");
+          if (isReadOnly) {
+            return setErrorModal({
+              open: true,
+              message: "ไม่มีสิทธิ์เข้าถึง!",
+              description: "คุณไม่มีสิทธิ์ในการแก้ไขการตั้งค่าโครงการนี้",
+            });
+          }
           board.setIsSettingsOpen(true);
         }}
         onOpenMembers={() => {
-          if (isReadOnly)
-            return alert("You don't have permission to manage members.");
+          if (isReadOnly) {
+            return setErrorModal({
+              open: true,
+              message: "ไม่มีสิทธิ์เข้าถึง!",
+              description: "คุณไม่มีสิทธิ์ในการจัดการสมาชิกในโครงการนี้",
+            });
+          }
           board.setIsMembersOpen(true);
         }}
         onRefresh={fetchBoard}
         notifications={notifications}
         // ✅ แก้ไข: ลบข้อมูลจาก LocalStorage
         onClearNotifications={() => {
-          if (!confirm("ต้องการลบประวัติการแจ้งเตือนทั้งหมดใช่ไหม?")) return;
-          setNotifications([]);
-          localStorage.removeItem(`notifications_${workspaceId}`);
+          setDeleteModal({
+            open: true,
+            message: "ต้องการลบประวัติการแจ้งเตือนทั้งหมดใช่ไหม?",
+            onConfirm: () => {
+              setNotifications([]);
+              localStorage.removeItem(`notifications_${workspaceId}`);
+            },
+          });
         }}
       />
 
@@ -1010,6 +1063,27 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         workspaceId={String(workspaceId)}
         onMemberAdded={fetchBoard}
         currentUser={currentUser}
+      />
+
+      <ModalSuccess
+        open={successModal.open}
+        message={successModal.message}
+        description={successModal.description}
+        onClose={() => setSuccessModal({ ...successModal, open: false })}
+      />
+
+      <ModalError
+        open={errorModal.open}
+        message={errorModal.message}
+        description={errorModal.description}
+        onClose={() => setErrorModal({ ...errorModal, open: false })}
+      />
+
+      <ModalDelete
+        open={deleteModal.open}
+        message={deleteModal.message}
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
+        onConfirm={deleteModal.onConfirm}
       />
     </div>
   );

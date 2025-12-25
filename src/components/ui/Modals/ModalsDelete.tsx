@@ -6,6 +6,7 @@ import { useState } from "react";
 interface ModalDeleteProps {
   message?: string;
   href?: string;
+  open: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void> | void; // รองรับ async และ non-async
 }
@@ -13,12 +14,14 @@ interface ModalDeleteProps {
 const ModalDelete = ({
   message = "คุณต้องการลบข้อมูลนี้หรือไม่?",
   href = "",
+  open,
   onClose,
   onConfirm,
 }: ModalDeleteProps) => {
-
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  if (!open) return null;
 
   const handleConfirm = async () => {
     try {
@@ -31,7 +34,6 @@ const ModalDelete = ({
       }
 
       onClose();
-
     } catch (error) {
       console.error("Delete Error:", error);
     } finally {
@@ -40,9 +42,8 @@ const ModalDelete = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
       <div className="bg-white p-6 rounded-2xl shadow-xl text-center w-80">
-        
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -73,7 +74,6 @@ const ModalDelete = ({
             {loading ? "กำลังลบ..." : "ลบข้อมูล"}
           </button>
         </div>
-
       </div>
     </div>
   );

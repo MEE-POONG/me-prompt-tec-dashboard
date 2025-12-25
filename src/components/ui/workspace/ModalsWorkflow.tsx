@@ -58,6 +58,9 @@ import {
   createColumn,
   deleteTask,
 } from "@/lib/api/workspace";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
 // --- 1. CSS Styles ---
 const customStyles = `
@@ -302,6 +305,23 @@ export default function ModalsWorkflow({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [availableTags, setAvailableTags] = useState<TagItem[]>(INITIAL_TAGS);
+
+  // Custom Modal States
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Activities & Comments State
   const [comments, setComments] = useState<Comment[]>([]);
@@ -772,63 +792,81 @@ export default function ModalsWorkflow({
   // ... (Archive & Delete handlers same as before) ...
   const handleArchiveTask = async () => {
     if (!taskId || !boardId) return;
-    if (!confirm("Archive this task?")) return;
-    try {
-      setIsSaving(true);
-      // ✅ Use updateTask to set isArchived: true
-      await updateTask(String(taskId), { isArchived: true });
-      await createActivity({
-        boardId: String(boardId),
-        user: "You",
-        action: "archived",
-        target: title,
-        projectId: String(boardId),
-        taskId: taskId || undefined,
-      });
-      logActivity("archived this task");
-      try {
-        onTaskUpdated?.();
-      } catch (e) {
-        /* ignore */
-      }
-      onClose();
-    } catch (err) {
-      console.error("Failed to archive task", err);
-      alert("Failed to archive task");
-    } finally {
-      setIsSaving(false);
-      setMoreOpen(false);
-    }
+    setDeleteModal({
+      open: true,
+      message: "ต้องการย้ายงานนี้ไปยังหน้าคลังเก็บงาน (Archive) ใช่หรือไม่?",
+      onConfirm: async () => {
+        try {
+          setIsSaving(true);
+          await updateTask(String(taskId), { isArchived: true });
+          await createActivity({
+            boardId: String(boardId),
+            user: "You",
+            action: "archived",
+            target: title,
+            projectId: String(boardId),
+            taskId: taskId || undefined,
+          });
+          logActivity("archived this task");
+          try {
+            onTaskUpdated?.();
+          } catch (e) {
+            /* ignore */
+          }
+          onClose();
+        } catch (err) {
+          console.error("Failed to archive task", err);
+          setErrorModal({
+            open: true,
+            message: "เกิดข้อผิดพลาด!",
+            description: "ไม่สามารถย้ายงานไปยังคลังเก็บงานได้",
+          });
+        } finally {
+          setIsSaving(false);
+          setMoreOpen(false);
+        }
+      },
+    });
   };
 
   const handleDeleteTask = async () => {
     if (!taskId) return;
-    if (!confirm("Delete this task? This cannot be undone.")) return;
-    try {
-      setIsSaving(true);
-      await deleteTask(String(taskId));
-      await createActivity({
-        boardId: String(boardId),
-        user: "You",
-        action: "deleted",
-        target: title,
-        projectId: String(boardId),
-        taskId: taskId || undefined,
-      });
-      logActivity("deleted");
-      try {
-        onTaskUpdated?.();
-      } catch (e) {
-        /* ignore */
-      }
-      onClose();
-    } catch (err) {
-      console.error("Failed to delete task", err);
-      alert("Failed to delete task");
-    } finally {
-      setIsSaving(false);
-      setMoreOpen(false);
-    }
+    setDeleteModal({
+      open: true,
+      message:
+        "ต้องการลบงานนี้อย่างถาวรใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้",
+      onConfirm: async () => {
+        try {
+          setIsSaving(true);
+          await deleteTask(String(taskId));
+          await createActivity({
+            boardId: String(boardId),
+            user: "You",
+            action: "deleted",
+            target: title,
+            projectId: String(boardId),
+            taskId: taskId || undefined,
+          });
+          logActivity("deleted");
+          try {
+            onTaskUpdated?.();
+          } catch (e) {
+            /* ignore */
+          }
+          onClose();
+        } catch (err) {
+          console.error("Failed to delete task", err);
+          setErrorModal({
+            open: true,
+            message: "เกิดข้อผิดพลาด!",
+            description: "ไม่สามารถลบงานได้",
+          });
+        } finally {
+          setIsSaving(false);
+          setMoreOpen(false);
+        }
+      },
+    });
   };
 
   // ... (Tag, Checklist, Attachment handlers same as before) ...
@@ -923,28 +961,43 @@ export default function ModalsWorkflow({
 
   const handleDeleteTag = async () => {
     if (editingTagId) {
-      if (!confirm("Are you sure you want to delete this label?")) return;
-      try {
-        const tagToDelete = availableTags.find((t) => t.id === editingTagId);
-        if (!isValidObjectId(editingTagId)) {
-          setAvailableTags((prev) => prev.filter((t) => t.id !== editingTagId));
-          setSelectedTagIds((prev) => prev.filter((id) => id !== editingTagId));
-          setTagView("list");
-          setEditingTagId(null);
-          setNewTagName("");
-          logActivity(`deleted label "${tagToDelete?.name}"`);
-          return;
-        }
-        await deleteLabel(editingTagId);
-        setAvailableTags((prev) => prev.filter((t) => t.id !== editingTagId));
-        setSelectedTagIds((prev) => prev.filter((id) => id !== editingTagId));
-        setTagView("list");
-        setEditingTagId(null);
-        setNewTagName("");
-        logActivity(`deleted label "${tagToDelete?.name}"`);
-      } catch (err) {
-        console.error("Failed to delete tag", err);
-      }
+      setDeleteModal({
+        open: true,
+        message: "ต้องการลบป้ายชื่อนี้ใช่หรือไม่?",
+        onConfirm: async () => {
+          try {
+            const tagToDelete = availableTags.find(
+              (t) => t.id === editingTagId
+            );
+            if (!isValidObjectId(editingTagId)) {
+              setAvailableTags((prev) =>
+                prev.filter((t) => t.id !== editingTagId)
+              );
+              setSelectedTagIds((prev) =>
+                prev.filter((id) => id !== editingTagId)
+              );
+              setTagView("list");
+              setEditingTagId(null);
+              setNewTagName("");
+              logActivity(`deleted label "${tagToDelete?.name}"`);
+              return;
+            }
+            await deleteLabel(editingTagId);
+            setAvailableTags((prev) =>
+              prev.filter((t) => t.id !== editingTagId)
+            );
+            setSelectedTagIds((prev) =>
+              prev.filter((id) => id !== editingTagId)
+            );
+            setTagView("list");
+            setEditingTagId(null);
+            setNewTagName("");
+            logActivity(`deleted label "${tagToDelete?.name}"`);
+          } catch (err) {
+            console.error("Failed to delete tag", err);
+          }
+        },
+      });
     }
   };
 
@@ -1204,20 +1257,24 @@ export default function ModalsWorkflow({
     }
   };
   const deleteBlock = async (blockId: string) => {
-    if (confirm("Delete this section?")) {
-      const block = blocks.find((b) => b.id === blockId);
-      setBlocks((prev) => prev.filter((b) => b.id !== blockId));
-      logActivity("removed a block");
-      if (block?.type === "checklist" && taskId) {
-        try {
-          const newCount = Math.max(0, checklistCount - 1);
-          setChecklistCount(newCount);
-          await updateTask(String(taskId), { checklist: newCount });
-        } catch (err) {
-          console.error("Failed to update checklist count", err);
+    setDeleteModal({
+      open: true,
+      message: "ต้องการลบส่วนนี้ใช่หรือไม่?",
+      onConfirm: async () => {
+        const block = blocks.find((b) => b.id === blockId);
+        setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+        logActivity("removed a block");
+        if (block?.type === "checklist" && taskId) {
+          try {
+            const newCount = Math.max(0, checklistCount - 1);
+            setChecklistCount(newCount);
+            await updateTask(String(taskId), { checklist: newCount });
+          } catch (err) {
+            console.error("Failed to update checklist count", err);
+          }
         }
-      }
-    }
+      },
+    });
   };
 
   const handleAddAttachment = async (
@@ -1278,7 +1335,11 @@ export default function ModalsWorkflow({
       ); // Limit 2MB
 
       if (validFiles.length !== selectedFiles.length) {
-        alert("บางไฟล์มีขนาดใหญ่เกิน 2MB และจะไม่ถูกแนบ");
+        setErrorModal({
+          open: true,
+          message: "ไฟล์ใหญ่เกินกำหนด!",
+          description: "บางไฟล์มีขนาดใหญ่เกิน 2MB และจะไม่ถูกแนบ",
+        });
       }
 
       setCommentFiles((prev) => [...prev, ...validFiles]);
@@ -1375,16 +1436,21 @@ export default function ModalsWorkflow({
 
   const deleteComment = async (id: string) => {
     if (!id) return;
-    if (!confirm("Delete this comment?")) return;
-    setComments((prev) => prev.filter((c) => c.id !== id));
-    try {
-      if (!id.startsWith("temp-")) {
-        await apiDeleteComment(id);
-        logActivity("deleted comment");
-      }
-    } catch (err) {
-      console.error("Failed to delete comment", err);
-    }
+    setDeleteModal({
+      open: true,
+      message: "ต้องการลบคอมเมนต์นี้ใช่หรือไม่?",
+      onConfirm: async () => {
+        setComments((prev) => prev.filter((c) => c.id !== id));
+        try {
+          if (!id.startsWith("temp-")) {
+            await apiDeleteComment(id);
+            logActivity("deleted comment");
+          }
+        } catch (err) {
+          console.error("Failed to delete comment", err);
+        }
+      },
+    });
   };
 
   // ✅ Handle Start Edit: Extract ALL file codes (Corrected Logic)
@@ -1446,7 +1512,11 @@ export default function ModalsWorkflow({
     // ลบ code ไฟล์ออกก่อน copy (เพื่อให้ได้เฉพาะข้อความ)
     const cleanText = text.replace(/\[file::.*?::.*?\]/g, "").trim();
     navigator.clipboard.writeText(cleanText || text);
-    alert("คัดลอกข้อความแล้ว!");
+    setSuccessModal({
+      open: true,
+      message: "คัดลอกสำเร็จ!",
+      description: "คัดลอกข้อความเป็นความจำเรียบร้อยแล้ว",
+    });
   };
 
   const toggleMember = async (memberId: string) => {
@@ -2460,6 +2530,47 @@ export default function ModalsWorkflow({
           </div>
         </div>
       </div>
+      <CustomModals
+        successModal={successModal}
+        setSuccessModal={setSuccessModal}
+        errorModal={errorModal}
+        setErrorModal={setErrorModal}
+        deleteModal={deleteModal}
+        setDeleteModal={setDeleteModal}
+      />
+    </>
+  );
+}
+
+// Render helpers for custom modals within the same component flow
+function CustomModals({
+  successModal,
+  setSuccessModal,
+  errorModal,
+  setErrorModal,
+  deleteModal,
+  setDeleteModal,
+}: any) {
+  return (
+    <>
+      <ModalSuccess
+        open={successModal.open}
+        message={successModal.message}
+        description={successModal.description}
+        onClose={() => setSuccessModal({ ...successModal, open: false })}
+      />
+      <ModalError
+        open={errorModal.open}
+        message={errorModal.message}
+        description={errorModal.description}
+        onClose={() => setErrorModal({ ...errorModal, open: false })}
+      />
+      <ModalDelete
+        open={deleteModal.open}
+        message={deleteModal.message}
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
+        onConfirm={deleteModal.onConfirm}
+      />
     </>
   );
 }

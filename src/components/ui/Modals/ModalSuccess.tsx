@@ -2,11 +2,11 @@ import React from "react";
 import { useRouter } from "next/navigation";
 
 interface ModalSuccessProps {
-  message?: string;          
-  description?: string;           
-  open: boolean;             
-  href?: string;    
-  onClose?: () => void; 
+  message?: string;
+  description?: string;
+  open: boolean;
+  href?: string;
+  onClose?: () => void;
 }
 
 const CheckCircleIcon = () => (
@@ -39,27 +39,22 @@ export default function ModalSuccess({
 
   const handleClick = async () => {
     if (href) {
-      await router.push(href);       // ⬅️ ไปลิ้งก่อน
+      await router.push(href); // ⬅️ ไปลิ้งก่อน
     }
 
     if (onClose) {
-      onClose();                     // ⬅️ ค่อยปิด modal ทีหลัง
+      onClose(); // ⬅️ ค่อยปิด modal ทีหลัง
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
-
         <CheckCircleIcon />
 
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">
-          {message}
-        </h3>
+        <h3 className="text-2xl font-bold text-gray-800 mb-2">{message}</h3>
 
-        <p className="text-gray-600 text-lg mb-5">
-          {description}
-        </p>
+        <p className="text-gray-600 text-lg mb-5">{description}</p>
 
         <button
           onClick={handleClick}

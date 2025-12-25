@@ -28,6 +28,10 @@ import {
   WorkspaceTask,
 } from "@/types/workspace";
 import { updateBoard } from "@/lib/api/workspace"; // [เพิ่ม]
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
+import ModalError from "@/components/ui/Modals/ModalError";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import ModalRestore from "@/components/ui/Modals/ModalRestore";
 
 // --- Types ---
 type TabType = "settings" | "difficulty" | "archived" | "activities";
@@ -63,6 +67,28 @@ export function WorkspaceSettingsSidebar({
     workspaceInfo.description || ""
   ); // [แก้ไข] รับค่าจาก db
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
+
+  // Custom Modal States
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => {},
+  });
+  const [restoreModal, setRestoreModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Member States
   const [memberSearch, setMemberSearch] = useState("");
@@ -128,28 +154,41 @@ export function WorkspaceSettingsSidebar({
   }, [activeTab, isOpen, boardId]);
 
   const handleRestoreTask = async (taskId: string | number) => {
-    if (!confirm("Restore this task?")) return;
-    try {
-      const res = await fetch(`/api/workspace/task/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isArchived: false }), // Assuming backend handles this or we need to update logic
-        // Wait, my plan said PUT to set isArchived: false.
-        // Let's check api/[id].ts. It handles PUT and updates fields.
-        // So passing { isArchived: false } should work if I add it to allowed fields in API.
-        // Wait, I didn't add isArchived to PUT allowed fields in API yet!
-        // I need to update API to allow updating isArchived.
-      });
+    setRestoreModal({
+      open: true,
+      message: "ต้องการคืนค่าแท็บพยากรณ์นี้ใช่หรือไม่?",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/workspace/task/${taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isArchived: false }),
+          });
 
-      if (res.ok) {
-        setArchivedTasks((prev) => prev.filter((t) => t.id !== taskId));
-        // Optional: Notify parent to refresh board?
-        // The parent (WorkspaceBoard) polls or refreshes on certain actions.
-        // Since this is a sidebar, we might need a callback to refresh board.
-      }
-    } catch (error) {
-      console.error("Failed to restore task", error);
-    }
+          if (res.ok) {
+            setArchivedTasks((prev) => prev.filter((t) => t.id !== taskId));
+            setSuccessModal({
+              open: true,
+              message: "คืนค่าสำเร็จ!",
+              description: "คืนค่าแท็บพยากรณ์เรียบร้อยแล้ว",
+            });
+          } else {
+            setErrorModal({
+              open: true,
+              message: "เกิดข้อผิดพลาด!",
+              description: "ไม่สามารถคืนค่าแท็บพยากรณ์ได้",
+            });
+          }
+        } catch (error) {
+          console.error("Failed to restore task", error);
+          setErrorModal({
+            open: true,
+            message: "เกิดข้อผิดพลาด!",
+            description: "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์",
+          });
+        }
+      },
+    });
   };
 
   // Refs
@@ -189,10 +228,18 @@ export function WorkspaceSettingsSidebar({
     try {
       await updateBoard(boardId, { description: tempDescription });
       setDescription(tempDescription);
-      alert("Saved Description successfully!");
+      setSuccessModal({
+        open: true,
+        message: "บันทึกสำเร็จ!",
+        description: "บันทึกรายละเอียดเรียบร้อยแล้ว",
+      });
     } catch (error) {
       console.error("Failed to update description", error);
-      alert("Failed to save description");
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถบันทึกรายละเอียดได้",
+      });
     }
   };
 
@@ -200,10 +247,18 @@ export function WorkspaceSettingsSidebar({
     if (!boardId) return;
     try {
       await updateBoard(boardId, { name: projectName });
-      alert("Saved Project Name successfully!");
+      setSuccessModal({
+        open: true,
+        message: "บันทึกสำเร็จ!",
+        description: "บันทึกชื่อโปรเจกต์เรียบร้อยแล้ว",
+      });
     } catch (error) {
       console.error("Failed to update name", error);
-      alert("Failed to save name");
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด!",
+        description: "ชื่่อโปรเจกต์นี้อาจมีอยู่แล้ว หรือเกิดข้อผิดพลาดอื่น",
+      });
     }
   };
 
@@ -226,33 +281,54 @@ export function WorkspaceSettingsSidebar({
       setOpenMemberDropdownId(null);
     } catch (error) {
       console.error(error);
-      alert("Failed to update role");
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถเปลี่ยนบทบาทได้",
+      });
     }
   };
 
   const handleRemoveMember = async (index: number) => {
     const member = members[index];
-    if (window.confirm(`Are you sure you want to remove ${member.name}?`)) {
-      try {
-        const res = await fetch(`/api/workspace/member?id=${member.id}`, {
-          method: "DELETE",
-        });
-        if (!res.ok) throw new Error("Failed to remove member");
-        const updatedMembers = members.filter((_, i) => i !== index);
-        setMembers(updatedMembers);
-      } catch (error) {
-        console.error(error);
-        alert("Failed to remove member");
-      }
-    }
+    setDeleteModal({
+      open: true,
+      message: `คุณต้องการลบสมาชิิก ${member.name} ใช่หรือไม่?`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/workspace/member?id=${member.id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error("Failed to remove member");
+          const updatedMembers = members.filter((_, i) => i !== index);
+          setMembers(updatedMembers);
+          setSuccessModal({
+            open: true,
+            message: "ลบสำเร็จ!",
+            description: "ลบสมาชิิกเรียบร้อยแล้ว",
+          });
+        } catch (error) {
+          console.error(error);
+          setErrorModal({
+            open: true,
+            message: "เกิดข้อผิดพลาด!",
+            description: "ไม่สามารถลบสมาชิิกได้",
+          });
+        }
+      },
+    });
     setOpenMemberDropdownId(null);
   };
 
   const handleLeaveBoard = () => {
-    if (window.confirm("Are you sure you want to leave this board?")) {
-      onClose();
-      // Add actual leave logic here
-    }
+    setDeleteModal({
+      open: true,
+      message: "คุณต้องการออกจากบอร์ดนี้ใช่หรือไม่?",
+      onConfirm: () => {
+        onClose();
+        // Add actual leave logic here
+      },
+    });
   };
 
   // --- Handlers (Difficulty) ---
@@ -768,6 +844,34 @@ export function WorkspaceSettingsSidebar({
           )}
         </div>
       </div>
+
+      <ModalSuccess
+        open={successModal.open}
+        message={successModal.message}
+        description={successModal.description}
+        onClose={() => setSuccessModal({ ...successModal, open: false })}
+      />
+
+      <ModalError
+        open={errorModal.open}
+        message={errorModal.message}
+        description={errorModal.description}
+        onClose={() => setErrorModal({ ...errorModal, open: false })}
+      />
+
+      <ModalDelete
+        open={deleteModal.open}
+        message={deleteModal.message}
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
+        onConfirm={deleteModal.onConfirm}
+      />
+
+      <ModalRestore
+        open={restoreModal.open}
+        message={restoreModal.message}
+        onClose={() => setRestoreModal({ ...restoreModal, open: false })}
+        onConfirm={restoreModal.onConfirm}
+      />
     </>
   );
 }
@@ -794,6 +898,17 @@ export function MembersManageModal({
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    message: "",
+    description: "",
+  });
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -853,7 +968,11 @@ export function MembersManageModal({
       if (onMemberAdded) onMemberAdded(); // Refresh list
     } catch (error) {
       console.error(error);
-      alert("Failed to update role");
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถเปลี่ยนบทบาทได้",
+      });
     }
   };
 
@@ -871,7 +990,7 @@ export function MembersManageModal({
       setConfirmRemoveId(null);
     } catch (error) {
       console.error(error);
-      alert("Failed to remove member");
+      setErrorMsg("Failed to remove member");
     }
   };
 
@@ -1025,6 +1144,20 @@ export function MembersManageModal({
           </div>
         </div>
       </div>
+
+      <ModalSuccess
+        open={successModal.open}
+        message={successModal.message}
+        description={successModal.description}
+        onClose={() => setSuccessModal({ ...successModal, open: false })}
+      />
+
+      <ModalError
+        open={errorModal.open}
+        message={errorModal.message}
+        description={errorModal.description}
+        onClose={() => setErrorModal({ ...errorModal, open: false })}
+      />
     </div>
   );
 }
