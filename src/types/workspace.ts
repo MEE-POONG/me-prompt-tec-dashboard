@@ -48,6 +48,7 @@ export type WorkspaceInfo = {
     progress: number;
     dueDate: string;
     createdAt?: string;
+    updatedAt?: string;
     visibility?: "PRIVATE" | "PUBLIC";
     members: WorkspaceMember[];
     activities: WorkspaceActivity[];

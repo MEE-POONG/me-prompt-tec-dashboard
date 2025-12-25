@@ -226,6 +226,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         members: data.members || [],
         activities: data.activities || [],
         createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
       });
       setMembers(data.members || []);
       setActivities(data.activities || []);
@@ -351,7 +352,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       }
     };
 
-    const intervalId = setInterval(checkUpdates, 2000);
+    const intervalId = setInterval(checkUpdates, 10000); // ✅ เปลี่ยนเป็น 10 วินาที เพื่อให้ไม่ดูอัปเดตถี่เกินไป
     return () => clearInterval(intervalId);
   }, [workspaceId, fetchBoard]);
 

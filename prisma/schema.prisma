@@ -632,8 +632,8 @@ model TaskAssignee {
   taskId String @db.ObjectId
   userId String @db.ObjectId
 
-  task BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task BoardTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
 }

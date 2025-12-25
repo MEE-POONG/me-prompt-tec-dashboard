@@ -105,7 +105,7 @@ export default async function handler(
           ...(assigneeIds &&
             assigneeIds.length > 0 && {
               assignees: {
-                connect: assigneeIds.map((id: string) => ({ id })),
+                create: assigneeIds.map((uid: string) => ({ userId: uid })),
               },
             }),
         },
