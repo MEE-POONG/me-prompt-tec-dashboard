@@ -426,7 +426,17 @@ export default function ModalsWorkflow({
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
-        // setAssignedMembers((data.assignees || []).map((a: any) => a.id).filter(Boolean));
+        const currentMembers = membersList; // Use current state
+        const assignedIds = (data.assignees || [])
+          .map((a: any) => {
+            const uid = a.userId || a.user?.id;
+            // Find board member by userId
+            const member = currentMembers.find((m) => m.userId === uid);
+            return member ? member.id : null;
+          })
+          .filter((id: any) => id !== null);
+        setAssignedMembers(assignedIds);
+
         setBoardId(data.column?.board?.id || data.column?.boardId || null);
 
         if (data.startDate || data.endDate) {

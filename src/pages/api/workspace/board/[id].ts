@@ -27,15 +27,15 @@ export default async function handler(
                       id: true,
                       userId: true,
                       // assignedAt: true, <--- ลบบรรทัดที่เคย error ออกแล้ว
-                      user: {
-                        select: {
-                          id: true,
-                          name: true,
-                          email: true,
-                          avatar: true,
-                          position: true,
-                        },
-                      },
+                      // user: {
+                      //   select: {
+                      //     id: true,
+                      //     name: true,
+                      //     email: true,
+                      //     avatar: true,
+                      //     position: true,
+                      //   },
+                      // },
                     },
                   },
                   taskMembers: true,

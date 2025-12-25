@@ -13,7 +13,7 @@ export type WorkspaceTask = {
     tag: string;
     tagColor: string;
     priority: "High" | "Medium" | "Low";
-    members: string[];
+    members: Partial<WorkspaceMember>[];
     comments: number;
     attachments: number;
     date: string;
