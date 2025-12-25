@@ -34,8 +34,10 @@ import {
   Download,
 } from "lucide-react";
 import { format } from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import {
   getTask,
   updateTask,
@@ -58,7 +60,6 @@ import {
   createColumn,
   deleteTask,
 } from "@/lib/api/workspace";
-import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
@@ -91,6 +92,7 @@ interface Member {
   color: string;
   short: string;
   userId?: string;
+  avatar?: string;
 }
 interface TagItem {
   id: string;
@@ -317,6 +319,7 @@ export default function ModalsWorkflow({
     message: "",
     description: "",
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
@@ -581,7 +584,7 @@ export default function ModalsWorkflow({
     return () => {
       if (!isOpen) setBlocks([]);
     };
-  }, [isOpen, task?.id]);
+  }, [isOpen, task?.id, membersList]);
 
   useEffect(() => {
     if (!isOpen || !taskId) return;
@@ -1613,6 +1616,7 @@ export default function ModalsWorkflow({
       };
       await updateTask(String(taskId), payload);
       logActivity("saved card");
+      setShowSuccessModal(true); // Show success modal
       try {
         onTaskUpdated?.();
       } catch (e) {
@@ -1687,9 +1691,20 @@ export default function ModalsWorkflow({
                   return m ? (
                     <div
                       key={id}
-                      className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm ${m.color}`}
+                      className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm overflow-hidden bg-white"
+                      title={m.name}
                     >
-                      {m.short}
+                      {m.avatar ? (
+                        <img
+                          src={m.avatar}
+                          alt={m.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center ${m.color}`}>
+                          {m.short}
+                        </div>
+                      )}
                     </div>
                   ) : null;
                 })}
@@ -2602,6 +2617,13 @@ function CustomModals({
         description={errorModal.description}
         onClose={() => setErrorModal({ ...errorModal, open: false })}
       />
+      <ModalSuccess
+        open={showSuccessModal}
+        message="บันทึกสำเร็จ!"
+        description="ข้อมูลงานถูกอัปเดตเรียบร้อยแล้ว"
+        onClose={() => setShowSuccessModal(false)}
+      />
+
       <ModalDelete
         open={deleteModal.open}
         message={deleteModal.message}
