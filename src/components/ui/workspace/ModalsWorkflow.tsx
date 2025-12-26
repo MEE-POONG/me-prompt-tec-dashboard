@@ -322,7 +322,7 @@ export default function ModalsWorkflow({
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Activities & Comments State
@@ -408,7 +408,7 @@ export default function ModalsWorkflow({
     if (u) {
       try {
         setCurrentUser(JSON.parse(u));
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -446,8 +446,8 @@ export default function ModalsWorkflow({
             const from = data.startDate
               ? new Date(data.startDate)
               : data.dueDate
-              ? new Date(data.dueDate)
-              : undefined;
+                ? new Date(data.dueDate)
+                : undefined;
             const to = data.endDate ? new Date(data.endDate) : undefined;
             if (from && !isNaN(from.getTime())) setDateRange({ from, to });
             else setDateRange(undefined);
@@ -496,7 +496,7 @@ export default function ModalsWorkflow({
               .filter((m: any) => taskUserIds.includes(m.userId))
               .map((m: any) => m.id);
             setAssignedMembers(matchedBoardIds);
-          } catch (err) {}
+          } catch (err) { }
 
           let currentLabels: TagItem[] = [];
           try {
@@ -557,7 +557,7 @@ export default function ModalsWorkflow({
                 setSelectedTagIds([newId]);
               }
             }
-          } catch (e) {}
+          } catch (e) { }
 
           try {
             const coms: any[] = await getComments(data.id);
@@ -571,7 +571,7 @@ export default function ModalsWorkflow({
                 isEdited: c.updatedAt && c.updatedAt !== c.createdAt,
               }))
             );
-          } catch (e) {}
+          } catch (e) { }
         }
       } catch (err) {
         console.error("Failed to load task", err);
@@ -602,10 +602,10 @@ export default function ModalsWorkflow({
           const item = payload;
           setBlocks((prev) => {
             const idx = prev.findIndex((b) => b.type === "checklist");
-            
+
             // 1. If Checklist block doesn't exist, create it
             if (idx === -1) {
-               return [
+              return [
                 {
                   id: `checklist-${Date.now()}`,
                   type: "checklist",
@@ -621,35 +621,35 @@ export default function ModalsWorkflow({
             // 2. [FIXED] Strict duplicate check
             // Use .some() to prevent duplicates if SSE fires after local update
             const currentBlock = prev[idx];
-            
+
             // Normalize incoming text and existing text for comparison
             const incomingText = item.text ? item.text.trim() : "";
 
             const exists = currentBlock.items?.some(
-              (i) => 
-                i.id === item.id || 
+              (i) =>
+                i.id === item.id ||
                 (i.id.startsWith("temp-") && i.text.trim() === incomingText)
             );
 
             if (exists) {
-                // If it already exists (likely from optimistic update), do NOT add again
-                return prev;
+              // If it already exists (likely from optimistic update), do NOT add again
+              return prev;
             }
 
             // 3. Otherwise, append the new item
             return prev.map((b) =>
               b.type === "checklist"
                 ? {
-                    ...b,
-                    items: [
-                      ...(b.items || []),
-                      {
-                        id: item.id,
-                        text: item.text,
-                        isChecked: item.isChecked,
-                      },
-                    ],
-                  }
+                  ...b,
+                  items: [
+                    ...(b.items || []),
+                    {
+                      id: item.id,
+                      text: item.text,
+                      isChecked: item.isChecked,
+                    },
+                  ],
+                }
                 : b
             );
           });
@@ -660,17 +660,17 @@ export default function ModalsWorkflow({
             prev.map((b) =>
               b.type === "checklist"
                 ? {
-                    ...b,
-                    items: b.items?.map((i) =>
-                      i.id === item.id
-                        ? {
-                            id: item.id,
-                            text: item.text,
-                            isChecked: item.isChecked,
-                          }
-                        : i
-                    ),
-                  }
+                  ...b,
+                  items: b.items?.map((i) =>
+                    i.id === item.id
+                      ? {
+                        id: item.id,
+                        text: item.text,
+                        isChecked: item.isChecked,
+                      }
+                      : i
+                  ),
+                }
                 : b
             )
           );
@@ -704,13 +704,13 @@ export default function ModalsWorkflow({
             prev.map((cm) =>
               cm.id === c.id
                 ? {
-                    id: c.id,
-                    user: c.author || "Unknown",
-                    text: c.content,
-                    time: new Date(c.updatedAt || c.createdAt).toLocaleString(),
-                    color: "bg-slate-400",
-                    isEdited: true,
-                  }
+                  id: c.id,
+                  user: c.author || "Unknown",
+                  text: c.content,
+                  time: new Date(c.updatedAt || c.createdAt).toLocaleString(),
+                  color: "bg-slate-400",
+                  isEdited: true,
+                }
                 : cm
             )
           );
@@ -1123,20 +1123,20 @@ export default function ModalsWorkflow({
     // ✅ Fix: Trim text immediately to prevent whitespace duplicates
     const trimmedText = text.trim();
     if (!trimmedText || !taskId) return;
-    
+
     const tempId = `temp-${Date.now()}`;
-    
+
     // Add temp item with trimmed text
     setBlocks((prev) =>
       prev.map((b) =>
         b.id === blockId
           ? {
-              ...b,
-              items: [
-                ...(b.items || []),
-                { id: tempId, text: trimmedText, isChecked: false },
-              ],
-            }
+            ...b,
+            items: [
+              ...(b.items || []),
+              { id: tempId, text: trimmedText, isChecked: false },
+            ],
+          }
           : b
       )
     );
@@ -1144,7 +1144,7 @@ export default function ModalsWorkflow({
       // Send trimmed text to API
       const created = await createChecklistItem({
         taskId: String(taskId),
-        text: trimmedText, 
+        text: trimmedText,
         isChecked: false,
         order: 0,
       });
@@ -1152,17 +1152,17 @@ export default function ModalsWorkflow({
         prev.map((b) =>
           b.id === blockId
             ? {
-                ...b,
-                items: b.items?.map((i) =>
-                  i.id === tempId
-                    ? {
-                        id: created.id,
-                        text: created.text,
-                        isChecked: created.isChecked,
-                      }
-                    : i
-                ),
-              }
+              ...b,
+              items: b.items?.map((i) =>
+                i.id === tempId
+                  ? {
+                    id: created.id,
+                    text: created.text,
+                    isChecked: created.isChecked,
+                  }
+                  : i
+              ),
+            }
             : b
         )
       );
@@ -1207,17 +1207,17 @@ export default function ModalsWorkflow({
             prev.map((b) =>
               b.id === blockId
                 ? {
-                    ...b,
-                    items: b.items?.map((i) =>
-                      i.id === itemId
-                        ? {
-                            id: created.id,
-                            text: created.text,
-                            isChecked: created.isChecked,
-                          }
-                        : i
-                    ),
-                  }
+                  ...b,
+                  items: b.items?.map((i) =>
+                    i.id === itemId
+                      ? {
+                        id: created.id,
+                        text: created.text,
+                        isChecked: created.isChecked,
+                      }
+                      : i
+                  ),
+                }
                 : b
             )
           );
@@ -1230,17 +1230,17 @@ export default function ModalsWorkflow({
           prev.map((b) =>
             b.id === blockId
               ? {
-                  ...b,
-                  items: b.items?.map((i) =>
-                    i.id === itemId
-                      ? {
-                          id: updated.id,
-                          text: updated.text,
-                          isChecked: updated.isChecked,
-                        }
-                      : i
-                  ),
-                }
+                ...b,
+                items: b.items?.map((i) =>
+                  i.id === itemId
+                    ? {
+                      id: updated.id,
+                      text: updated.text,
+                      isChecked: updated.isChecked,
+                    }
+                    : i
+                ),
+              }
               : b
           )
         );
@@ -1251,13 +1251,13 @@ export default function ModalsWorkflow({
         prev.map((b) =>
           b.id === blockId
             ? {
-                ...b,
-                items: b.items?.map((i) =>
-                  i.id === itemId
-                    ? { ...i, isChecked: currentItem?.isChecked ?? false }
-                    : i
-                ),
-              }
+              ...b,
+              items: b.items?.map((i) =>
+                i.id === itemId
+                  ? { ...i, isChecked: currentItem?.isChecked ?? false }
+                  : i
+              ),
+            }
             : b
         )
       );
@@ -1289,11 +1289,11 @@ export default function ModalsWorkflow({
       prev.map((b) =>
         b.id === blockId
           ? {
-              ...b,
-              items: b.items?.map((i) =>
-                i.id === itemId ? { ...i, text } : i
-              ),
-            }
+            ...b,
+            items: b.items?.map((i) =>
+              i.id === itemId ? { ...i, text } : i
+            ),
+          }
           : b
       )
     );
@@ -1459,12 +1459,12 @@ export default function ModalsWorkflow({
         prev.map((c) =>
           c.id === temp.id
             ? {
-                id: created.id,
-                user: created.author || "You",
-                text: created.content,
-                time: new Date(created.createdAt).toLocaleString(),
-                color: "bg-blue-600",
-              }
+              id: created.id,
+              user: created.author || "You",
+              text: created.content,
+              time: new Date(created.createdAt).toLocaleString(),
+              color: "bg-blue-600",
+            }
             : c
         )
       );
@@ -1585,8 +1585,7 @@ export default function ModalsWorkflow({
       await updateTask(String(taskId), { assigneeIds: userIds });
       const member = membersList.find((m) => m.id === memberId);
       logActivity(
-        `${newMembers.includes(memberId) ? "assigned" : "removed"} ${
-          member?.name || memberId
+        `${newMembers.includes(memberId) ? "assigned" : "removed"} ${member?.name || memberId
         }`
       );
     } catch (err) {
@@ -1635,17 +1634,30 @@ export default function ModalsWorkflow({
     if (!taskId) return;
     try {
       setIsSaving(true);
+
+      // ✅ Map Board Member IDs to User IDs
+      const userIds = assignedMembers
+        .map((mid) => membersList.find((m) => m.id === mid)?.userId)
+        .filter((id): id is string => !!id);
+
       const due = dateRange?.from ? dateRange.from.toISOString() : null;
       const payload: any = {
         title,
         description: desc,
-        assigneeIds: assignedMembers,
+        assigneeIds: userIds, // ✅ Send User IDs
         dueDate: due,
         checklist: checklistCount,
       };
       await updateTask(String(taskId), payload);
       logActivity("saved card");
-      setShowSuccessModal(true); // Show success modal
+
+      // ✅ Correct Modal State
+      setSuccessModal({
+        open: true,
+        message: "บันทึกสำเร็จ",
+        description: "ข้อมูลงานของคุณได้รับการบันทึกเรียบร้อยแล้ว",
+      });
+
       try {
         onTaskUpdated?.();
       } catch (e) {
@@ -2359,7 +2371,7 @@ export default function ModalsWorkflow({
                       onBack={() => setTagView("list")}
                     >
                       {tagView === "list" ? (
-<div className="space-y-1">
+                        <div className="space-y-1">
                           <input
                             placeholder="Search labels..."
                             className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500"
@@ -2597,7 +2609,11 @@ export default function ModalsWorkflow({
                 </p>
                 <div className="space-y-2">
                   <SidebarBtn icon={Layout} label="Cover" />
-                  <SidebarBtn icon={Trash2} label="Delete" />
+                  <SidebarBtn
+                    icon={Trash2}
+                    label="Delete"
+                    onClick={handleDeleteTask}
+                  />
                 </div>
               </div>
             </div>
