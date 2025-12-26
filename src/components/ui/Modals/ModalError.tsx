@@ -16,7 +16,7 @@ export default function ModalError({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
         <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
 

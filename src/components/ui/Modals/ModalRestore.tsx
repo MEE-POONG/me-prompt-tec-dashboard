@@ -32,7 +32,7 @@ const ModalRestore = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-100 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white p-6 rounded-2xl shadow-xl text-center w-80 transform scale-100 animate-in zoom-in-95 duration-200">
         <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
           <History className="w-8 h-8 text-blue-500" />
