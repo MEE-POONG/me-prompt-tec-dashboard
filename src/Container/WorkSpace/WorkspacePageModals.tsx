@@ -84,12 +84,12 @@ export function WorkspaceSettingsSidebar({
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
   const [restoreModal, setRestoreModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
 
   // Member States
@@ -378,9 +378,9 @@ export function WorkspaceSettingsSidebar({
                   Created{" "}
                   {workspaceInfo.createdAt
                     ? `on ${format(
-                      new Date(workspaceInfo.createdAt),
-                      "MMMM d 'at' HH:mm"
-                    )}`
+                        new Date(workspaceInfo.createdAt),
+                        "MMMM d 'at' HH:mm"
+                      )}`
                     : "recently"}
                 </p>
               </div>
@@ -424,10 +424,11 @@ export function WorkspaceSettingsSidebar({
                   <button
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
-                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tabKey
+                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
+                      activeTab === tabKey
                         ? "text-blue-600"
                         : "text-slate-500 hover:text-slate-700"
-                      }`}
+                    }`}
                   >
                     {tab}
                     {activeTab === tabKey && (
@@ -547,8 +548,9 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
-                            }`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${
+                            m.color.replace("text-", "bg-").split(" ")[0]
+                          }`}
                         >
                           {m.avatar}
                         </div>
@@ -560,8 +562,8 @@ export function WorkspaceSettingsSidebar({
                             {m.name.includes("ธนภัทร")
                               ? "pattanapat92@gmail.com"
                               : m.name.includes("Siwakorn")
-                                ? "siwakorn.pn@rmuti.ac.th"
-                                : "user@email.com"}
+                              ? "siwakorn.pn@rmuti.ac.th"
+                              : "user@email.com"}
                           </p>
                         </div>
                       </div>
@@ -718,8 +720,8 @@ export function WorkspaceSettingsSidebar({
                     Loading...
                   </div>
                 ) : archivedTasks.filter((t) =>
-                  t.title.toLowerCase().includes(archivedSearch.toLowerCase())
-                ).length === 0 ? (
+                    t.title.toLowerCase().includes(archivedSearch.toLowerCase())
+                  ).length === 0 ? (
                   /* Empty State */
                   <div className="flex flex-col items-center justify-center text-center mt-4 h-full">
                     <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
@@ -781,7 +783,7 @@ export function WorkspaceSettingsSidebar({
           {activeTab === "activities" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-full pb-10">
               {workspaceInfo.activities &&
-                workspaceInfo.activities.length > 0 ? (
+              workspaceInfo.activities.length > 0 ? (
                 (
                   Object.entries(
                     (workspaceInfo.activities || []).reduce(
@@ -790,8 +792,8 @@ export function WorkspaceSettingsSidebar({
                         const key = isToday(date)
                           ? "Today"
                           : isYesterday(date)
-                            ? "Yesterday"
-                            : format(date, "EEEE d MMMM yyyy");
+                          ? "Yesterday"
+                          : format(date, "EEEE d MMMM yyyy");
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(activity);
                         return groups;
@@ -811,12 +813,19 @@ export function WorkspaceSettingsSidebar({
                           className="flex gap-3 relative -ml-[19px] group"
                         >
                           <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
-                            {activity.user.charAt(0).toUpperCase()}
+                            {(typeof activity.user === "object"
+                              ? (activity.user as any).name
+                              : activity.user
+                            )
+                              .charAt(0)
+                              .toUpperCase()}
                           </div>
                           <div className="flex flex-col pt-1">
                             <div className="text-sm text-slate-800 leading-snug">
                               <span className="font-bold hover:underline cursor-pointer">
-                                {activity.user}
+                                {typeof activity.user === "object"
+                                  ? (activity.user as any).name
+                                  : activity.user}
                               </span>{" "}
                               {activity.action}{" "}
                               {activity.target && (
@@ -1085,9 +1094,10 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${
+                        member.color?.split(" ")[0]?.replace("text-", "bg-") ||
                         "bg-slate-400"
-                        }`}
+                      }`}
                     >
                       {member.avatar}
                     </div>

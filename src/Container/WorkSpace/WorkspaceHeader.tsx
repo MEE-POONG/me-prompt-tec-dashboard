@@ -52,7 +52,6 @@ export default function WorkspaceHeader({
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const notiRef = useRef<HTMLDivElement>(null);
 
-
   const handleRefresh = async () => {
     if (!onRefresh) {
       setIsRefreshing(true);
@@ -101,9 +100,7 @@ export default function WorkspaceHeader({
   };
 
   return (
-
     <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm font-sans">
-
       <div className="flex items-center gap-4">
         <Link
           href="/workspace"
@@ -152,10 +149,8 @@ export default function WorkspaceHeader({
         </div>
       </div>
 
-
       <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
         <div className="flex -space-x-3 mr-2 shrink-0 items-center">
-
           {workspaceInfo.members.slice(0, 3).map((m, i) => (
             <div
               key={i}
@@ -261,7 +256,9 @@ export default function WorkspaceHeader({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-slate-700 leading-snug">
                               <span className="font-bold text-slate-900">
-                                {notif.user}
+                                {typeof notif.user === "object"
+                                  ? (notif.user as any).name
+                                  : notif.user}
                               </span>
                               <span className="mx-1 text-slate-500">
                                 {notif.action}
@@ -319,7 +316,7 @@ export default function WorkspaceHeader({
         </button>
 
         {/* ❌ เอา NotificationBell ออกแล้ว */}
-        
+
         <button
           onClick={onOpenSettings}
           className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all shrink-0 border border-transparent hover:border-slate-200"
