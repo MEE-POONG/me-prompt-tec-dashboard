@@ -2608,7 +2608,7 @@ export default function ModalsWorkflow({
                   Actions
                 </p>
                 <div className="space-y-2">
-                  <SidebarBtn icon={Layout} label="Cover" />
+                  {/* <SidebarBtn icon={Layout} label="Cover" /> */}
                   <SidebarBtn
                     icon={Trash2}
                     label="Delete"
