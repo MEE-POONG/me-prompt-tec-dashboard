@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
@@ -19,8 +18,8 @@ import {
 
 import { WorkspaceInfo } from "@/types/workspace";
 import Link from "next/link";
-// ✅ Import NotificationBell (ตรวจสอบ path ให้ถูกต้อง)
-import { NotificationBell } from "@/components/ui/NotificationBell"; 
+// ❌ ลบ Import นี้ออก เพราะเราใช้ Logic ที่เขียนเองในไฟล์แล้ว
+// import { NotificationBell } from "@/components/ui/NotificationBell"; 
 
 export interface NotificationItem {
   id: string;
@@ -53,9 +52,7 @@ export default function WorkspaceHeader({
   onClearNotifications,
 }: WorkspaceHeaderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   const [isNotiOpen, setIsNotiOpen] = useState(false);
-
   const notiRef = useRef<HTMLDivElement>(null);
 
 
@@ -324,9 +321,8 @@ export default function WorkspaceHeader({
           Members
         </button>
 
-        {/* ✅ Notification Bell */}
-        <NotificationBell />
-
+        {/* ❌ เอา NotificationBell ออกแล้ว */}
+        
         <button
           onClick={onOpenSettings}
           className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all shrink-0 border border-transparent hover:border-slate-200"
