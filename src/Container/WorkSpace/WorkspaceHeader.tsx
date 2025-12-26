@@ -18,9 +18,6 @@ import {
 
 import { WorkspaceInfo } from "@/types/workspace";
 import Link from "next/link";
-// ❌ ลบ Import นี้ออก เพราะเราใช้ Logic ที่เขียนเองในไฟล์แล้ว
-// import { NotificationBell } from "@/components/ui/NotificationBell"; 
-
 export interface NotificationItem {
   id: string;
   user: string;
