@@ -33,7 +33,12 @@ export const createBoard = async (data: {
 
 export const updateBoard = async (
   id: string,
-  data: { name?: string; description?: string; color?: string }
+  data: {
+    name?: string;
+    description?: string;
+    color?: string;
+    visibility?: "PRIVATE" | "PUBLIC";
+  }
 ) => {
   const res = await fetch(`/api/workspace/board/${id}`, {
     method: "PUT",

@@ -52,9 +52,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   // ✅ 2. เรียก Hooks ทั้งหมดไว้บนสุด (ห้ามมี if มาคั่น)
   const router = useRouter();
   const board = useWorkspaceBoard([]);
-  
+
   // เรียกใช้ Socket Hook อย่างปลอดภัย
-  const socketData = useSocket(); 
+  const socketData = useSocket();
   const socket = socketData?.socket;
 
   const [loading, setLoading] = useState(true);
@@ -265,6 +265,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         dueDate: data.dueDate || "",
         members: data.members || [],
         activities: data.activities || [],
+        visibility: data.visibility, // [เพิ่ม]
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
       });
@@ -818,8 +819,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("board")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "board"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <KanbanSquare size={18} /> Board
@@ -827,8 +828,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("dashboard")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "dashboard"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <LayoutDashboard size={18} /> Dashboard
@@ -836,8 +837,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("timeline")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "timeline"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <CalendarDays size={18} /> Timeline
@@ -845,8 +846,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("report")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "report"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <FileBarChart size={18} /> Reports{" "}
@@ -892,8 +893,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                     );
                   }}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border shrink-0 ${isActive
-                      ? colors
-                      : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    ? colors
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
                     }`}
                 >
                   {label.name}
@@ -1096,7 +1097,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       <WorkspaceSettingsSidebar
         isOpen={board.isSettingsOpen}
         onClose={() => board.setIsSettingsOpen(false)}
-        boardId={String(workspaceId)} // [เพิ่ม]
+        boardId={String(workspaceId)}
         isReadOnly={isReadOnly}
         workspaceInfo={
           workspaceInfo || {
@@ -1108,6 +1109,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             activities: [],
           }
         }
+        onUpdate={fetchBoard} // [เพิ่ม]
       />
 
       <MembersManageModal

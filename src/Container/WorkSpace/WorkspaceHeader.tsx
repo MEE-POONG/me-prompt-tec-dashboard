@@ -14,6 +14,8 @@ import {
   Trash2,
   CheckCircle2,
   ChevronRight,
+  Lock,
+  Globe,
 } from "lucide-react";
 
 import { WorkspaceInfo } from "@/types/workspace";
@@ -118,6 +120,17 @@ export default function WorkspaceHeader({
               In Progress
             </span>
 
+            {/* Visibility Badge */}
+            {workspaceInfo.visibility === "PUBLIC" ? (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-50 text-green-600 text-xs font-bold border border-green-100" title="Public Board">
+                <Globe size={12} /> Public
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200" title="Private Board">
+                <Lock size={12} /> Private
+              </span>
+            )}
+
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -125,11 +138,10 @@ export default function WorkspaceHeader({
             >
               <RotateCw
                 size={18}
-                className={`transition-all duration-500 ${
-                  isRefreshing
-                    ? "animate-spin text-blue-600"
-                    : "active:rotate-180"
-                }`}
+                className={`transition-all duration-500 ${isRefreshing
+                  ? "animate-spin text-blue-600"
+                  : "active:rotate-180"
+                  }`}
               />
             </button>
           </div>
@@ -154,9 +166,8 @@ export default function WorkspaceHeader({
           {workspaceInfo.members.slice(0, 3).map((m, i) => (
             <div
               key={i}
-              className={`w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm ${
-                m.color || "bg-slate-400"
-              }`}
+              className={`w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm ${m.color || "bg-slate-400"
+                }`}
               title={m.name}
             >
               {m.avatar || m.name.substring(0, 2)}
@@ -176,11 +187,10 @@ export default function WorkspaceHeader({
         <div className="relative" ref={notiRef}>
           <button
             onClick={() => setIsNotiOpen(!isNotiOpen)}
-            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${
-              isNotiOpen
-                ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
-                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            }`}
+            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${isNotiOpen
+              ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
+              : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              }`}
           >
             <Bell size={20} className={isNotiOpen ? "fill-purple-600" : ""} />
             {notifications.length > 0 && (
@@ -297,11 +307,10 @@ export default function WorkspaceHeader({
 
         <button
           onClick={onToggleFilter}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
-            isFilterOpen
-              ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
-              : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
-          }`}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${isFilterOpen
+            ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
+            : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+            }`}
         >
           <Filter size={16} />
           Filter

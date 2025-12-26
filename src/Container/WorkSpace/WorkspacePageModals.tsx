@@ -47,15 +47,20 @@ export function WorkspaceSettingsSidebar({
   isOpen,
   onClose,
   workspaceInfo,
-  boardId, // [เพิ่ม]
+  boardId,
   isReadOnly = false,
+  onUpdate, // [เพิ่ม]
 }: {
   isOpen: boolean;
   onClose: () => void;
   workspaceInfo: WorkspaceInfo;
-  boardId: string; // [เพิ่ม]
+  boardId: string;
   isReadOnly?: boolean;
+  onUpdate?: () => void; // [เพิ่ม]
 }) {
+  // ... (lines 60-274 remain unchanged)
+
+
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
   const [showMenu, setShowMenu] = useState(false);
@@ -68,6 +73,12 @@ export function WorkspaceSettingsSidebar({
   const [tempDescription, setTempDescription] = useState(
     workspaceInfo.description || ""
   ); // [แก้ไข] รับค่าจาก db
+  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">(
+    workspaceInfo.visibility || "PRIVATE"
+  );
+  const [tempVisibility, setTempVisibility] = useState<"PRIVATE" | "PUBLIC">(
+    workspaceInfo.visibility || "PRIVATE"
+  );
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
 
   // Custom Modal States
@@ -84,12 +95,12 @@ export function WorkspaceSettingsSidebar({
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
   const [restoreModal, setRestoreModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Member States
@@ -202,6 +213,8 @@ export function WorkspaceSettingsSidebar({
     if (isOpen) {
       setMembers(workspaceInfo.members);
       setProjectName(workspaceInfo.name || ""); // [แก้ไข]
+      setVisibility(workspaceInfo.visibility || "PRIVATE"); // [เพิ่ม]
+      setTempVisibility(workspaceInfo.visibility || "PRIVATE");
       setDescription(workspaceInfo.description || ""); // [แก้ไข]
       setTempDescription(workspaceInfo.description || ""); // [แก้ไข]
     }
@@ -262,6 +275,32 @@ export function WorkspaceSettingsSidebar({
         description: "ชื่่อโปรเจกต์นี้อาจมีอยู่แล้ว หรือเกิดข้อผิดพลาดอื่น",
       });
     }
+  };
+
+  const handleSaveVisibility = async () => {
+    if (!boardId) return;
+    try {
+      await updateBoard(boardId, { visibility: tempVisibility });
+      setVisibility(tempVisibility);
+      setSuccessModal({
+        open: true,
+        message: "บันทึกสำเร็จ!",
+        description: `เปลี่ยนสถานะเป็น ${tempVisibility === "PRIVATE" ? "Private" : "Public"
+          } เรียบร้อยแล้ว`,
+      });
+      if (onUpdate) onUpdate(); // [เพิ่ม] เรียกใช้ callback
+    } catch (error) {
+      console.error("Failed to update visibility", error);
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถเปลี่ยนสถานะได้",
+      });
+    }
+  };
+
+  const handleCancelVisibility = () => {
+    setTempVisibility(visibility);
   };
 
   const handleCancelDescription = () => {
@@ -378,9 +417,9 @@ export function WorkspaceSettingsSidebar({
                   Created{" "}
                   {workspaceInfo.createdAt
                     ? `on ${format(
-                        new Date(workspaceInfo.createdAt),
-                        "MMMM d 'at' HH:mm"
-                      )}`
+                      new Date(workspaceInfo.createdAt),
+                      "MMMM d 'at' HH:mm"
+                    )}`
                     : "recently"}
                 </p>
               </div>
@@ -424,11 +463,10 @@ export function WorkspaceSettingsSidebar({
                   <button
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
-                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-                      activeTab === tabKey
-                        ? "text-blue-600"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
+                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tabKey
+                      ? "text-blue-600"
+                      : "text-slate-500 hover:text-slate-700"
+                      }`}
                   >
                     {tab}
                     {activeTab === tabKey && (
@@ -465,6 +503,62 @@ export function WorkspaceSettingsSidebar({
                   >
                     Save
                   </button>
+                </div>
+              </div>
+
+              {/* Visibility */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
+                  {tempVisibility === "PUBLIC" ? (
+                    <Globe size={12} className="text-slate-400" />
+                  ) : (
+                    <Lock size={12} className="text-slate-400" />
+                  )}{" "}
+                  Visibility
+                </label>
+                <div className="bg-slate-100 p-3 rounded-lg border border-slate-200">
+                  <div className="relative mb-3">
+                    <select
+                      value={tempVisibility}
+                      onChange={(e) =>
+                        setTempVisibility(e.target.value as "PRIVATE" | "PUBLIC")
+                      }
+                      disabled={isReadOnly}
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="PRIVATE">Private (สมาชิกเท่านั้น)</option>
+                      <option value="PUBLIC">Public (ทุกคนเห็นได้)</option>
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">
+                    {tempVisibility === "PRIVATE"
+                      ? "เฉพาะสมาชิกที่ได้รับเชิญเท่านั้นที่สามารถเข้าถึงบอร์ดนี้ได้"
+                      : "ทุกคนที่มีลิงก์สามารถเข้าถึงบอร์ดนี้ได้"}
+                  </p>
+
+                  {/* Buttons for Visibility */}
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleCancelVisibility}
+                      disabled={tempVisibility === visibility}
+                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempVisibility === visibility ? "opacity-50 cursor-default" : "active:scale-95"
+                        }`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveVisibility}
+                      disabled={isReadOnly || tempVisibility === visibility}
+                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility ? "opacity-50 cursor-not-allowed" : "active:scale-95"
+                        }`}
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -548,9 +642,8 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${
-                            m.color.replace("text-", "bg-").split(" ")[0]
-                          }`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
+                            }`}
                         >
                           {m.avatar}
                         </div>
@@ -562,8 +655,8 @@ export function WorkspaceSettingsSidebar({
                             {m.name.includes("ธนภัทร")
                               ? "pattanapat92@gmail.com"
                               : m.name.includes("Siwakorn")
-                              ? "siwakorn.pn@rmuti.ac.th"
-                              : "user@email.com"}
+                                ? "siwakorn.pn@rmuti.ac.th"
+                                : "user@email.com"}
                           </p>
                         </div>
                       </div>
@@ -720,8 +813,8 @@ export function WorkspaceSettingsSidebar({
                     Loading...
                   </div>
                 ) : archivedTasks.filter((t) =>
-                    t.title.toLowerCase().includes(archivedSearch.toLowerCase())
-                  ).length === 0 ? (
+                  t.title.toLowerCase().includes(archivedSearch.toLowerCase())
+                ).length === 0 ? (
                   /* Empty State */
                   <div className="flex flex-col items-center justify-center text-center mt-4 h-full">
                     <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
@@ -783,7 +876,7 @@ export function WorkspaceSettingsSidebar({
           {activeTab === "activities" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-full pb-10">
               {workspaceInfo.activities &&
-              workspaceInfo.activities.length > 0 ? (
+                workspaceInfo.activities.length > 0 ? (
                 (
                   Object.entries(
                     (workspaceInfo.activities || []).reduce(
@@ -792,8 +885,8 @@ export function WorkspaceSettingsSidebar({
                         const key = isToday(date)
                           ? "Today"
                           : isYesterday(date)
-                          ? "Yesterday"
-                          : format(date, "EEEE d MMMM yyyy");
+                            ? "Yesterday"
+                            : format(date, "EEEE d MMMM yyyy");
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(activity);
                         return groups;
@@ -1094,10 +1187,9 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${
-                        member.color?.split(" ")[0]?.replace("text-", "bg-") ||
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
                         "bg-slate-400"
-                      }`}
+                        }`}
                     >
                       {member.avatar}
                     </div>
