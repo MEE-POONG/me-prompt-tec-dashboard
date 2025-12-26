@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Layouts from "@/components/Layouts";
-import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+
 import { SquarePen, Trash2, UserPlus, Search, Users } from "lucide-react";
 import Link from "next/link";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
 type Account = {
   id: string;
@@ -47,11 +48,10 @@ export default function AccountPage() {
   };
 
   useEffect(() => {
-    if (searchTerm.length > 3||searchTerm.length === 0) {
+    if (searchTerm.length > 3 || searchTerm.length === 0) {
       fetchAccounts().catch(console.error);
     }
   }, [searchTerm]);
-
 
   const handleDelete = async (id: string) => {
     try {
@@ -155,7 +155,8 @@ export default function AccountPage() {
                     </tr>
                   ) : accounts.length > 0 ? (
                     accounts.map((acc) => (
-                      <tr key={acc.id}
+                      <tr
+                        key={acc.id}
                         className="hover:bg-blue-50/30 transition-colors group"
                       >
                         <td className="p-5 pl-8 font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
@@ -231,6 +232,7 @@ export default function AccountPage() {
 
           {showDeleteModal && selectedId && (
             <ModalDelete
+              open={showDeleteModal}
               message="คุณแน่ใจหรือว่าต้องการลบบัญชีผู้ใช้นี้?"
               onClose={() => setShowDeleteModal(false)}
               onConfirm={() => handleDelete(selectedId)}

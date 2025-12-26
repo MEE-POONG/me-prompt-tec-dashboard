@@ -132,8 +132,16 @@ export default function ImageUpload({
         className={`
           relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer
           transition-all duration-200
-          ${isDragging ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50"}
-          ${uploading ? "cursor-not-allowed opacity-60" : "hover:border-violet-400 hover:bg-violet-50/50"}
+          ${
+            isDragging
+              ? "border-violet-500 bg-violet-50"
+              : "border-slate-200 bg-slate-50"
+          }
+          ${
+            uploading
+              ? "cursor-not-allowed opacity-60"
+              : "hover:border-violet-400 hover:bg-violet-50/50"
+          }
         `}
       >
         <input
@@ -147,16 +155,23 @@ export default function ImageUpload({
 
         {preview ? (
           <div className="relative">
-            <div className={`relative w-full rounded-lg overflow-hidden bg-slate-100 ${
-              aspectRatio === "square" ? "aspect-square" :
-              aspectRatio === "wide" ? "aspect-21/9" :
-              "aspect-video"
-            }`}>
+            <div
+              className={`relative w-full rounded-lg overflow-hidden bg-slate-100 ${
+                aspectRatio === "square"
+                  ? "aspect-square"
+                  : aspectRatio === "wide"
+                  ? "aspect-21/9"
+                  : "aspect-video"
+              }`}
+            >
               <Image
                 src={preview}
                 alt="Preview"
                 fill
-                className={imagefit === "contain" ? "object-contain" : "object-cover"}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className={
+                  imagefit === "contain" ? "object-contain" : "object-cover"
+                }
               />
             </div>
 
@@ -177,7 +192,9 @@ export default function ImageUpload({
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
                 <div className="text-white text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm font-medium">กำลังอัพโหลด... {progress}%</p>
+                  <p className="text-sm font-medium">
+                    กำลังอัพโหลด... {progress}%
+                  </p>
                 </div>
               </div>
             )}

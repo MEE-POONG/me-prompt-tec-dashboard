@@ -52,6 +52,7 @@ async function handleGet(id: string, res: NextApiResponse) {
     role: user.role,
     isActive: user.isActive,
     emailVerified: user.isVerified,   // 👈 ใช้ตรงนี้
+    avatar: user.avatar,              // 👈 เพิ่ม avatar
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     password: "",
@@ -60,7 +61,7 @@ async function handleGet(id: string, res: NextApiResponse) {
 
 // ============ PUT ============
 async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) {
-  const { name, email, password, role, phone, position } = req.body;
+  const { name, email, password, role, phone, position, avatar } = req.body;
 
   const existingUser = await prisma.user.findUnique({ where: { id } });
   if (!existingUser) {
@@ -83,6 +84,7 @@ async function handlePut(id: string, req: NextApiRequest, res: NextApiResponse) 
   if (phone !== undefined) updateData.phone = phone;
   if (position !== undefined) updateData.position = position;
   if (role !== undefined) updateData.role = role;
+  if (avatar !== undefined) updateData.avatar = avatar;
 
   if (req.body.isActive !== undefined)
     updateData.isActive = req.body.isActive;
