@@ -58,7 +58,21 @@ export default async function handler(
         return res.status(404).json({ message: "Board not found" });
       }
 
-      return res.status(200).json(board);
+      // Sync members with User table to get latest avatar
+      const users = await prisma.user.findMany({
+        select: { id: true, email: true, name: true, avatar: true },
+      });
+
+      const membersWithAvatar = board.members.map((m) => {
+        const user = users.find((u) => u.email === m.name || u.name === m.name);
+        return {
+          ...m,
+          userId: user?.id,
+          avatar: user?.avatar || m.avatar,
+        };
+      });
+
+      return res.status(200).json({ ...board, members: membersWithAvatar });
     }
 
     if (req.method === "PUT") {

@@ -20,12 +20,12 @@ export default async function handler(
       });
 
       // Fetch users to map userId
-      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true, avatar: true } });
 
       const membersWithUserId = members.map((m) => {
         // Attempt to find user by email (stored in name) or name
         const user = users.find(u => u.email === m.name || u.name === m.name);
-        return { ...m, userId: user?.id };
+        return { ...m, userId: user?.id, avatar: user?.avatar || m.avatar };
       });
 
       return res.status(200).json(membersWithUserId);
@@ -76,12 +76,12 @@ export default async function handler(
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId,
-                user: "You", // TODO: Should get current user name from session/token if possible
-                action: "invited",
-                target: user.email,
-            }
+          data: {
+            boardId,
+            user: "You", // TODO: Should get current user name from session/token if possible
+            action: "invited",
+            target: user.email,
+          }
         });
 
         return res.status(201).json(newMember);
@@ -107,12 +107,12 @@ export default async function handler(
       // ✅ Log Activity
       await prisma.boardActivity.create({
         data: {
-            boardId,
-            user: "You", 
-            action: "added member",
-            target: name,
+          boardId,
+          user: "You",
+          action: "added member",
+          target: name,
         }
-    });
+      });
 
       return res.status(201).json(member);
     }
@@ -132,12 +132,12 @@ export default async function handler(
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId: updatedMember.boardId,
-                user: "You",
-                action: "changed role of",
-                target: `${updatedMember.name} to ${role}`,
-            }
+          data: {
+            boardId: updatedMember.boardId,
+            user: "You",
+            action: "changed role of",
+            target: `${updatedMember.name} to ${role}`,
+          }
         });
 
         return res.status(200).json(updatedMember);
@@ -157,17 +157,17 @@ export default async function handler(
 
       if (memberToDelete) {
         await prisma.boardMember.delete({
-            where: { id },
+          where: { id },
         });
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId: memberToDelete.boardId,
-                user: "You",
-                action: "removed member",
-                target: memberToDelete.name,
-            }
+          data: {
+            boardId: memberToDelete.boardId,
+            user: "You",
+            action: "removed member",
+            target: memberToDelete.name,
+          }
         });
       }
 

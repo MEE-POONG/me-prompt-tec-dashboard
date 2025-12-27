@@ -2340,9 +2340,22 @@ export default function ModalsWorkflow({
                             className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700"
                           >
                             <div
-                              className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] shadow-sm overflow-hidden ${m.avatar && (m.avatar.startsWith("http") || m.avatar.startsWith("/"))
+                                ? "bg-white"
+                                : m.color
+                                }`}
                             >
-                              {m.short}
+                              {m.avatar &&
+                                (m.avatar.startsWith("http") ||
+                                  m.avatar.startsWith("/")) ? (
+                                <img
+                                  src={m.avatar}
+                                  alt={m.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                m.short
+                              )}
                             </div>
                             <span className="flex-1">{m.name}</span>
                             {assignedMembers.includes(m.id) && (

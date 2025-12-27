@@ -642,10 +642,18 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${m.color.replace("text-", "bg-").split(" ")[0]
                             }`}
                         >
-                          {m.avatar}
+                          {m.avatar?.startsWith("http") || m.avatar?.startsWith("/") ? (
+                            <img
+                              src={m.avatar}
+                              alt={m.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            m.avatar || m.name.charAt(0).toUpperCase()
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
@@ -1187,11 +1195,19 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
                         "bg-slate-400"
                         }`}
                     >
-                      {member.avatar}
+                      {member.avatar?.startsWith("http") || member.avatar?.startsWith("/") ? (
+                        <img
+                          src={member.avatar}
+                          alt={member.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        member.avatar || member.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">
