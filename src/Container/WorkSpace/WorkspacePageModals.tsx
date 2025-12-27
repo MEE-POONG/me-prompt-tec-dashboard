@@ -60,7 +60,6 @@ export function WorkspaceSettingsSidebar({
 }) {
   // ... (lines 60-274 remain unchanged)
 
-
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
   const [showMenu, setShowMenu] = useState(false);
@@ -95,12 +94,12 @@ export function WorkspaceSettingsSidebar({
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
   const [restoreModal, setRestoreModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
 
   // Member States
@@ -285,8 +284,9 @@ export function WorkspaceSettingsSidebar({
       setSuccessModal({
         open: true,
         message: "บันทึกสำเร็จ!",
-        description: `เปลี่ยนสถานะเป็น ${tempVisibility === "PRIVATE" ? "Private" : "Public"
-          } เรียบร้อยแล้ว`,
+        description: `เปลี่ยนสถานะเป็น ${
+          tempVisibility === "PRIVATE" ? "Private" : "Public"
+        } เรียบร้อยแล้ว`,
       });
       if (onUpdate) onUpdate(); // [เพิ่ม] เรียกใช้ callback
     } catch (error) {
@@ -417,9 +417,9 @@ export function WorkspaceSettingsSidebar({
                   Created{" "}
                   {workspaceInfo.createdAt
                     ? `on ${format(
-                      new Date(workspaceInfo.createdAt),
-                      "MMMM d 'at' HH:mm"
-                    )}`
+                        new Date(workspaceInfo.createdAt),
+                        "MMMM d 'at' HH:mm"
+                      )}`
                     : "recently"}
                 </p>
               </div>
@@ -463,10 +463,11 @@ export function WorkspaceSettingsSidebar({
                   <button
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
-                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tabKey
-                      ? "text-blue-600"
-                      : "text-slate-500 hover:text-slate-700"
-                      }`}
+                    className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
+                      activeTab === tabKey
+                        ? "text-blue-600"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
                   >
                     {tab}
                     {activeTab === tabKey && (
@@ -521,7 +522,9 @@ export function WorkspaceSettingsSidebar({
                     <select
                       value={tempVisibility}
                       onChange={(e) =>
-                        setTempVisibility(e.target.value as "PRIVATE" | "PUBLIC")
+                        setTempVisibility(
+                          e.target.value as "PRIVATE" | "PUBLIC"
+                        )
                       }
                       disabled={isReadOnly}
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -545,16 +548,22 @@ export function WorkspaceSettingsSidebar({
                     <button
                       onClick={handleCancelVisibility}
                       disabled={tempVisibility === visibility}
-                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempVisibility === visibility ? "opacity-50 cursor-default" : "active:scale-95"
-                        }`}
+                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${
+                        tempVisibility === visibility
+                          ? "opacity-50 cursor-default"
+                          : "active:scale-95"
+                      }`}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveVisibility}
                       disabled={isReadOnly || tempVisibility === visibility}
-                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility ? "opacity-50 cursor-not-allowed" : "active:scale-95"
-                        }`}
+                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${
+                        isReadOnly || tempVisibility === visibility
+                          ? "opacity-50 cursor-not-allowed"
+                          : "active:scale-95"
+                      }`}
                     >
                       Save
                     </button>
@@ -642,10 +651,25 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
-                            }`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${
+                            m.color?.replace("text-", "bg-").split(" ")[0] ||
+                            "bg-slate-400"
+                          }`}
                         >
-                          {m.avatar}
+                          {m.userAvatar ||
+                          (m.avatar &&
+                            (m.avatar.startsWith("http") ||
+                              m.avatar.includes("/"))) ? (
+                            <img
+                              src={m.userAvatar || (m.avatar as string)}
+                              alt={m.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : m.name ? (
+                            m.name.substring(0, 2)
+                          ) : (
+                            "??"
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
@@ -655,8 +679,8 @@ export function WorkspaceSettingsSidebar({
                             {m.name.includes("ธนภัทร")
                               ? "pattanapat92@gmail.com"
                               : m.name.includes("Siwakorn")
-                                ? "siwakorn.pn@rmuti.ac.th"
-                                : "user@email.com"}
+                              ? "siwakorn.pn@rmuti.ac.th"
+                              : "user@email.com"}
                           </p>
                         </div>
                       </div>
@@ -813,8 +837,8 @@ export function WorkspaceSettingsSidebar({
                     Loading...
                   </div>
                 ) : archivedTasks.filter((t) =>
-                  t.title.toLowerCase().includes(archivedSearch.toLowerCase())
-                ).length === 0 ? (
+                    t.title.toLowerCase().includes(archivedSearch.toLowerCase())
+                  ).length === 0 ? (
                   /* Empty State */
                   <div className="flex flex-col items-center justify-center text-center mt-4 h-full">
                     <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
@@ -876,7 +900,7 @@ export function WorkspaceSettingsSidebar({
           {activeTab === "activities" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-full pb-10">
               {workspaceInfo.activities &&
-                workspaceInfo.activities.length > 0 ? (
+              workspaceInfo.activities.length > 0 ? (
                 (
                   Object.entries(
                     (workspaceInfo.activities || []).reduce(
@@ -885,8 +909,8 @@ export function WorkspaceSettingsSidebar({
                         const key = isToday(date)
                           ? "Today"
                           : isYesterday(date)
-                            ? "Yesterday"
-                            : format(date, "EEEE d MMMM yyyy");
+                          ? "Yesterday"
+                          : format(date, "EEEE d MMMM yyyy");
                         if (!groups[key]) groups[key] = [];
                         groups[key].push(activity);
                         return groups;
@@ -905,14 +929,29 @@ export function WorkspaceSettingsSidebar({
                           key={activity.id}
                           className="flex gap-3 relative -ml-[19px] group"
                         >
-                          <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
-                            {(typeof activity.user === "object"
-                              ? (activity.user as any).name
-                              : activity.user
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
+                          {typeof activity.user === "object" &&
+                          ((activity.user as any).userAvatar ||
+                            (activity.user as any).avatar) ? (
+                            <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
+                              <img
+                                src={
+                                  (activity.user as any).userAvatar ||
+                                  (activity.user as any).avatar
+                                }
+                                alt={(activity.user as any).name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
+                              {(typeof activity.user === "object"
+                                ? (activity.user as any).name
+                                : activity.user || "U"
+                              )
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex flex-col pt-1">
                             <div className="text-sm text-slate-800 leading-snug">
                               <span className="font-bold hover:underline cursor-pointer">
@@ -1187,11 +1226,25 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${
+                        member.color?.split(" ")[0]?.replace("text-", "bg-") ||
                         "bg-slate-400"
-                        }`}
+                      }`}
                     >
-                      {member.avatar}
+                      {member.userAvatar ||
+                      (member.avatar &&
+                        (member.avatar.startsWith("http") ||
+                          member.avatar.includes("/"))) ? (
+                        <img
+                          src={member.userAvatar || (member.avatar as string)}
+                          alt={member.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : member.name ? (
+                        member.name.substring(0, 2)
+                      ) : (
+                        "??"
+                      )}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">

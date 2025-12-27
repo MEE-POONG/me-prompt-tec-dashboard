@@ -19,13 +19,23 @@ export default async function handler(
         orderBy: { name: "asc" },
       });
 
-      // Fetch users to map userId
-      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+      // Fetch users to map userId and avatar
+      const users = await prisma.user.findMany({
+        select: { id: true, email: true, name: true, avatar: true },
+      });
 
       const membersWithUserId = members.map((m) => {
         // Attempt to find user by email (stored in name) or name
-        const user = users.find(u => u.email === m.name || u.name === m.name);
-        return { ...m, userId: user?.id };
+        const user = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === m.name.toLowerCase()) ||
+            (u.name && u.name.trim() === m.name.trim())
+        );
+        return {
+          ...m,
+          userId: user?.id,
+          userAvatar: user?.avatar || m.userAvatar,
+        };
       });
 
       return res.status(200).json(membersWithUserId);
@@ -49,7 +59,9 @@ export default async function handler(
         }
 
         if (!user.isVerified) {
-          return res.status(400).json({ message: "อีเมลนี้ยังไม่ได้ยืนยันตัวตนในระบบ" });
+          return res
+            .status(400)
+            .json({ message: "อีเมลนี้ยังไม่ได้ยืนยันตัวตนในระบบ" });
         }
 
         // Check if already a member
@@ -61,7 +73,9 @@ export default async function handler(
         });
 
         if (existingMember) {
-          return res.status(409).json({ message: "User is already a member of this board" });
+          return res
+            .status(409)
+            .json({ message: "User is already a member of this board" });
         }
 
         const newMember = await prisma.boardMember.create({
@@ -76,12 +90,12 @@ export default async function handler(
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId,
-                user: "You", // TODO: Should get current user name from session/token if possible
-                action: "invited",
-                target: user.email,
-            }
+          data: {
+            boardId,
+            user: "You", // TODO: Should get current user name from session/token if possible
+            action: "invited",
+            target: user.email,
+          },
         });
 
         return res.status(201).json(newMember);
@@ -91,7 +105,9 @@ export default async function handler(
       if (!name || !role) {
         return res
           .status(400)
-          .json({ message: "If not inviting by email, name and role are required" });
+          .json({
+            message: "If not inviting by email, name and role are required",
+          });
       }
 
       const member = await prisma.boardMember.create({
@@ -107,12 +123,12 @@ export default async function handler(
       // ✅ Log Activity
       await prisma.boardActivity.create({
         data: {
-            boardId,
-            user: "You", 
-            action: "added member",
-            target: name,
-        }
-    });
+          boardId,
+          user: "You",
+          action: "added member",
+          target: name,
+        },
+      });
 
       return res.status(201).json(member);
     }
@@ -121,7 +137,9 @@ export default async function handler(
       const { id, role } = req.body;
 
       if (!id || !role) {
-        return res.status(400).json({ message: "Member ID and Role are required" });
+        return res
+          .status(400)
+          .json({ message: "Member ID and Role are required" });
       }
 
       try {
@@ -132,17 +150,19 @@ export default async function handler(
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId: updatedMember.boardId,
-                user: "You",
-                action: "changed role of",
-                target: `${updatedMember.name} to ${role}`,
-            }
+          data: {
+            boardId: updatedMember.boardId,
+            user: "You",
+            action: "changed role of",
+            target: `${updatedMember.name} to ${role}`,
+          },
         });
 
         return res.status(200).json(updatedMember);
       } catch (error) {
-        return res.status(500).json({ message: "Failed to update member role" });
+        return res
+          .status(500)
+          .json({ message: "Failed to update member role" });
       }
     }
 
@@ -153,21 +173,23 @@ export default async function handler(
         return res.status(400).json({ message: "Member ID is required" });
       }
 
-      const memberToDelete = await prisma.boardMember.findUnique({ where: { id } });
+      const memberToDelete = await prisma.boardMember.findUnique({
+        where: { id },
+      });
 
       if (memberToDelete) {
         await prisma.boardMember.delete({
-            where: { id },
+          where: { id },
         });
 
         // ✅ Log Activity
         await prisma.boardActivity.create({
-            data: {
-                boardId: memberToDelete.boardId,
-                user: "You",
-                action: "removed member",
-                target: memberToDelete.name,
-            }
+          data: {
+            boardId: memberToDelete.boardId,
+            user: "You",
+            action: "removed member",
+            target: memberToDelete.name,
+          },
         });
       }
 

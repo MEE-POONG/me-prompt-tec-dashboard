@@ -20,22 +20,21 @@ export default async function handler(
           columns: {
             include: {
               tasks: {
-                where: { isArchived: false }, // ✅ Filter out archived tasks
+                where: { isArchived: false },
                 include: {
                   assignees: {
                     select: {
                       id: true,
                       userId: true,
-                      // assignedAt: true, <--- ลบบรรทัดที่เคย error ออกแล้ว
-                      // user: {
-                      //   select: {
-                      //     id: true,
-                      //     name: true,
-                      //     email: true,
-                      //     avatar: true,
-                      //     position: true,
-                      //   },
-                      // },
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                          avatar: true,
+                          position: true,
+                        },
+                      },
                     },
                   },
                   taskMembers: true,
@@ -46,10 +45,12 @@ export default async function handler(
             orderBy: { order: "asc" },
           },
           members: true,
-          // boardLabels: true,
           activities: {
             orderBy: { createdAt: "desc" },
             take: 20,
+            include: {
+              // Optionally include user info if needed for activities
+            },
           },
         },
       });
@@ -58,7 +59,29 @@ export default async function handler(
         return res.status(404).json({ message: "Board not found" });
       }
 
-      return res.status(200).json(board);
+      // Fetch users to map latest profile pictures to board members
+      // Since BoardMember doesn't have userId, we match by email/name
+      const users = await prisma.user.findMany({
+        select: { id: true, email: true, name: true, avatar: true },
+      });
+
+      const membersWithAvatars = board.members.map((m) => {
+        const user = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === m.name.toLowerCase()) ||
+            (u.name && u.name.trim() === m.name.trim())
+        );
+        return {
+          ...m,
+          userAvatar: user?.avatar || m.userAvatar,
+          userId: user?.id,
+        };
+      });
+
+      return res.status(200).json({
+        ...board,
+        members: membersWithAvatars,
+      });
     }
 
     if (req.method === "PUT") {
@@ -72,18 +95,55 @@ export default async function handler(
             include: {
               tasks: {
                 include: {
-                  assignees: true,
+                  assignees: {
+                    select: {
+                      id: true,
+                      userId: true,
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                          avatar: true,
+                        },
+                      },
+                    },
+                  },
                   taskMembers: true,
                 },
               },
             },
           },
           members: true,
-          activities: true,
+          activities: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+          },
         },
       });
 
-      return res.status(200).json(board);
+      // Map avatars
+      const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true, avatar: true },
+      });
+
+      const membersWithAvatars = board.members.map((m) => {
+        const user = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === m.name.toLowerCase()) ||
+            (u.name && u.name.trim() === m.name.trim())
+        );
+        return {
+          ...m,
+          userAvatar: user?.avatar || m.userAvatar,
+          userId: user?.id,
+        };
+      });
+
+      return res.status(200).json({
+        ...board,
+        members: membersWithAvatars,
+      });
     }
 
     if (req.method === "DELETE") {
@@ -100,6 +160,8 @@ export default async function handler(
     if ((error as any).code === "P2002") {
       return res.status(409).json({ message: "Workspace name already exists" });
     }
-    return res.status(500).json({ message: `Server error: ${(error as any).message}` });
+    return res
+      .status(500)
+      .json({ message: `Server error: ${(error as any).message}` });
   }
 }
