@@ -53,6 +53,8 @@ export default function ProfilePage() {
   // Image upload state
   const [avatarUrl, setAvatarUrl] = useState("");
   const [imageData, setImageData] = useState<CloudflareImageData | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Modal states
   const [successModal, setSuccessModal] = useState({
@@ -378,55 +380,88 @@ export default function ProfilePage() {
                             };
                             reader.readAsDataURL(file);
 
-                            // Upload to Cloudflare
+                            // Upload to Cloudflare with progress tracking
                             const formData = new FormData();
                             formData.append("file", file);
 
                             try {
-                              const res = await fetch(
-                                "/api/cloudflare-image/upload",
-                                {
-                                  method: "POST",
-                                  body: formData,
-                                }
-                              );
+                              setIsUploading(true);
+                              setUploadProgress(0);
 
-                              if (res.ok) {
-                                const response = await res.json();
-                                console.log("Full upload response:", response); // Debug
+                              // Use XMLHttpRequest for progress tracking
+                              const xhr = new XMLHttpRequest();
 
-                                // API returns { success, message, data: imageRecord }
-                                // imageRecord has publicUrl field
-                                const imageUrl =
-                                  response.data?.publicUrl ||
-                                  response.publicUrl;
-                                console.log("Extracted imageUrl:", imageUrl); // Debug
-
-                                if (imageUrl) {
-                                  handleImageChange(
-                                    imageUrl,
-                                    response.data || response
+                              // Track upload progress
+                              xhr.upload.addEventListener("progress", (e) => {
+                                if (e.lengthComputable) {
+                                  const percentComplete = Math.round(
+                                    (e.loaded / e.total) * 100
                                   );
-                                } else {
-                                  console.error(
-                                    "No URL found in response:",
+                                  setUploadProgress(percentComplete);
+                                }
+                              });
+
+                              // Handle completion
+                              xhr.addEventListener("load", () => {
+                                setIsUploading(false);
+                                setUploadProgress(0);
+
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                  const response = JSON.parse(xhr.responseText);
+                                  console.log(
+                                    "Full upload response:",
                                     response
                                   );
+
+                                  const imageUrl =
+                                    response.data?.publicUrl ||
+                                    response.publicUrl;
+                                  console.log("Extracted imageUrl:", imageUrl);
+
+                                  if (imageUrl) {
+                                    handleImageChange(
+                                      imageUrl,
+                                      response.data || response
+                                    );
+                                  } else {
+                                    console.error(
+                                      "No URL found in response:",
+                                      response
+                                    );
+                                    setErrorModal({
+                                      open: true,
+                                      message: "เกิดข้อผิดพลาด",
+                                      description: "ไม่พบ URL ของรูปภาพ",
+                                    });
+                                  }
+                                } else {
+                                  console.error("Upload failed:", xhr.status);
                                   setErrorModal({
                                     open: true,
                                     message: "เกิดข้อผิดพลาด",
-                                    description: "ไม่พบ URL ของรูปภาพ",
+                                    description: "ไม่สามารถอัปโหลดรูปภาพได้",
                                   });
                                 }
-                              } else {
-                                console.error("Upload failed:", res.status); // Debug
+                              });
+
+                              // Handle errors
+                              xhr.addEventListener("error", () => {
+                                setIsUploading(false);
+                                setUploadProgress(0);
+                                console.error("Upload error");
                                 setErrorModal({
                                   open: true,
                                   message: "เกิดข้อผิดพลาด",
                                   description: "ไม่สามารถอัปโหลดรูปภาพได้",
                                 });
-                              }
+                              });
+
+                              // Send request
+                              xhr.open("POST", "/api/cloudflare-image/upload");
+                              xhr.send(formData);
                             } catch (error) {
+                              setIsUploading(false);
+                              setUploadProgress(0);
                               console.error("Upload error:", error);
                               setErrorModal({
                                 open: true,
@@ -450,16 +485,44 @@ export default function ProfilePage() {
                               alt="Profile"
                               className="w-32 h-32 rounded-full object-cover shadow-lg shadow-blue-500/30 border-4 border-white"
                             />
-                            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Camera size={32} className="text-white" />
-                            </div>
+                            {isUploading ? (
+                              <div className="absolute inset-0 bg-black/70 rounded-full flex flex-col items-center justify-center">
+                                <div className="text-white text-2xl font-bold mb-2">
+                                  {uploadProgress}%
+                                </div>
+                                <div className="w-20 h-2 bg-white/30 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500 transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera size={32} className="text-white" />
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="w-32 h-32 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-5xl font-bold shadow-lg shadow-blue-500/30 border-4 border-white group-hover:opacity-80 transition-opacity relative">
                             {(formData.name || "U").charAt(0).toUpperCase()}
-                            <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Camera size={32} className="text-white" />
-                            </div>
+                            {isUploading ? (
+                              <div className="absolute inset-0 bg-black/70 rounded-full flex flex-col items-center justify-center">
+                                <div className="text-white text-2xl font-bold mb-2">
+                                  {uploadProgress}%
+                                </div>
+                                <div className="w-20 h-2 bg-white/30 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500 transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera size={32} className="text-white" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </label>
@@ -681,9 +744,14 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={handlePasswordChange}
-                    className="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all"
+                    disabled={isUploading}
+                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${
+                      isUploading
+                        ? "bg-purple-400 cursor-not-allowed"
+                        : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
+                    } text-white`}
                   >
-                    บันทึก
+                    {isUploading ? "กำลังอัปโหลดรูป..." : "บันทึก"}
                   </button>
                 </div>
               </div>

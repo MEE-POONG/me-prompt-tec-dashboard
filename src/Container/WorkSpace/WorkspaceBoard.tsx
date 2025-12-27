@@ -85,7 +85,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     message: "",
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
   // ✅ State สำหรับ Notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -104,7 +104,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       if (u) {
         try {
           return JSON.parse(u).name;
-        } catch (e) { }
+        } catch (e) {}
       }
     }
     return "Someone";
@@ -175,8 +175,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         const start = task.startDate
           ? new Date(task.startDate)
           : task.dueDate
-            ? new Date(task.dueDate)
-            : null;
+          ? new Date(task.dueDate)
+          : null;
         const end = task.endDate ? new Date(task.endDate) : null;
         if (start && end) {
           const s = start.toLocaleDateString("en-US", {
@@ -219,6 +219,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 id: found.id,
                 name: found.name,
                 avatar: found.avatar,
+                userAvatar: found.userAvatar, // Add user's profile picture URL
                 role: found.role,
                 color: found.color,
               };
@@ -228,6 +229,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
               id: userId,
               name: a?.user?.name || "Unknown",
               avatar: a?.user?.avatar,
+              userAvatar: a?.user?.avatar, // Fallback to user avatar
               color: "bg-slate-100",
             };
           }) || [],
@@ -452,15 +454,14 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         prev.map((c) =>
           c.id === columnId
             ? {
-              ...c,
-              tasks: (c.tasks || []).map((t) =>
-                t.id === tempId ? mapped : t
-              ),
-            }
+                ...c,
+                tasks: (c.tasks || []).map((t) =>
+                  t.id === tempId ? mapped : t
+                ),
+              }
             : c
         )
       );
-
     } catch (err) {
       console.error("Failed to create task", err);
       board.setColumns((prev) =>
@@ -481,7 +482,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       board.columns
         .find((c) => c.id === columnId)
         ?.tasks?.find((t) => t.id === taskId)?.title || "task";
-
 
     setDeleteModal({
       open: true,
@@ -510,7 +510,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
       },
     });
-
   };
 
   const handleAddColumnApi = async () => {
@@ -563,7 +562,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         });
         socket.emit("board-updated", workspaceId);
       }
-
     } catch (err) {
       console.error("Failed to create column", err);
       board.setColumns((prev) => prev.filter((c) => c.id !== tempId));
@@ -640,7 +638,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   };
 
   const handleDeleteColumnApi = async (colId: string | number) => {
-
     const colTitle = board.columns.find((c) => c.id === colId)?.title || "list";
     setDeleteModal({
       open: true,
@@ -693,7 +690,6 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }
       },
     });
-
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -818,37 +814,41 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           <div className="flex items-center gap-6">
             <button
               onClick={() => setCurrentView("board")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "board"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
+                currentView === "board"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
               <KanbanSquare size={18} /> Board
             </button>
             <button
               onClick={() => setCurrentView("dashboard")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "dashboard"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
+                currentView === "dashboard"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
               <LayoutDashboard size={18} /> Dashboard
             </button>
             <button
               onClick={() => setCurrentView("timeline")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "timeline"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
+                currentView === "timeline"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
               <CalendarDays size={18} /> Timeline
             </button>
             <button
               onClick={() => setCurrentView("report")}
-              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "report"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+              className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${
+                currentView === "report"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
               <FileBarChart size={18} /> Reports{" "}
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded ml-1">
@@ -892,10 +892,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                         : [...prev, label.name]
                     );
                   }}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border shrink-0 ${isActive
-                    ? colors
-                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
-                    }`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border shrink-0 ${
+                    isActive
+                      ? colors
+                      : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                  }`}
                 >
                   {label.name}
                 </button>
@@ -946,8 +947,9 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                           <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] rounded-b-2xl scrollbar-hide ${snapshot.isDraggingOver ? "bg-blue-50/30" : ""
-                              }`}
+                            className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] rounded-b-2xl scrollbar-hide ${
+                              snapshot.isDraggingOver ? "bg-blue-50/30" : ""
+                            }`}
                           >
                             {board.filterTasks(col.tasks).map((task, index) => (
                               <WorkspaceTaskCard

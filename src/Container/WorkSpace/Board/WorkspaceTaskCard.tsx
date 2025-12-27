@@ -1,6 +1,13 @@
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Trash2, MessageSquare, Paperclip, CalendarClock, CheckCircle2, UserPlus } from "lucide-react";
+import {
+  Trash2,
+  MessageSquare,
+  Paperclip,
+  CalendarClock,
+  CheckCircle2,
+  UserPlus,
+} from "lucide-react";
 import { WorkspaceTask } from "@/types/workspace";
 
 interface Props {
@@ -19,9 +26,8 @@ export default function WorkspaceTaskCard({
   index,
   onDelete,
   onClick,
-  onQuickJoin
+  onQuickJoin,
 }: Props) {
-
   const getPriorityStyle = (p: string) => {
     switch (p) {
       case 'High': return 'bg-red-50 text-red-600 border-red-100';
@@ -136,18 +142,14 @@ export default function WorkspaceTaskCard({
                   <div
                     key={i}
                     className="w-6 h-6 rounded-full ring-2 ring-white bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase shadow-sm overflow-hidden"
-                    title={typeof m === 'object' ? m.name : m}
+                    title={typeof m === 'string' ? m : 'Member'}
                   >
-                    {(() => {
-                      const avatar = typeof m === 'object' ? m.avatar : m;
-                      const name = typeof m === 'object' ? m.name : m;
-                      const isUrl = avatar && (avatar.startsWith('http') || avatar.startsWith('/') || avatar.startsWith('data:image'));
-
-                      if (isUrl) {
-                        return <img src={avatar} alt="avatar" className="w-full h-full object-cover" />;
-                      }
-                      return name ? name.charAt(0).toUpperCase() : '?';
-                    })()}
+                    {/* ตรวจสอบ URL รูปภาพ */}
+                    {typeof m === 'string' && (m.startsWith('http') || m.includes('/') || m.includes('data:image')) ? (
+                      <img src={m} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      typeof m === 'string' ? m.substring(0, 2) : '?'
+                    )}
                   </div>
                 ))}
                 {members.length > 3 && (

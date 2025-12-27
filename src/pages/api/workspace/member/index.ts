@@ -20,12 +20,12 @@ export default async function handler(
       });
 
       // Fetch users to map userId
-      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true, avatar: true } });
+      const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
 
       const membersWithUserId = members.map((m) => {
         // Attempt to find user by email (stored in name) or name
         const user = users.find(u => u.email === m.name || u.name === m.name);
-        return { ...m, userId: user?.id, avatar: user?.avatar || m.avatar };
+        return { ...m, userId: user?.id };
       });
 
       return res.status(200).json(membersWithUserId);
@@ -49,7 +49,9 @@ export default async function handler(
         }
 
         if (!user.isVerified) {
-          return res.status(400).json({ message: "อีเมลนี้ยังไม่ได้ยืนยันตัวตนในระบบ" });
+          return res
+            .status(400)
+            .json({ message: "อีเมลนี้ยังไม่ได้ยืนยันตัวตนในระบบ" });
         }
 
         // Check if already a member
@@ -61,7 +63,9 @@ export default async function handler(
         });
 
         if (existingMember) {
-          return res.status(409).json({ message: "User is already a member of this board" });
+          return res
+            .status(409)
+            .json({ message: "User is already a member of this board" });
         }
 
         const newMember = await prisma.boardMember.create({
@@ -91,7 +95,9 @@ export default async function handler(
       if (!name || !role) {
         return res
           .status(400)
-          .json({ message: "If not inviting by email, name and role are required" });
+          .json({
+            message: "If not inviting by email, name and role are required",
+          });
       }
 
       const member = await prisma.boardMember.create({
@@ -121,7 +127,9 @@ export default async function handler(
       const { id, role } = req.body;
 
       if (!id || !role) {
-        return res.status(400).json({ message: "Member ID and Role are required" });
+        return res
+          .status(400)
+          .json({ message: "Member ID and Role are required" });
       }
 
       try {
@@ -142,7 +150,9 @@ export default async function handler(
 
         return res.status(200).json(updatedMember);
       } catch (error) {
-        return res.status(500).json({ message: "Failed to update member role" });
+        return res
+          .status(500)
+          .json({ message: "Failed to update member role" });
       }
     }
 
@@ -153,7 +163,9 @@ export default async function handler(
         return res.status(400).json({ message: "Member ID is required" });
       }
 
-      const memberToDelete = await prisma.boardMember.findUnique({ where: { id } });
+      const memberToDelete = await prisma.boardMember.findUnique({
+        where: { id },
+      });
 
       if (memberToDelete) {
         await prisma.boardMember.delete({

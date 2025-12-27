@@ -60,7 +60,6 @@ export function WorkspaceSettingsSidebar({
 }) {
   // ... (lines 60-274 remain unchanged)
 
-
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
   const [showMenu, setShowMenu] = useState(false);
@@ -464,8 +463,8 @@ export function WorkspaceSettingsSidebar({
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
                     className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tabKey
-                      ? "text-blue-600"
-                      : "text-slate-500 hover:text-slate-700"
+                        ? "text-blue-600"
+                        : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     {tab}
@@ -521,7 +520,9 @@ export function WorkspaceSettingsSidebar({
                     <select
                       value={tempVisibility}
                       onChange={(e) =>
-                        setTempVisibility(e.target.value as "PRIVATE" | "PUBLIC")
+                        setTempVisibility(
+                          e.target.value as "PRIVATE" | "PUBLIC"
+                        )
                       }
                       disabled={isReadOnly}
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -545,7 +546,9 @@ export function WorkspaceSettingsSidebar({
                     <button
                       onClick={handleCancelVisibility}
                       disabled={tempVisibility === visibility}
-                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempVisibility === visibility ? "opacity-50 cursor-default" : "active:scale-95"
+                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempVisibility === visibility
+                          ? "opacity-50 cursor-default"
+                          : "active:scale-95"
                         }`}
                     >
                       Cancel
@@ -553,7 +556,9 @@ export function WorkspaceSettingsSidebar({
                     <button
                       onClick={handleSaveVisibility}
                       disabled={isReadOnly || tempVisibility === visibility}
-                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility ? "opacity-50 cursor-not-allowed" : "active:scale-95"
+                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility
+                          ? "opacity-50 cursor-not-allowed"
+                          : "active:scale-95"
                         }`}
                     >
                       Save
@@ -642,18 +647,10 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${m.color.replace("text-", "bg-").split(" ")[0]
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
                             }`}
                         >
-                          {m.avatar?.startsWith("http") || m.avatar?.startsWith("/") ? (
-                            <img
-                              src={m.avatar}
-                              alt={m.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            m.avatar || m.name.charAt(0).toUpperCase()
-                          )}
+                          {m.avatar}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
@@ -913,14 +910,29 @@ export function WorkspaceSettingsSidebar({
                           key={activity.id}
                           className="flex gap-3 relative -ml-[19px] group"
                         >
-                          <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
-                            {(typeof activity.user === "object"
-                              ? (activity.user as any).name
-                              : activity.user
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
+                          {typeof activity.user === "object" &&
+                            ((activity.user as any).userAvatar ||
+                              (activity.user as any).avatar) ? (
+                            <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
+                              <img
+                                src={
+                                  (activity.user as any).userAvatar ||
+                                  (activity.user as any).avatar
+                                }
+                                alt={(activity.user as any).name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
+                              {(typeof activity.user === "object"
+                                ? (activity.user as any).name
+                                : activity.user || "U"
+                              )
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex flex-col pt-1">
                             <div className="text-sm text-slate-800 leading-snug">
                               <span className="font-bold hover:underline cursor-pointer">
@@ -1195,19 +1207,11 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
                         "bg-slate-400"
                         }`}
                     >
-                      {member.avatar?.startsWith("http") || member.avatar?.startsWith("/") ? (
-                        <img
-                          src={member.avatar}
-                          alt={member.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        member.avatar || member.name.charAt(0).toUpperCase()
-                      )}
+                      {member.avatar}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">

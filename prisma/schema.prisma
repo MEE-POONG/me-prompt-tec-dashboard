@@ -596,11 +596,12 @@ model TaskMember {
 
 // สมาชิกใน Project Board
 model BoardMember {
-  id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  role   String
-  avatar String?
-  color  String?
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  role       String
+  avatar     String?
+  userAvatar String? // URL of user's profile picture from User model
+  color      String?
 
   boardId String       @db.ObjectId
   board   ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)

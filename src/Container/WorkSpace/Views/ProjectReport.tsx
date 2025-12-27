@@ -77,17 +77,18 @@ export default function ProjectReport({
     totalMembers: totalMembers,
   };
 
-  const tasks = allTasks.map((t) => ({
-    id: t.id,
-    name: t.title,
-    assignee:
-      typeof t.members?.[0] === "object"
-        ? t.members[0].name
-        : t.members?.[0] || "-",
-    start: t.date || "No date",
-    time: "0 mins",
-    status: t.status,
-  }));
+  const tasks = allTasks.map((t) => {
+    const member = typeof t.members?.[0] === "object" ? t.members[0] : null;
+    return {
+      id: t.id,
+      name: t.title,
+      assignee: member ? member.name : t.members?.[0] || "-",
+      assigneeAvatar: member ? member.userAvatar || member.avatar : null,
+      start: t.date || "No date",
+      time: "0 mins",
+      status: t.status,
+    };
+  });
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden font-sans text-slate-800">
@@ -352,8 +353,16 @@ export default function ProjectReport({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-gray-500">
-                        <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold">
-                          <User size={12} />
+                        <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold overflow-hidden">
+                          {task.assigneeAvatar ? (
+                            <img
+                              src={task.assigneeAvatar}
+                              alt={task.assignee}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User size={12} />
+                          )}
                         </div>
                         {task.assignee}
                       </div>

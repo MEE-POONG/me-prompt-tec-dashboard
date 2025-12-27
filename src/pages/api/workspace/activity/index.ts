@@ -28,7 +28,30 @@ export default async function handler(
         take: limit ? parseInt(limit) : 50,
       });
 
-      return res.status(200).json(activities);
+      // Fetch users to map avatars
+      const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true, avatar: true },
+      });
+
+      const activitiesWithAvatars = activities.map((act) => {
+        const user = users.find(
+          (u) =>
+            (u.email && u.email.toLowerCase() === act.user.toLowerCase()) ||
+            (u.name && u.name.trim() === act.user.trim())
+        );
+        return {
+          ...act,
+          user: user
+            ? {
+                id: user.id,
+                name: user.name || user.email,
+                avatar: user.avatar,
+              }
+            : act.user,
+        };
+      });
+
+      return res.status(200).json(activitiesWithAvatars);
     }
 
     if (req.method === "POST") {
@@ -51,9 +74,43 @@ export default async function handler(
         },
       });
 
-      try { publish(String(boardId), { type: "activity:created", payload: activity }); } catch (e) { console.error(e); }
-      try { if (taskId) publish(`task:${taskId}`, { type: "activity:created", payload: activity }); } catch (e) { console.error(e); }
-      return res.status(201).json(activity);
+      // map user for publish
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: user }, { name: user }],
+        },
+        select: { id: true, name: true, avatar: true },
+      });
+
+      const responseData = {
+        ...activity,
+        user: dbUser
+          ? {
+              id: dbUser.id,
+              name: dbUser.name || user,
+              avatar: dbUser.avatar,
+            }
+          : user,
+      };
+
+      try {
+        publish(String(boardId), {
+          type: "activity:created",
+          payload: responseData,
+        });
+      } catch (e) {
+        console.error(e);
+      }
+      try {
+        if (taskId)
+          publish(`task:${taskId}`, {
+            type: "activity:created",
+            payload: responseData,
+          });
+      } catch (e) {
+        console.error(e);
+      }
+      return res.status(201).json(responseData);
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
