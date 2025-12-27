@@ -42,6 +42,34 @@ interface DifficultyLevel {
   name: string;
 }
 
+// --- Member Avatar Component (to ensure robust fallback) ---
+const MemberAvatar = ({ member, className }: { member: WorkspaceMember; className?: string }) => {
+  const [imgError, setImgError] = useState(false);
+  const avatarUrl = member.userAvatar || member.avatar;
+  // Strict check
+  const hasAvatar = !imgError && avatarUrl && (typeof avatarUrl === 'string') &&
+    (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+
+  const bgColor = member.color?.replace("text-", "bg-").split(" ")[0] || "bg-indigo-500";
+  const initials = member.name ? member.name.substring(0, 2).toUpperCase() : "??";
+
+  return (
+    <div
+      className={`relative flex items-center justify-center overflow-hidden rounded-full font-bold text-white shadow-sm border border-white ${bgColor} ${className}`}
+    >
+      <span className="z-0 text-xs">{initials}</span>
+      {hasAvatar && (
+        <img
+          src={avatarUrl as string}
+          alt={member.name}
+          className="absolute inset-0 w-full h-full object-cover z-10"
+          onError={() => setImgError(true)}
+        />
+      )}
+    </div>
+  );
+};
+
 // --- Component หลัก: Settings Sidebar ---
 export function WorkspaceSettingsSidebar({
   isOpen,
@@ -646,30 +674,7 @@ export function WorkspaceSettingsSidebar({
                       className="flex items-center justify-between py-1.5 hover:bg-slate-100 rounded-lg px-2 -mx-2 transition-colors relative"
                     >
                       <div className="flex items-center gap-3">
-                        {(() => {
-                          const avatarUrl = m.userAvatar || m.avatar;
-                          const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') &&
-                            (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
-
-                          return (
-                            <div
-                              className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${hasAvatar
-                                ? "bg-white"
-                                : m.color.replace("text-", "bg-").split(" ")[0]
-                                }`}
-                            >
-                              {hasAvatar ? (
-                                <img
-                                  src={avatarUrl as string}
-                                  alt={m.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                m.name ? m.name.substring(0, 2).toUpperCase() : "??"
-                              )}
-                            </div>
-                          );
-                        })()}
+                        <MemberAvatar member={m} className="w-9 h-9" />
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
                             {m.name}
@@ -1224,30 +1229,7 @@ export function MembersManageModal({
                   className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors group"
                 >
                   <div className="flex items-center gap-3">
-                    {(() => {
-                      const avatarUrl = member.userAvatar || member.avatar;
-                      const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') &&
-                        (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
-
-                      return (
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${hasAvatar
-                            ? "bg-white"
-                            : member.color?.split(" ")[0]?.replace("text-", "bg-") || "bg-slate-400"
-                            }`}
-                        >
-                          {hasAvatar ? (
-                            <img
-                              src={avatarUrl as string}
-                              alt={member.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            (member.name || "U").substring(0, 2).toUpperCase()
-                          )}
-                        </div>
-                      );
-                    })()}
+                    <MemberAvatar member={member} className="w-10 h-10 text-sm" />
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">
                         {member.name}
