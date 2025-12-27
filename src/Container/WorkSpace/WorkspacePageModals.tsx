@@ -463,8 +463,8 @@ export function WorkspaceSettingsSidebar({
                     key={tabKey}
                     onClick={() => setActiveTab(tabKey)}
                     className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tabKey
-                        ? "text-blue-600"
-                        : "text-slate-500 hover:text-slate-700"
+                      ? "text-blue-600"
+                      : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     {tab}
@@ -547,8 +547,8 @@ export function WorkspaceSettingsSidebar({
                       onClick={handleCancelVisibility}
                       disabled={tempVisibility === visibility}
                       className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempVisibility === visibility
-                          ? "opacity-50 cursor-default"
-                          : "active:scale-95"
+                        ? "opacity-50 cursor-default"
+                        : "active:scale-95"
                         }`}
                     >
                       Cancel
@@ -557,8 +557,8 @@ export function WorkspaceSettingsSidebar({
                       onClick={handleSaveVisibility}
                       disabled={isReadOnly || tempVisibility === visibility}
                       className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility
-                          ? "opacity-50 cursor-not-allowed"
-                          : "active:scale-95"
+                        ? "opacity-50 cursor-not-allowed"
+                        : "active:scale-95"
                         }`}
                     >
                       Save
@@ -647,10 +647,26 @@ export function WorkspaceSettingsSidebar({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white ${m.color.replace("text-", "bg-").split(" ")[0]
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${(m.userAvatar || m.avatar) &&
+                              (m.userAvatar?.startsWith("http") || m.avatar?.startsWith("http") ||
+                                m.userAvatar?.startsWith("/") || m.avatar?.startsWith("/") ||
+                                m.userAvatar?.startsWith("data:") || m.avatar?.startsWith("data:"))
+                              ? "bg-white"
+                              : m.color.replace("text-", "bg-").split(" ")[0]
                             }`}
                         >
-                          {m.avatar}
+                          {(m.userAvatar || m.avatar) &&
+                            (m.userAvatar?.startsWith("http") || m.avatar?.startsWith("http") ||
+                              m.userAvatar?.startsWith("/") || m.avatar?.startsWith("/") ||
+                              m.userAvatar?.startsWith("data:") || m.avatar?.startsWith("data:")) ? (
+                            <img
+                              src={m.userAvatar || (m.avatar as string)}
+                              alt={m.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            m.name ? m.name.substring(0, 2).toUpperCase() : "??"
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
@@ -1207,11 +1223,26 @@ export function MembersManageModal({
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white ${member.color?.split(" ")[0]?.replace("text-", "bg-") ||
-                        "bg-slate-400"
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${(member.userAvatar || member.avatar) &&
+                        (member.userAvatar?.startsWith("http") || member.avatar?.startsWith("http") ||
+                          member.userAvatar?.startsWith("/") || member.avatar?.startsWith("/") ||
+                          member.userAvatar?.startsWith("data:") || member.avatar?.startsWith("data:"))
+                        ? "bg-white"
+                        : member.color?.split(" ")[0]?.replace("text-", "bg-") || "bg-slate-400"
                         }`}
                     >
-                      {member.avatar}
+                      {(member.userAvatar || member.avatar) &&
+                        (member.userAvatar?.startsWith("http") || member.avatar?.startsWith("http") ||
+                          member.userAvatar?.startsWith("/") || member.avatar?.startsWith("/") ||
+                          member.userAvatar?.startsWith("data:") || member.avatar?.startsWith("data:")) ? (
+                        <img
+                          src={member.userAvatar || member.avatar}
+                          alt={member.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        (member.name || "U").substring(0, 2).toUpperCase()
+                      )}
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">

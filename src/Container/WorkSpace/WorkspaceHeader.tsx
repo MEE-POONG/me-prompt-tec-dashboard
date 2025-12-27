@@ -144,11 +144,10 @@ export default function WorkspaceHeader({
             >
               <RotateCw
                 size={18}
-                className={`transition-all duration-500 ${
-                  isRefreshing
+                className={`transition-all duration-500 ${isRefreshing
                     ? "animate-spin text-blue-600"
                     : "active:rotate-180"
-                }`}
+                  }`}
               />
             </button>
           </div>
@@ -170,29 +169,33 @@ export default function WorkspaceHeader({
 
       <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
         <div className="flex -space-x-3 mr-2 shrink-0 items-center">
-          {workspaceInfo.members.slice(0, 3).map((m, i) => (
-            <div
-              key={i}
-              className="w-9 h-9 rounded-full border-2 border-white shadow-sm overflow-hidden"
-              title={m.name}
-            >
-              {m.userAvatar || m.avatar ? (
-                <img
-                  src={m.userAvatar || (m.avatar as string)}
-                  alt={m.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div
-                  className={`w-full h-full flex items-center justify-center text-xs font-bold text-white ${
-                    m.color || "bg-slate-400"
-                  }`}
-                >
-                  {m.name ? m.name.substring(0, 2) : "??"}
-                </div>
-              )}
-            </div>
-          ))}
+          {workspaceInfo.members.slice(0, 3).map((m, i) => {
+            const avatarUrl = m.userAvatar || m.avatar;
+            const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') && (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+
+            return (
+              <div
+                key={i}
+                className="w-9 h-9 rounded-full border-2 border-white shadow-sm overflow-hidden"
+                title={m.name}
+              >
+                {hasAvatar ? (
+                  <img
+                    src={avatarUrl as string}
+                    alt={m.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className={`w-full h-full flex items-center justify-center text-xs font-bold text-white ${m.color || "bg-slate-400"
+                      }`}
+                  >
+                    {m.name ? m.name.substring(0, 2).toUpperCase() : "??"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <button
             onClick={onOpenMembers}
             className="w-9 h-9 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors shadow-sm relative z-10"
@@ -207,11 +210,10 @@ export default function WorkspaceHeader({
         <div className="relative" ref={notiRef}>
           <button
             onClick={() => setIsNotiOpen(!isNotiOpen)}
-            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${
-              isNotiOpen
+            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${isNotiOpen
                 ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
                 : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            }`}
+              }`}
           >
             <Bell size={20} className={isNotiOpen ? "fill-purple-600" : ""} />
             {notifications.length > 0 && (
@@ -328,11 +330,10 @@ export default function WorkspaceHeader({
 
         <button
           onClick={onToggleFilter}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
-            isFilterOpen
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${isFilterOpen
               ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
               : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
-          }`}
+            }`}
         >
           <Filter size={16} />
           Filter
