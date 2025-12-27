@@ -113,7 +113,7 @@ export default async function handler(
         );
         return {
           ...m,
-          userAvatar: user?.avatar || m.userAvatar,
+          avatar: user?.avatar || m.avatar,
           userId: user?.id,
         };
       });
