@@ -142,14 +142,20 @@ export default function WorkspaceTaskCard({
                   <div
                     key={i}
                     className="w-6 h-6 rounded-full ring-2 ring-white bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase shadow-sm overflow-hidden"
-                    title={typeof m === 'string' ? m : 'Member'}
+                    title={typeof m === 'object' ? (m as any).name : m}
                   >
-                    {/* ตรวจสอบ URL รูปภาพ */}
-                    {typeof m === 'string' && (m.startsWith('http') || m.includes('/') || m.includes('data:image')) ? (
-                      <img src={m} alt="avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      typeof m === 'string' ? m.substring(0, 2) : '?'
-                    )}
+                    {(() => {
+                      const avatarUrl = typeof m === 'object' ? ((m as any).userAvatar || (m as any).avatar) : m;
+                      const name = typeof m === 'object' ? (m as any).name : m;
+                      const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') &&
+                        (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+
+                      return hasAvatar ? (
+                        <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        (name || "?").substring(0, 2).toUpperCase()
+                      );
+                    })()}
                   </div>
                 ))}
                 {members.length > 3 && (

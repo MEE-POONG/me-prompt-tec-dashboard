@@ -646,28 +646,30 @@ export function WorkspaceSettingsSidebar({
                       className="flex items-center justify-between py-1.5 hover:bg-slate-100 rounded-lg px-2 -mx-2 transition-colors relative"
                     >
                       <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${(m.userAvatar || m.avatar) &&
-                              (m.userAvatar?.startsWith("http") || m.avatar?.startsWith("http") ||
-                                m.userAvatar?.startsWith("/") || m.avatar?.startsWith("/") ||
-                                m.userAvatar?.startsWith("data:") || m.avatar?.startsWith("data:"))
-                              ? "bg-white"
-                              : m.color.replace("text-", "bg-").split(" ")[0]
-                            }`}
-                        >
-                          {(m.userAvatar || m.avatar) &&
-                            (m.userAvatar?.startsWith("http") || m.avatar?.startsWith("http") ||
-                              m.userAvatar?.startsWith("/") || m.avatar?.startsWith("/") ||
-                              m.userAvatar?.startsWith("data:") || m.avatar?.startsWith("data:")) ? (
-                            <img
-                              src={m.userAvatar || (m.avatar as string)}
-                              alt={m.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            m.name ? m.name.substring(0, 2).toUpperCase() : "??"
-                          )}
-                        </div>
+                        {(() => {
+                          const avatarUrl = m.userAvatar || m.avatar;
+                          const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') &&
+                            (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+
+                          return (
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm border border-white overflow-hidden ${hasAvatar
+                                ? "bg-white"
+                                : m.color.replace("text-", "bg-").split(" ")[0]
+                                }`}
+                            >
+                              {hasAvatar ? (
+                                <img
+                                  src={avatarUrl as string}
+                                  alt={m.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                m.name ? m.name.substring(0, 2).toUpperCase() : "??"
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">
                             {m.name}
@@ -1222,28 +1224,30 @@ export function MembersManageModal({
                   className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors group"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${(member.userAvatar || member.avatar) &&
-                        (member.userAvatar?.startsWith("http") || member.avatar?.startsWith("http") ||
-                          member.userAvatar?.startsWith("/") || member.avatar?.startsWith("/") ||
-                          member.userAvatar?.startsWith("data:") || member.avatar?.startsWith("data:"))
-                        ? "bg-white"
-                        : member.color?.split(" ")[0]?.replace("text-", "bg-") || "bg-slate-400"
-                        }`}
-                    >
-                      {(member.userAvatar || member.avatar) &&
-                        (member.userAvatar?.startsWith("http") || member.avatar?.startsWith("http") ||
-                          member.userAvatar?.startsWith("/") || member.avatar?.startsWith("/") ||
-                          member.userAvatar?.startsWith("data:") || member.avatar?.startsWith("data:")) ? (
-                        <img
-                          src={member.userAvatar || member.avatar}
-                          alt={member.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        (member.name || "U").substring(0, 2).toUpperCase()
-                      )}
-                    </div>
+                    {(() => {
+                      const avatarUrl = member.userAvatar || member.avatar;
+                      const hasAvatar = avatarUrl && (typeof avatarUrl === 'string') &&
+                        (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+
+                      return (
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-white overflow-hidden ${hasAvatar
+                            ? "bg-white"
+                            : member.color?.split(" ")[0]?.replace("text-", "bg-") || "bg-slate-400"
+                            }`}
+                        >
+                          {hasAvatar ? (
+                            <img
+                              src={avatarUrl as string}
+                              alt={member.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            (member.name || "U").substring(0, 2).toUpperCase()
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800">
                         {member.name}
