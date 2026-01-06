@@ -20,6 +20,7 @@ import {
 
 import { WorkspaceInfo, WorkspaceMember } from "@/types/workspace";
 import Link from "next/link";
+
 export interface NotificationItem {
   id: string;
   user: string;
@@ -102,14 +103,30 @@ export default function WorkspaceHeader({
   };
 
   // --- Member Avatar Component (Local definition for robustness) ---
-  const MemberAvatar = ({ member, className, title }: { member: WorkspaceMember; className?: string; title?: string }) => {
+  const MemberAvatar = ({
+    member,
+    className,
+    title,
+  }: {
+    member: WorkspaceMember;
+    className?: string;
+    title?: string;
+  }) => {
     const [imgError, setImgError] = useState(false);
     const avatarUrl = member.userAvatar || member.avatar;
-    const hasAvatar = !imgError && avatarUrl && (typeof avatarUrl === 'string') &&
-      (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
+    const hasAvatar =
+      !imgError &&
+      avatarUrl &&
+      typeof avatarUrl === "string" &&
+      (avatarUrl.startsWith("http") ||
+        avatarUrl.startsWith("/") ||
+        avatarUrl.startsWith("data:"));
 
-    const bgColor = member.color?.replace("text-", "bg-").split(" ")[0] || "bg-indigo-500";
-    const initials = member.name ? member.name.substring(0, 2).toUpperCase() : "??";
+    const bgColor =
+      member.color?.replace("text-", "bg-").split(" ")[0] || "bg-indigo-500";
+    const initials = member.name
+      ? member.name.substring(0, 2).toUpperCase()
+      : "??";
 
     return (
       <div
@@ -130,7 +147,8 @@ export default function WorkspaceHeader({
   };
 
   return (
-    <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-20 shadow-sm font-sans">
+    // ✅ แก้ไขตรงนี้: เปลี่ยน z-20 เป็น z-50 เพื่อให้ Header อยู่สูงกว่า Content ด้านล่างเสมอ
+    <div className="px-6 py-4 border-b border-gray-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sticky top-0 z-50 shadow-sm font-sans">
       <div className="flex items-center gap-4">
         <Link
           href="/workspace"
@@ -172,10 +190,11 @@ export default function WorkspaceHeader({
             >
               <RotateCw
                 size={18}
-                className={`transition-all duration-500 ${isRefreshing
-                  ? "animate-spin text-blue-600"
-                  : "active:rotate-180"
-                  }`}
+                className={`transition-all duration-500 ${
+                  isRefreshing
+                    ? "animate-spin text-blue-600"
+                    : "active:rotate-180"
+                }`}
               />
             </button>
           </div>
@@ -219,10 +238,11 @@ export default function WorkspaceHeader({
         <div className="relative" ref={notiRef}>
           <button
             onClick={() => setIsNotiOpen(!isNotiOpen)}
-            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${isNotiOpen
-              ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
-              : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              }`}
+            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${
+              isNotiOpen
+                ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            }`}
           >
             <Bell size={20} className={isNotiOpen ? "fill-purple-600" : ""} />
             {notifications.length > 0 && (
@@ -233,15 +253,16 @@ export default function WorkspaceHeader({
           {isNotiOpen && (
             <>
               <div
-                className="fixed inset-0 z-998"
+                className="fixed inset-0 z-[9998]"
                 onClick={() => setIsNotiOpen(false)}
               ></div>
 
               <div
-                className="fixed top-[75px] right-6 w-[360px] bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-999"
-                style={{ top: "80px", right: "20px" }}
+                className="fixed bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[9999]"
+                // กำหนดความกว้างและความสูง max-height เพื่อป้องกันการล้นจอ
+                style={{ top: "80px", right: "20px", width: "360px", maxHeight: "calc(100vh - 100px)" }}
               >
-                <div className="bg-linear-to-r from-purple-600 to-indigo-600 p-5 pb-8 relative overflow-hidden flex justify-between items-start">
+                <div className="bg-linear-to-r from-purple-600 to-indigo-600 p-5 pb-8 relative overflow-hidden flex justify-between items-start shrink-0">
                   <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                   <div className="absolute bottom-[-10%] left-[-10%] w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
 
@@ -265,8 +286,8 @@ export default function WorkspaceHeader({
                   )}
                 </div>
 
-                <div className="bg-white rounded-t-3xl -mt-4 relative z-20 px-2 pt-2 pb-2 min-h-[300px] flex flex-col">
-                  <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-2 max-h-80">
+                <div className="bg-white rounded-t-3xl -mt-4 relative z-20 px-2 pt-2 pb-2 flex flex-col h-full max-h-[400px]">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-2">
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-[200px] text-center space-y-3">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-2 animate-pulse">
@@ -325,7 +346,7 @@ export default function WorkspaceHeader({
                     )}
                   </div>
 
-                  <div className="pt-2 pb-1 border-t border-slate-50 mt-2 text-center">
+                  <div className="pt-2 pb-1 border-t border-slate-50 mt-2 text-center shrink-0">
                     <button className="text-xs font-bold text-purple-600 hover:text-purple-700 hover:underline py-2 w-full flex items-center justify-center gap-1 transition-all">
                       ดูประวัติการแจ้งเตือนทั้งหมด
                       <ChevronRight size={12} />
@@ -339,10 +360,11 @@ export default function WorkspaceHeader({
 
         <button
           onClick={onToggleFilter}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${isFilterOpen
-            ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
-            : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
-            }`}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
+            isFilterOpen
+              ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
+              : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+          }`}
         >
           <Filter size={16} />
           Filter
@@ -355,8 +377,6 @@ export default function WorkspaceHeader({
           <Users size={16} />
           Members
         </button>
-
-        {/* ❌ เอา NotificationBell ออกแล้ว */}
 
         <button
           onClick={onOpenSettings}

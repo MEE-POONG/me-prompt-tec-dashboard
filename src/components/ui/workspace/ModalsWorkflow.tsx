@@ -1714,7 +1714,7 @@ export default function ModalsWorkflow({
   return (
     <>
       <style>{customStyles}</style>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+      <div className="fixed inset-0 z-10000 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
         <div className="bg-white w-full max-w-6xl h-[90vh] rounded-[20px] shadow-2xl overflow-hidden flex flex-col ring-1 ring-slate-200 font-sans relative">
           {/* Header */}
           <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 shrink-0 shadow-sm z-10">

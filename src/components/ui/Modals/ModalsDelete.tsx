@@ -42,7 +42,7 @@ const ModalDelete = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-100">
       <div className="bg-white p-6 rounded-2xl shadow-xl text-center w-80">
         <svg
           xmlns="http://www.w3.org/2000/svg"
