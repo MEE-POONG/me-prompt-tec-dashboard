@@ -4,17 +4,13 @@ import {
   TrendingUp,
   ChevronDown,
   Download,
-  Calendar,
-  Clock,
-  User,
   CheckCircle2,
-  File,
+  User,
 } from "lucide-react";
 
 // Types
 type ReportType = "Planning" | "Progress";
 type TimeRange = "This Week" | "Last Week" | "This Month";
-type TimeMetric = "Estimate Time" | "Actual Time";
 
 export default function ProjectReport({
   tasks: allTasks = [],
@@ -26,17 +22,14 @@ export default function ProjectReport({
   // States
   const [reportType, setReportType] = useState<ReportType>("Planning");
   const [timeRange, setTimeRange] = useState<TimeRange>("This Week");
-  const [timeMetric, setTimeMetric] = useState<TimeMetric>("Estimate Time");
 
   // Dropdown UI States
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [isRangeOpen, setIsRangeOpen] = useState(false);
-  const [isMetricOpen, setIsMetricOpen] = useState(false);
 
   // Refs for click outside
   const typeRef = useRef<HTMLDivElement>(null);
   const rangeRef = useRef<HTMLDivElement>(null);
-  const metricRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,11 +37,6 @@ export default function ProjectReport({
         setIsTypeOpen(false);
       if (rangeRef.current && !rangeRef.current.contains(event.target as Node))
         setIsRangeOpen(false);
-      if (
-        metricRef.current &&
-        !metricRef.current.contains(event.target as Node)
-      )
-        setIsMetricOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -56,12 +44,10 @@ export default function ProjectReport({
 
   // Handlers
   const handleExportPDF = () => {
-    // Mock Download Logic
     const link = document.createElement("a");
     link.href = "#";
     link.download = `Report_${reportType}_${timeRange.replace(" ", "_")}.pdf`;
     document.body.appendChild(link);
-    // link.click(); // Uncomment to simulate click
     alert(`Downloading ${link.download}...`);
     document.body.removeChild(link);
   };
@@ -73,7 +59,6 @@ export default function ProjectReport({
 
   const stats = {
     totalTasks: totalTasks,
-    totalTime: "0 mins", // Placeholder for actual time tracking if added later
     totalMembers: totalMembers,
   };
 
@@ -85,7 +70,6 @@ export default function ProjectReport({
       assignee: member ? member.name : t.members?.[0] || "-",
       assigneeAvatar: member ? member.userAvatar || member.avatar : null,
       start: t.date || "No date",
-      time: "0 mins",
       status: t.status,
     };
   });
@@ -115,7 +99,7 @@ export default function ProjectReport({
             </button>
 
             {isTypeOpen && (
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in zoom-in-95">
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in zoom-in-95 z-50">
                 <button
                   onClick={() => {
                     setReportType("Planning");
@@ -151,7 +135,7 @@ export default function ProjectReport({
               {timeRange} (14 - 20 Dec 2025) <ChevronDown size={14} />
             </button>
             {isRangeOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in zoom-in-95">
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in zoom-in-95 z-50">
                 {["This Week", "Last Week", "This Month"].map((range) => (
                   <button
                     key={range}
@@ -173,36 +157,6 @@ export default function ProjectReport({
             )}
           </div>
 
-          {/* Time Metric Dropdown */}
-          <div className="relative" ref={metricRef}>
-            <button
-              onClick={() => setIsMetricOpen(!isMetricOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-white transition-all bg-white"
-            >
-              {timeMetric} <ChevronDown size={14} />
-            </button>
-            {isMetricOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in zoom-in-95">
-                {["Estimate Time", "Actual Time"].map((metric) => (
-                  <button
-                    key={metric}
-                    onClick={() => {
-                      setTimeMetric(metric as TimeMetric);
-                      setIsMetricOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 ${
-                      timeMetric === metric
-                        ? "text-blue-600 bg-blue-50"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {metric}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Export Button */}
           <button
             onClick={handleExportPDF}
@@ -215,8 +169,8 @@ export default function ProjectReport({
 
       {/* --- Content (Scrollable) --- */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Stats Row - Adjusted to 2 Columns since Time is removed */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center hover:border-blue-200 transition-colors">
             <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
               Total Tasks
@@ -228,17 +182,7 @@ export default function ProjectReport({
               Tasks
             </span>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center hover:border-blue-200 transition-colors">
-            <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
-              Total {timeMetric}
-            </h3>
-            <span className="text-4xl font-black text-blue-600">
-              {stats.totalTime}
-            </span>
-            <span className="text-xs text-gray-400 mt-1 font-medium">
-              Minutes
-            </span>
-          </div>
+          
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center hover:border-blue-200 transition-colors">
             <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
               Total Members
@@ -332,9 +276,7 @@ export default function ProjectReport({
                   <th className="px-6 py-3 font-bold">Task Name</th>
                   <th className="px-6 py-3 font-bold">Assignee</th>
                   <th className="px-6 py-3 font-bold">Start/End Date</th>
-                  <th className="px-6 py-3 font-bold text-right">
-                    {timeMetric}
-                  </th>
+                  {/* Removed Time Column Header */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -370,15 +312,13 @@ export default function ProjectReport({
                     <td className="px-6 py-4 text-gray-600 font-medium">
                       {task.start}
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-800">
-                      {task.time}
-                    </td>
+                    {/* Removed Time Cell */}
                   </tr>
                 ))}
                 {/* Empty Row for spacing look */}
                 <tr className="h-24">
                   <td
-                    colSpan={4}
+                    colSpan={3}
                     className="text-center text-gray-300 text-xs italic"
                   >
                     End of report

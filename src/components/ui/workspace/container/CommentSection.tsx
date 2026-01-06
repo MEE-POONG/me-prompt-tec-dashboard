@@ -162,12 +162,7 @@ export function CommentSection({ logActivity }: CommentSectionProps) {
             <div className="space-y-1.5 flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-gray-900">{c.user}</span>
-                <span className="text-xs text-gray-400">
-                  {c.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+                {/* ส่วนแสดงเวลาถูกลบออกไปแล้ว */}
               </div>
               <div className="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-gray-700 relative">
                 {editingCommentId === c.id ? (

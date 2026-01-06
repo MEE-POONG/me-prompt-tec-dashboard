@@ -2086,7 +2086,7 @@ export default function ModalsWorkflow({
                     <Activity size={16} /> Activity
                   </button>
                 </div>
-                {activeTab === "comments" ? (
+{activeTab === "comments" ? (
                   <div className="space-y-6">
                     <div className="flex gap-3">
                       <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">
@@ -2191,9 +2191,6 @@ export default function ModalsWorkflow({
                                 ? c.user.name
                                 : c.user}
                             </span>
-                            <span className="text-xs text-slate-400 font-medium">
-                              {c.time}
-                            </span>
                             {c.isEdited && (
                               <span className="text-[10px] text-slate-400">
                                 (edited)
@@ -2211,7 +2208,6 @@ export default function ModalsWorkflow({
                                     setEditingText(e.target.value)
                                   }
                                 />
-                                {/* ✅ แสดงกล่องไฟล์แนบเดิม (ถ้ามี) แบบเป็นรายการ ตามภาพที่ต้องการ */}
                                 {editingFileParts.length > 0 && (
                                   <div className="mt-2 space-y-1">
                                     <p className="text-xs font-bold text-slate-500 mb-1">
@@ -2261,7 +2257,7 @@ export default function ModalsWorkflow({
                               <div className="flex gap-2">
                                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden shrink-0 mt-0.5">
                                   {typeof c.user === "object" &&
-                                    c.user.avatar ? (
+                                  c.user.avatar ? (
                                     <img
                                       src={c.user.avatar}
                                       alt=""
@@ -2341,13 +2337,45 @@ export default function ModalsWorkflow({
                           </span>{" "}
                           {a.action}
                         </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                 : (
+                  <div className="space-y-4 pl-4 border-l-2 border-slate-100 ml-2">
+                    {activities.map((a) => (
+                      <div key={a.id} className="relative pl-10">
+                        <div className="absolute left-0 top-0.5 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-white shadow-sm ring-4 ring-white z-10">
+                          {typeof a.user === "object" && a.user.avatar ? (
+                            <img
+                              src={a.user.avatar}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-500">
+                              {(typeof a.user === "object"
+                                ? a.user.name
+                                : a.user || "?"
+                              )
+                                .slice(0, 1)
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-bold text-slate-900">
+                            {typeof a.user === "object" ? a.user.name : a.user}
+                          </span>{" "}
+                          {a.action}
+                        </p>
                         <span className="text-xs text-slate-400 font-medium mt-0.5">
                           {a.time}
                         </span>
                       </div>
                     ))}
                   </div>
-                )}
+                )
               </div>
             </div>
 
