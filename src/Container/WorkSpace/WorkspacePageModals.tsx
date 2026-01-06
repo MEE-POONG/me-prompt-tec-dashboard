@@ -8,45 +8,37 @@ import {
   Plus,
   MoreHorizontal,
   Copy,
-  Archive,
   Bell,
   Search,
-  Mail,
   Edit2,
   History,
-  BarChart3,
-  AlertCircle,
   Lock,
-  CalendarClock, // [เพิ่ม]
-  Globe, //  Globe,
+  CalendarClock,
+  Globe,
   User,
+  AlertCircle,
+  Archive,
 } from "lucide-react";
-import { format, isToday, isYesterday } from "date-fns"; // [เพิ่ม]
+import { format, isToday, isYesterday } from "date-fns";
 import {
   WorkspaceInfo,
   WorkspaceMember,
   WorkspaceTask,
 } from "@/types/workspace";
-import { updateBoard } from "@/lib/api/workspace"; // [เพิ่ม]
+import { updateBoard } from "@/lib/api/workspace";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 import ModalRestore from "@/components/ui/Modals/ModalRestore";
 
 // --- Types ---
-type TabType = "settings" | "difficulty" | "archived" | "activities";
+// ลบ "difficulty" ออกจาก Type
+type TabType = "settings" | "archived" | "activities";
 
-interface DifficultyLevel {
-  id: number;
-  level: number;
-  name: string;
-}
-
-// --- Member Avatar Component (to ensure robust fallback) ---
+// --- Member Avatar Component ---
 const MemberAvatar = ({ member, className }: { member: WorkspaceMember; className?: string }) => {
   const [imgError, setImgError] = useState(false);
   const avatarUrl = member.userAvatar || member.avatar;
-  // Strict check
   const hasAvatar = !imgError && avatarUrl && (typeof avatarUrl === 'string') &&
     (avatarUrl.startsWith("http") || avatarUrl.startsWith("/") || avatarUrl.startsWith("data:"));
 
@@ -77,35 +69,25 @@ export function WorkspaceSettingsSidebar({
   workspaceInfo,
   boardId,
   isReadOnly = false,
-  onUpdate, // [เพิ่ม]
+  onUpdate,
 }: {
   isOpen: boolean;
   onClose: () => void;
   workspaceInfo: WorkspaceInfo;
   boardId: string;
   isReadOnly?: boolean;
-  onUpdate?: () => void; // [เพิ่ม]
+  onUpdate?: () => void;
 }) {
-  // ... (lines 60-274 remain unchanged)
-
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
   const [showMenu, setShowMenu] = useState(false);
 
   // Form States (Settings)
-  const [projectName, setProjectName] = useState(workspaceInfo.name || ""); // [แก้ไข] เปลี่ยน shortName เป็น projectName
-  const [description, setDescription] = useState(
-    workspaceInfo.description || ""
-  ); // [แก้ไข] รับค่าจาก db
-  const [tempDescription, setTempDescription] = useState(
-    workspaceInfo.description || ""
-  ); // [แก้ไข] รับค่าจาก db
-  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">(
-    workspaceInfo.visibility || "PRIVATE"
-  );
-  const [tempVisibility, setTempVisibility] = useState<"PRIVATE" | "PUBLIC">(
-    workspaceInfo.visibility || "PRIVATE"
-  );
+  const [projectName, setProjectName] = useState(workspaceInfo.name || "");
+  const [description, setDescription] = useState(workspaceInfo.description || "");
+  const [tempDescription, setTempDescription] = useState(workspaceInfo.description || "");
+  const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">(workspaceInfo.visibility || "PRIVATE");
+  const [tempVisibility, setTempVisibility] = useState<"PRIVATE" | "PUBLIC">(workspaceInfo.visibility || "PRIVATE");
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
 
   // Custom Modal States
@@ -132,20 +114,10 @@ export function WorkspaceSettingsSidebar({
 
   // Member States
   const [memberSearch, setMemberSearch] = useState("");
-  const [members, setMembers] = useState<WorkspaceMember[]>(
-    workspaceInfo.members
-  );
-  const [openMemberDropdownId, setOpenMemberDropdownId] = useState<
-    number | null
-  >(null);
+  const [members, setMembers] = useState<WorkspaceMember[]>(workspaceInfo.members);
+  const [openMemberDropdownId, setOpenMemberDropdownId] = useState<number | null>(null);
 
-  // Difficulty States
-  const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>([
-    { id: 1, level: 1, name: "Easy" },
-    { id: 2, level: 2, name: "Normal" },
-    { id: 3, level: 3, name: "Hard" },
-  ]);
-  const [difficultySearch, setDifficultySearch] = useState("");
+  // ❌ ลบ State และ Logic ของ Difficulty Level ออกทั้งหมดตรงนี้
 
   // Archived Tasks State
   const [archivedTasks, setArchivedTasks] = useState<WorkspaceTask[]>([]);
@@ -161,21 +133,16 @@ export function WorkspaceSettingsSidebar({
       );
       if (res.ok) {
         const data = await res.json();
-        // Map API data to WorkspaceTask if needed, or use as is if matches
-        // Assuming API returns BoardTask which is compatible enough or needs mapping
-        // Simple mapping:
         const mapped: WorkspaceTask[] = data.map((t: any) => ({
           id: t.id,
           title: t.title,
           tag: t.tag || "General",
           tagColor: t.tagColor || "bg-slate-100 text-slate-500",
           priority: t.priority || "Medium",
-          members: [], // Simplification
+          members: [],
           comments: t.comments || 0,
           attachments: t.attachments || 0,
-          date: t.dueDate
-            ? new Date(t.dueDate).toLocaleDateString()
-            : "No date",
+          date: t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "No date",
           status: t.column?.title || "Archived",
         }));
         setArchivedTasks(mapped);
@@ -239,11 +206,11 @@ export function WorkspaceSettingsSidebar({
   useEffect(() => {
     if (isOpen) {
       setMembers(workspaceInfo.members);
-      setProjectName(workspaceInfo.name || ""); // [แก้ไข]
-      setVisibility(workspaceInfo.visibility || "PRIVATE"); // [เพิ่ม]
+      setProjectName(workspaceInfo.name || "");
+      setVisibility(workspaceInfo.visibility || "PRIVATE");
       setTempVisibility(workspaceInfo.visibility || "PRIVATE");
-      setDescription(workspaceInfo.description || ""); // [แก้ไข]
-      setTempDescription(workspaceInfo.description || ""); // [แก้ไข]
+      setDescription(workspaceInfo.description || "");
+      setTempDescription(workspaceInfo.description || "");
     }
   }, [isOpen, workspaceInfo]);
 
@@ -315,7 +282,7 @@ export function WorkspaceSettingsSidebar({
         description: `เปลี่ยนสถานะเป็น ${tempVisibility === "PRIVATE" ? "Private" : "Public"
           } เรียบร้อยแล้ว`,
       });
-      if (onUpdate) onUpdate(); // [เพิ่ม] เรียกใช้ callback
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Failed to update visibility", error);
       setErrorModal({
@@ -331,7 +298,7 @@ export function WorkspaceSettingsSidebar({
   };
 
   const handleCancelDescription = () => {
-    setTempDescription(description); // Revert to saved description
+    setTempDescription(description);
   };
 
   const handleRoleChange = async (index: number, newRole: string) => {
@@ -399,25 +366,14 @@ export function WorkspaceSettingsSidebar({
     });
   };
 
-  // --- Handlers (Difficulty) ---
-  const handleAddDifficulty = () => {
-    const newLevel = difficultyLevels.length + 1;
-    const newDiff = {
-      id: Date.now(),
-      level: newLevel,
-      name: `Level ${newLevel}`,
-    };
-    setDifficultyLevels([...difficultyLevels, newDiff]);
-  };
+  // --- ❌ ลบ Handlers (Difficulty) ออกทั้งหมด ---
 
   // --- Logic for Filtering Lists ---
   const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase())
   );
 
-  const filteredDifficulties = difficultyLevels.filter((d) =>
-    d.name.toLowerCase().includes(difficultySearch.toLowerCase())
-  );
+  // ❌ ลบ filteredDifficulties ออก
 
   if (!isOpen) return null;
 
@@ -478,14 +434,11 @@ export function WorkspaceSettingsSidebar({
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs - ❌ ลบ "Difficulty Level" ออกจาก Tabs */}
           <div className="flex items-center gap-6 border-b border-slate-200 mt-6 overflow-x-auto scrollbar-hide">
-            {["Settings", "Difficulty Level", "Archived", "Activities"].map(
+            {["Settings", "Archived", "Activities"].map(
               (tab) => {
-                const tabKey =
-                  tab === "Difficulty Level"
-                    ? "difficulty"
-                    : (tab.toLowerCase().replace(" ", "") as TabType);
+                const tabKey = tab.toLowerCase().replace(" ", "") as TabType;
                 return (
                   <button
                     key={tabKey}
@@ -742,73 +695,7 @@ export function WorkspaceSettingsSidebar({
             </div>
           )}
 
-          {/* TAB 2: DIFFICULTY LEVEL */}
-          {activeTab === "difficulty" && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-                    <BarChart3 size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">
-                      Level Management
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Define difficulty levels for tasks to help calculate
-                      workload and project progress more accurately.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative">
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  placeholder="Search levels"
-                  value={difficultySearch}
-                  onChange={(e) => setDifficultySearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-2">
-                {filteredDifficulties.map((diff) => (
-                  <div
-                    key={diff.id}
-                    className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
-                        {diff.level}
-                      </div>
-                      <span className="text-sm font-bold text-slate-700">
-                        {diff.name}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded">
-                        <Edit2 size={14} />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={handleAddDifficulty}
-                className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors border border-transparent hover:border-slate-300 flex items-center justify-center gap-2"
-              >
-                <Plus size={16} /> Add New Level
-              </button>
-            </div>
-          )}
+          {/* ❌ ส่วนของ TAB 2: DIFFICULTY LEVEL ถูกลบออกไปแล้ว */}
 
           {/* TAB 3: ARCHIVED */}
           {activeTab === "archived" && (
@@ -1026,7 +913,6 @@ export function WorkspaceSettingsSidebar({
   );
 }
 
-// --- Invite Member Modal ---
 // --- Invite Member Modal ---
 export function MembersManageModal({
   isOpen,

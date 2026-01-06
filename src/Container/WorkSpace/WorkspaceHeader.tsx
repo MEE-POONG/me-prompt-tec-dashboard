@@ -253,12 +253,12 @@ export default function WorkspaceHeader({
           {isNotiOpen && (
             <>
               <div
-                className="fixed inset-0 z-[9998]"
+                className="fixed inset-0 z-9998"
                 onClick={() => setIsNotiOpen(false)}
               ></div>
 
               <div
-                className="fixed bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[9999]"
+                className="fixed bg-white rounded-3xl shadow-2xl shadow-purple-500/20 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-9999"
                 // กำหนดความกว้างและความสูง max-height เพื่อป้องกันการล้นจอ
                 style={{ top: "80px", right: "20px", width: "360px", maxHeight: "calc(100vh - 100px)" }}
               >
