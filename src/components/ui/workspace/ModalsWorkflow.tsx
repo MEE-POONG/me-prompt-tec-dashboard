@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
-  CheckCircle2,
+  CheckCircle2, // ใช้ Icon นี้สำหรับปุ่มเสร็จสิ้น
   CheckSquare,
   Tag as TagIcon,
   Calendar,
@@ -136,7 +136,7 @@ interface ContentBlock {
   attachments?: AttachmentItem[];
 }
 
-// --- 3. Mock Data ---
+// --- 3. Mock Data & Constants (เพิ่ม INITIAL_TAGS กลับมา) ---
 const ALL_MEMBERS: Member[] = [
   { id: "1", name: "Poom", color: "bg-blue-600", short: "P" },
   { id: "2", name: "Jame", color: "bg-emerald-600", short: "J" },
@@ -187,6 +187,7 @@ const TAG_COLORS = [
   },
 ];
 
+// ✅ [FIX] เพิ่ม INITIAL_TAGS ที่หายไป
 const INITIAL_TAGS: TagItem[] = [
   {
     id: "1",
@@ -307,6 +308,9 @@ export default function ModalsWorkflow({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [availableTags, setAvailableTags] = useState<TagItem[]>(INITIAL_TAGS);
+
+  // [NEW] Status State
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Custom Modal States
   const [successModal, setSuccessModal] = useState({
@@ -429,6 +433,14 @@ export default function ModalsWorkflow({
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
+        
+        // [NEW] Check Status
+        if (data.status === "Done" || data.status === "Completed") {
+            setIsCompleted(true);
+        } else {
+            setIsCompleted(false);
+        }
+
         const currentMembers = membersList; // Use current state
         const assignedIds = (data.assignees || [])
           .map((a: any) => {
@@ -1633,6 +1645,29 @@ export default function ModalsWorkflow({
     }
   };
 
+  // [NEW] Toggle Complete
+  const handleToggleComplete = async () => {
+    if (!taskId) return;
+    
+    const newStatus = !isCompleted;
+    setIsCompleted(newStatus); // Optimistic
+
+    try {
+        // อัปเดต status เป็น 'Done' หรือ 'In Progress'
+        // และอาจจะย้าย column ด้วย ถ้า Backend รองรับ (หรือทำ Logic ใน Backend)
+        await updateTask(String(taskId), { 
+            status: newStatus ? "Done" : "In Progress"
+        } as any); // ✅ Cast as any to bypass TS error
+
+        logActivity(newStatus ? "marked task as completed" : "reopened task");
+        
+        if (onTaskUpdated) onTaskUpdated();
+    } catch (err) {
+        console.error("Failed to update status", err);
+        setIsCompleted(!newStatus); // Revert
+    }
+  };
+
   const handleSaveAll = async () => {
     if (!taskId) return;
     try {
@@ -1644,12 +1679,13 @@ export default function ModalsWorkflow({
         .filter((id): id is string => !!id);
 
       const due = dateRange?.from ? dateRange.from.toISOString() : null;
-      const payload: any = {
+      const payload: any = { // ✅ Explicitly type as any to fix TS error 2353
         title,
         description: desc,
         assigneeIds: userIds, // ✅ Send User IDs
         dueDate: due,
         checklist: checklistCount,
+        status: isCompleted ? "Done" : "In Progress" // Ensure status is saved
       };
       await updateTask(String(taskId), payload);
       logActivity("saved card");
@@ -1683,6 +1719,8 @@ export default function ModalsWorkflow({
           {/* Header */}
           <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3">
+              
+              {/* --- ปุ่มรับงานเดิม (Assign Me) --- */}
               <button
                 onClick={() => {
                   const userId = currentUser?.id || currentUser?._id;
@@ -1706,7 +1744,7 @@ export default function ModalsWorkflow({
                   );
                   return myMember && assignedMembers.includes(myMember.id);
                 })()
-                  ? "bg-green-100 text-green-700 border-green-200"
+                  ? "bg-blue-100 text-blue-700 border-blue-200"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                   }`}
               >
@@ -1720,7 +1758,7 @@ export default function ModalsWorkflow({
                       );
                       return myMember && assignedMembers.includes(myMember.id);
                     })()
-                      ? "fill-green-600 text-white"
+                      ? "fill-blue-600 text-white"
                       : "text-slate-400"
                   }
                 />
@@ -1732,7 +1770,24 @@ export default function ModalsWorkflow({
                   ? "รับงานแล้ว"
                   : "รับงาน"}
               </button>
+
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
+
+              {/* --- [ใหม่] ปุ่มเสร็จสิ้นงาน --- */}
+              <button
+                onClick={handleToggleComplete}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${
+                  isCompleted
+                    ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200"
+                }`}
+              >
+                <CheckCircle2 size={16} className={isCompleted ? "text-white" : "text-current"} />
+                {isCompleted ? "เสร็จสิ้นแล้ว" : "เสร็จสิ้นงาน"}
+              </button>
+
+              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+
               <div className="flex -space-x-1">
                 {assignedMembers.map((id) => {
                   const m = membersList.find((mem) => mem.id === id);
@@ -2086,7 +2141,7 @@ export default function ModalsWorkflow({
                     <Activity size={16} /> Activity
                   </button>
                 </div>
-{activeTab === "comments" ? (
+                {activeTab === "comments" ? (
                   <div className="space-y-6">
                     <div className="flex gap-3">
                       <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">
@@ -2191,6 +2246,9 @@ export default function ModalsWorkflow({
                                 ? c.user.name
                                 : c.user}
                             </span>
+                            <span className="text-xs text-slate-400 font-medium">
+                              {c.time}
+                            </span>
                             {c.isEdited && (
                               <span className="text-[10px] text-slate-400">
                                 (edited)
@@ -2208,6 +2266,7 @@ export default function ModalsWorkflow({
                                     setEditingText(e.target.value)
                                   }
                                 />
+                                {/* ✅ แสดงกล่องไฟล์แนบเดิม (ถ้ามี) แบบเป็นรายการ ตามภาพที่ต้องการ */}
                                 {editingFileParts.length > 0 && (
                                   <div className="mt-2 space-y-1">
                                     <p className="text-xs font-bold text-slate-500 mb-1">
@@ -2257,7 +2316,7 @@ export default function ModalsWorkflow({
                               <div className="flex gap-2">
                                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden shrink-0 mt-0.5">
                                   {typeof c.user === "object" &&
-                                  c.user.avatar ? (
+                                    c.user.avatar ? (
                                     <img
                                       src={c.user.avatar}
                                       alt=""
@@ -2337,45 +2396,13 @@ export default function ModalsWorkflow({
                           </span>{" "}
                           {a.action}
                         </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                 : (
-                  <div className="space-y-4 pl-4 border-l-2 border-slate-100 ml-2">
-                    {activities.map((a) => (
-                      <div key={a.id} className="relative pl-10">
-                        <div className="absolute left-0 top-0.5 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-white shadow-sm ring-4 ring-white z-10">
-                          {typeof a.user === "object" && a.user.avatar ? (
-                            <img
-                              src={a.user.avatar}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-500">
-                              {(typeof a.user === "object"
-                                ? a.user.name
-                                : a.user || "?"
-                              )
-                                .slice(0, 1)
-                                .toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-600">
-                          <span className="font-bold text-slate-900">
-                            {typeof a.user === "object" ? a.user.name : a.user}
-                          </span>{" "}
-                          {a.action}
-                        </p>
                         <span className="text-xs text-slate-400 font-medium mt-0.5">
                           {a.time}
                         </span>
                       </div>
                     ))}
                   </div>
-                )
+                )}
               </div>
             </div>
 
