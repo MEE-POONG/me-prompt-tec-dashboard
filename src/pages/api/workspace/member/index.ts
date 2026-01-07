@@ -1,12 +1,20 @@
 // pages/api/workspace/member/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { getAuthToken } from "@/lib/auth/cookies";
+import { verifyToken } from "@/lib/auth/jwt";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
+    // --- AUTHENTICATION CHECK (Except for initial GET if public read is allowed, 
+    // but here we might want to know who is asking to filter/enhance data) ---
+    const token = getAuthToken(req.headers.cookie || "");
+    const decoded = token ? verifyToken(token) : null;
+    const requesterId = decoded?.userId;
+
     if (req.method === "GET") {
       const { boardId } = req.query as { boardId?: string };
 
@@ -34,6 +42,32 @@ export default async function handler(
 
       return res.status(200).json(membersWithUserId);
     }
+
+    // --- PROTECTED ROUTES (POST, PUT, DELETE) ---
+    if (!requesterId) {
+      return res.status(401).json({ message: "Unauthorized: Please login" });
+    }
+
+    // Helper: Check requester's role on the board
+    const getRequesterRole = async (boardId: string) => {
+      // 1. Find the User to get their Name/Email (since BoardMember uses name/email mostly)
+      const user = await prisma.user.findUnique({ where: { id: requesterId } });
+      if (!user) return null;
+
+      // 2. Find BoardMember record
+      // Logic relies on matching Name or Email. 
+      // Ideally should match by userId if schema supports it, but preserving existing logic:
+      const member = await prisma.boardMember.findFirst({
+        where: {
+          boardId,
+          OR: [
+            { name: user.name || "" },
+            { name: user.email }
+          ]
+        }
+      });
+      return member?.role; // "Admin", "Editor", "Viewer", "Owner"
+    };
 
     if (req.method === "POST") {
       const { boardId, name, role, avatar, color, email } = req.body;
@@ -137,6 +171,23 @@ export default async function handler(
       }
 
       try {
+        // 1. Get the target member to find boardId
+        const targetMember = await prisma.boardMember.findUnique({ where: { id } });
+        if (!targetMember) return res.status(404).json({ message: "Member not found" });
+
+        // 2. Check Requester Role
+        const requestorRole = await getRequesterRole(targetMember.boardId);
+
+        // Only Admin or Owner can change roles
+        if (requestorRole !== "Admin" && requestorRole !== "Owner") {
+          return res.status(403).json({ message: "Forbidden: You must be an Admin to change roles" });
+        }
+
+        // Prevent changing Owner's role
+        if (targetMember.role === "Owner") {
+          return res.status(403).json({ message: "Cannot change the Owner's role" });
+        }
+
         const updatedMember = await prisma.boardMember.update({
           where: { id },
           data: { role },
@@ -172,6 +223,25 @@ export default async function handler(
       });
 
       if (memberToDelete) {
+        // Security Check
+        const requestorRole = await getRequesterRole(memberToDelete.boardId);
+        const user = await prisma.user.findUnique({ where: { id: requesterId } });
+
+        // Allow if Admin/Owner OR if removing self
+        const isRemovingSelf = user && (memberToDelete.name === user.name || memberToDelete.name === user.email);
+        const isAdmin = requestorRole === "Admin" || requestorRole === "Owner";
+
+        if (!isAdmin && !isRemovingSelf) {
+          return res.status(403).json({ message: "Forbidden: You can only remove yourself or must be Admin" });
+        }
+
+        // Prevent deleting the Owner (unless they are deleting themselves? - usually board owner transfer is separate logic)
+        // Assuming Owner cannot be simply removed this way for safety
+        if (memberToDelete.role === "Owner" && !isRemovingSelf) {
+          return res.status(403).json({ message: "Cannot remove the Board Owner" });
+        }
+
+
         await prisma.boardMember.delete({
           where: { id },
         });

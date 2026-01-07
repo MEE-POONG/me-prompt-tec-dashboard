@@ -70,6 +70,7 @@ export function WorkspaceSettingsSidebar({
   boardId,
   isReadOnly = false,
   onUpdate,
+  currentUser,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -77,6 +78,7 @@ export function WorkspaceSettingsSidebar({
   boardId: string;
   isReadOnly?: boolean;
   onUpdate?: () => void;
+  currentUser?: any; // [เพิ่ม] prop รับ value ของ user ปัจจุบัน
 }) {
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
@@ -643,16 +645,33 @@ export function WorkspaceSettingsSidebar({
                       </div>
 
                       {/* Role Dropdown */}
-                      <button
-                        onClick={() =>
-                          setOpenMemberDropdownId(
-                            openMemberDropdownId === i ? null : i
-                          )
-                        }
-                        className="text-xs font-medium text-slate-600 flex items-center gap-1 hover:bg-white hover:shadow-sm px-2 py-1 rounded transition-all"
-                      >
-                        {m.role || "Viewer"} <ChevronDown size={12} />
-                      </button>
+                      {/* Role Dropdown - Only if Admin/Owner */}
+                      {(() => {
+                        const currentUserMember = members.find(m =>
+                          (currentUser && m.userId === currentUser.id) ||
+                          (currentUser && m.name === currentUser.name)
+                        );
+                        const currentUserRole = currentUserMember?.role || "Viewer";
+                        const isAdminOrOwner = currentUserRole === "Admin" || currentUserRole === "Owner";
+                        const isOwner = m.role === "Owner";
+                        const canEdit = !isOwner && isAdminOrOwner;
+
+                        return (
+                          <button
+                            disabled={!canEdit}
+                            onClick={() => {
+                              if (canEdit) {
+                                setOpenMemberDropdownId(
+                                  openMemberDropdownId === i ? null : i
+                                )
+                              }
+                            }}
+                            className={`text-xs font-medium text-slate-600 flex items-center gap-1 px-2 py-1 rounded transition-all ${canEdit ? 'hover:bg-white hover:shadow-sm cursor-pointer' : 'opacity-70 cursor-not-allowed'}`}
+                          >
+                            {m.role || "Viewer"} <ChevronDown size={12} className={!canEdit ? "hidden" : ""} />
+                          </button>
+                        );
+                      })()}
 
                       {openMemberDropdownId === i && (
                         <div
@@ -1102,12 +1121,23 @@ export function MembersManageModal({
           </h4>
           <div className="space-y-1">
             {members.map((member, index) => {
+              // Calculate logic inside map or outside (better outside but fine here for context)
+              const currentUserMember = members.find(m =>
+                (currentUser && m.userId === currentUser.id) ||
+                (currentUser && m.name === currentUser.name)
+              );
+              const currentUserRole = currentUserMember?.role || "Viewer";
+              const isAdminOrOwner = currentUserRole === "Admin" || currentUserRole === "Owner";
+
               const isSelf =
                 currentUser &&
                 (member.userId === currentUser.id ||
                   member.id === currentUser.id);
               const isOwner = member.role === "Owner";
-              const canDelete = !isSelf && !isOwner;
+
+              // Permission Logic
+              const canDelete = !isSelf && !isOwner && isAdminOrOwner;
+              const canEdit = !isOwner && isAdminOrOwner;
 
               return (
                 <div
@@ -1131,8 +1161,8 @@ export function MembersManageModal({
                       onChange={(e) =>
                         handleUpdateRole(member.id, e.target.value)
                       }
-                      disabled={member.role === "Owner"}
-                      className="text-xs font-bold text-slate-600 px-2 py-1.5 bg-slate-100 rounded-lg border-none focus:ring-2 focus:ring-blue-500 cursor-pointer outline-none"
+                      disabled={!canEdit}
+                      className={`text-xs font-bold text-slate-600 px-2 py-1.5 bg-slate-100 rounded-lg border-none focus:ring-2 focus:ring-blue-500 outline-none ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <option value="Viewer">Viewer</option>
                       <option value="Editor">Editor</option>
