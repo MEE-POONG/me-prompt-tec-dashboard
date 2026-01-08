@@ -81,7 +81,7 @@ const customStyles = `
   .rdp-day_range_start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
   .rdp-day_range_end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .rdp-caption_label { color: #1e293b; font-weight: 800; font-size: 1rem; }
-  .rdp-head_cell { color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+  .rdp-head_cell { color: #0f172a; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
 `;
 
 // --- 2. Types ---
@@ -1905,7 +1905,7 @@ export default function ModalsWorkflow({
                   <div
                     ref={dropdownRef}
                     style={dropdownStyle}
-                    className="bg-white rounded-md border shadow-lg z-9999"
+                    className="bg-white rounded-md border shadow-lg z-[10002]"
                   >
                     <button
                       onClick={handleArchiveTask}
@@ -2786,19 +2786,7 @@ export default function ModalsWorkflow({
                   )}
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase mb-3 px-1 tracking-wider">
-                  Actions
-                </p>
-                <div className="space-y-2">
-                  {/* <SidebarBtn icon={Layout} label="Cover" /> */}
-                  <SidebarBtn
-                    icon={Trash2}
-                    label="Delete"
-                    onClick={handleDeleteTask}
-                  />
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
