@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Lock,
   Globe,
+  CheckCheck,
 } from "lucide-react";
 
 import { WorkspaceInfo, WorkspaceMember } from "@/types/workspace";
@@ -28,6 +29,7 @@ export interface NotificationItem {
   target: string;
   timestamp: Date;
   type: "create" | "update" | "comment" | "delete" | "other";
+  isRead?: boolean;
 }
 
 interface WorkspaceHeaderProps {
@@ -39,6 +41,8 @@ interface WorkspaceHeaderProps {
   onRefresh?: () => Promise<void> | void;
   notifications?: NotificationItem[];
   onClearNotifications?: () => void;
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
 }
 
 export default function WorkspaceHeader({
@@ -50,6 +54,8 @@ export default function WorkspaceHeader({
   onRefresh,
   notifications = [],
   onClearNotifications,
+  onMarkAsRead,
+  onMarkAllAsRead,
 }: WorkspaceHeaderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
@@ -191,8 +197,8 @@ export default function WorkspaceHeader({
               <RotateCw
                 size={18}
                 className={`transition-all duration-500 ${isRefreshing
-                    ? "animate-spin text-blue-600"
-                    : "active:rotate-180"
+                  ? "animate-spin text-blue-600"
+                  : "active:rotate-180"
                   }`}
               />
             </button>
@@ -238,13 +244,15 @@ export default function WorkspaceHeader({
           <button
             onClick={() => setIsNotiOpen(!isNotiOpen)}
             className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${isNotiOpen
-                ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
-                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
+              : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
               }`}
           >
             <Bell size={20} className={isNotiOpen ? "fill-purple-600" : ""} />
-            {notifications.length > 0 && (
-              <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse shadow-sm"></span>
+            {notifications.filter((n) => !n.isRead).length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white animate-pulse shadow-sm px-1">
+                {notifications.filter((n) => !n.isRead).length}
+              </span>
             )}
           </button>
 
@@ -269,18 +277,28 @@ export default function WorkspaceHeader({
                       การแจ้งเตือน
                     </h3>
                     <p className="text-purple-100 text-xs mt-1">
-                      คุณมี {notifications.length} รายการใหม่
+                      คุณมี {notifications.length} การแจ้งเตือน
                     </p>
                   </div>
 
                   {notifications.length > 0 && (
-                    <button
-                      onClick={() => onClearNotifications?.()}
-                      className="relative z-10 bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition-colors"
-                      title="ล้างการแจ้งเตือนทั้งหมด"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="flex gap-2 relative z-10">
+                      <button
+                        onClick={() => onMarkAllAsRead?.()}
+                        className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
+                        title="อ่านทั้งหมด"
+                      >
+                        <CheckCheck size={14} />
+                        อ่านทั้งหมด
+                      </button>
+                      <button
+                        onClick={() => onClearNotifications?.()}
+                        className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg transition-colors"
+                        title="ล้างการแจ้งเตือนทั้งหมด"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -304,7 +322,11 @@ export default function WorkspaceHeader({
                       notifications.map((notif) => (
                         <div
                           key={notif.id}
-                          className="p-3 hover:bg-slate-50 rounded-2xl transition-all cursor-pointer group border border-transparent hover:border-slate-100 flex gap-4 items-start"
+                          onClick={() => onMarkAsRead?.(notif.id)}
+                          className={`p-3 rounded-2xl transition-all cursor-pointer group border flex gap-4 items-start ${!notif.isRead
+                            ? "bg-blue-50/80 border-blue-100 hover:bg-blue-100"
+                            : "bg-white border-transparent hover:bg-slate-50 opacity-60 hover:opacity-100"
+                            }`}
                         >
                           <div
                             className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md ${getBgByType(
@@ -354,8 +376,8 @@ export default function WorkspaceHeader({
         <button
           onClick={onToggleFilter}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${isFilterOpen
-              ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
-              : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+            ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
+            : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
             }`}
         >
           <Filter size={16} />

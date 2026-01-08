@@ -390,6 +390,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                 target: latestActivity.target || "งาน",
                 timestamp: new Date(),
                 type: notifType,
+                isRead: false,
               };
 
               setNotifications((prev) => [newNotif, ...prev]);
@@ -432,6 +433,18 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       socket.off("board-updated", handleBoardUpdate);
     };
   }, [socket, workspaceId, fetchBoard]);
+
+  // ✅ ฟังก์ชั่นอ่านแจ้งเตือน
+  const handleMarkAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+  };
+
+  // ✅ ฟังก์ชั่นอ่านทั้งหมด
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
 
 
 
@@ -855,6 +868,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         }}
         onRefresh={fetchBoard}
         notifications={notifications}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
         // ✅ แก้ไข: ลบข้อมูลจาก LocalStorage
         onClearNotifications={() => {
           setDeleteModal({
