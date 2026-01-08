@@ -81,7 +81,7 @@ const customStyles = `
   .rdp-day_range_start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
   .rdp-day_range_end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .rdp-caption_label { color: #1e293b; font-weight: 800; font-size: 1rem; }
-  .rdp-head_cell { color: #0f172a; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+  .rdp-head_cell { color: #0f172a !important; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
 `;
 
 // --- 2. Types ---
@@ -1890,38 +1890,7 @@ export default function ModalsWorkflow({
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={toggleMore}
-                  className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
-                >
-                  <MoreHorizontal size={20} />
-                </button>
-              </div>
-              {moreOpen &&
-                dropdownStyle &&
-                portalNodeRef.current &&
-                createPortal(
-                  <div
-                    ref={dropdownRef}
-                    style={dropdownStyle}
-                    className="bg-white rounded-md border shadow-lg z-[10002]"
-                  >
-                    <button
-                      onClick={handleArchiveTask}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-sm text-slate-700"
-                    >
-                      <Archive size={16} /> Archive task
-                    </button>
-                    <button
-                      onClick={handleDeleteTask}
-                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 text-sm"
-                    >
-                      <Trash2 size={16} /> Delete task
-                    </button>
-                  </div>,
-                  portalNodeRef.current
-                )}
+
               <button
                 className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
                 onClick={onClose}
