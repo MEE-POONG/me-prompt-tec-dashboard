@@ -462,8 +462,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             : c
         )
       );
-    } catch (err) {
-      console.error("Failed to create task", err);
+    } catch (err: any) {
+      // console.error("Failed to create task", err);
       board.setColumns((prev) =>
         prev.map((c) =>
           c.id === columnId
@@ -471,6 +471,13 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             : c
         )
       );
+
+      // Show Error Modal
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถสร้างงานได้",
+        description: err.message || "คุณไม่มีสิทธิ์สร้างงานในบอร์ดนี้",
+      });
     }
   };
 
@@ -504,9 +511,16 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             target: taskTitle,
             projectId: String(workspaceId),
           });
-        } catch (err) {
-          console.error("Failed to delete task", err);
-          board.setColumns(prev);
+        } catch (err: any) {
+          // console.error("Failed to delete task", err);
+          board.setColumns(prev); // Revert UI
+
+          // Show Error Modal
+          setErrorModal({
+            open: true,
+            message: "ไม่สามารถลบงานได้",
+            description: err.message || "คุณไม่มีสิทธิ์ในการลบงานนี้ (เฉพาะสมาชิกในบอร์ดเท่านั้น)",
+          });
         }
       },
     });
@@ -728,10 +742,32 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       if (socket) {
         socket.emit("board-updated", workspaceId);
       }
-    } catch (err) {
-      console.error("Failed to move task", err);
+    } catch (err: any) {
+      // console.error("Failed to move task", err);
       fetchBoard(); // revert
+
+      // Show Error Modal
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถย้ายงานได้",
+        description: err.message || "คุณไม่มีสิทธิ์ย้ายงานในบอร์ดนี้",
+      });
     }
+  };
+
+  const handleTaskClickWithPermission = (task: any) => {
+    const userId = currentUser?.id || currentUser?._id;
+    const isMember = members.some((m) => m.userId === userId || m.id === userId);
+
+    if (!isMember) {
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถเปิดงานได้",
+        description: "คุณไม่มีสิทธิ์เข้าถึงรายละเอียดงานนี้ (เฉพาะสมาชิกในบอร์ดเท่านั้น)",
+      });
+      return;
+    }
+    board.handleOpenTaskModal(task);
   };
 
   return (
@@ -815,8 +851,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("board")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "board"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <KanbanSquare size={18} /> Board
@@ -824,8 +860,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("dashboard")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "dashboard"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <LayoutDashboard size={18} /> Dashboard
@@ -833,8 +869,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("timeline")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "timeline"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <CalendarDays size={18} /> Timeline
@@ -842,8 +878,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             <button
               onClick={() => setCurrentView("report")}
               className={`flex items-center gap-2 py-3 text-sm font-bold border-b-2 transition-all ${currentView === "report"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               <FileBarChart size={18} /> Reports{" "}
@@ -889,8 +925,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                     );
                   }}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border shrink-0 ${isActive
-                      ? colors
-                      : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    ? colors
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
                     }`}
                 >
                   {label.name}
@@ -954,7 +990,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                                 onDelete={(cid, tid) =>
                                   handleDeleteTaskApi(cid, tid)
                                 }
-                                onClick={board.handleOpenTaskModal}
+                                onClick={handleTaskClickWithPermission}
                               />
                             ))}
                             {provided.placeholder}

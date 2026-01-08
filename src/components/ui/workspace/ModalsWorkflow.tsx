@@ -433,12 +433,12 @@ export default function ModalsWorkflow({
         setTitle(data.title || "Untitled Task");
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
-        
+
         // [NEW] Check Status
         if (data.status === "Done" || data.status === "Completed") {
-            setIsCompleted(true);
+          setIsCompleted(true);
         } else {
-            setIsCompleted(false);
+          setIsCompleted(false);
         }
 
         const currentMembers = membersList; // Use current state
@@ -913,12 +913,12 @@ export default function ModalsWorkflow({
             /* ignore */
           }
           onClose();
-        } catch (err) {
-          console.error("Failed to delete task", err);
+        } catch (err: any) {
+          // console.error("Failed to delete task", err);
           setErrorModal({
             open: true,
-            message: "เกิดข้อผิดพลาด!",
-            description: "ไม่สามารถลบงานได้",
+            message: "ไม่สามารถลบงานได้",
+            description: err.message || "คุณไม่มีสิทธิ์ลบงานนี้",
           });
         } finally {
           setIsSaving(false);
@@ -951,8 +951,13 @@ export default function ModalsWorkflow({
       setTagView("list");
       setNewTagName("");
       logActivity(`created label "${newTagName}"`);
-    } catch (err) {
-      console.error("Failed to create tag", err);
+    } catch (err: any) {
+      // console.error("Failed to create tag", err);
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถสร้างป้ายชื่อได้",
+        description: err.message || "คุณไม่มีสิทธิ์แก้ไขป้ายชื่อ",
+      });
     }
   };
 
@@ -1603,8 +1608,15 @@ export default function ModalsWorkflow({
         `${newMembers.includes(memberId) ? "assigned" : "removed"} ${member?.name || memberId
         }`
       );
-    } catch (err) {
-      console.error("Failed to update assignees", err);
+    } catch (err: any) {
+      // console.error("Failed to update assignees", err);
+      // Revert state (optimistic update rollback)
+      setAssignedMembers(assignedMembers);
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถอัปเดตสมาชิกได้",
+        description: err.message || "คุณไม่มีสิทธิ์ในการแก้ไขงานนี้",
+      });
     }
   };
 
@@ -1640,31 +1652,41 @@ export default function ModalsWorkflow({
       await updateTask(String(taskId), data);
       if (data.title) logActivity("updated title");
       if (data.description) logActivity("updated description");
-    } catch (err) {
-      console.error("Failed to save field", err);
+    } catch (err: any) {
+      // console.error("Failed to save field", err);
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถบันทึกข้อมูลได้",
+        description: err.message || "คุณไม่มีสิทธิ์ในการแก้ไขงานนี้",
+      });
     }
   };
 
   // [NEW] Toggle Complete
   const handleToggleComplete = async () => {
     if (!taskId) return;
-    
+
     const newStatus = !isCompleted;
     setIsCompleted(newStatus); // Optimistic
 
     try {
-        // อัปเดต status เป็น 'Done' หรือ 'In Progress'
-        // และอาจจะย้าย column ด้วย ถ้า Backend รองรับ (หรือทำ Logic ใน Backend)
-        await updateTask(String(taskId), { 
-            status: newStatus ? "Done" : "In Progress"
-        } as any); // ✅ Cast as any to bypass TS error
+      // อัปเดต status เป็น 'Done' หรือ 'In Progress'
+      // และอาจจะย้าย column ด้วย ถ้า Backend รองรับ (หรือทำ Logic ใน Backend)
+      await updateTask(String(taskId), {
+        status: newStatus ? "Done" : "In Progress"
+      } as any); // ✅ Cast as any to bypass TS error
 
-        logActivity(newStatus ? "marked task as completed" : "reopened task");
-        
-        if (onTaskUpdated) onTaskUpdated();
-    } catch (err) {
-        console.error("Failed to update status", err);
-        setIsCompleted(!newStatus); // Revert
+      logActivity(newStatus ? "marked task as completed" : "reopened task");
+
+      if (onTaskUpdated) onTaskUpdated();
+    } catch (err: any) {
+      // console.error("Failed to update status", err);
+      setIsCompleted(!newStatus); // Revert
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถอัปเดตสถานะได้",
+        description: err.message || "คุณไม่มีสิทธิ์ในการแก้ไขงานนี้",
+      });
     }
   };
 
@@ -1702,8 +1724,13 @@ export default function ModalsWorkflow({
       } catch (e) {
         /* ignore */
       }
-    } catch (err) {
-      console.error("Failed to save card", err);
+    } catch (err: any) {
+      // console.error("Failed to save card", err);
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถบันทึกข้อมูลได้",
+        description: err.message || "คุณไม่มีสิทธิ์ในการแก้ไขงานนี้",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -1719,7 +1746,7 @@ export default function ModalsWorkflow({
           {/* Header */}
           <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 shrink-0 shadow-sm z-10">
             <div className="flex items-center gap-3">
-              
+
               {/* --- ปุ่มรับงานเดิม (Assign Me) --- */}
               <button
                 onClick={() => {
@@ -1776,11 +1803,10 @@ export default function ModalsWorkflow({
               {/* --- [ใหม่] ปุ่มเสร็จสิ้นงาน --- */}
               <button
                 onClick={handleToggleComplete}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${
-                  isCompleted
-                    ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200"
-                }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${isCompleted
+                  ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200"
+                  }`}
               >
                 <CheckCircle2 size={16} className={isCompleted ? "text-white" : "text-current"} />
                 {isCompleted ? "เสร็จสิ้นแล้ว" : "เสร็จสิ้นงาน"}
