@@ -146,7 +146,10 @@ export const createTask = async (data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create task");
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to create task");
+  }
   return res.json();
 };
 
@@ -178,7 +181,10 @@ export const updateTask = async (
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update task");
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update task");
+  }
   return res.json();
 };
 
@@ -186,7 +192,10 @@ export const deleteTask = async (id: string) => {
   const res = await fetch(`/api/workspace/task/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Failed to delete task");
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to delete task");
+  }
   return res.ok;
 };
 

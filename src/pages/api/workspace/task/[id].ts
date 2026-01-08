@@ -34,6 +34,7 @@ export default async function handler(
       const user = await prisma.user.findUnique({ where: { id: requesterId } });
       if (!user) return false;
 
+      // 1. Try strict match first (Database level)
       const member = await prisma.boardMember.findFirst({
         where: {
           boardId,
@@ -43,7 +44,24 @@ export default async function handler(
           ]
         }
       });
-      return !!member;
+
+      if (member) return true;
+
+      // 2. Fallback: Loose match (Memory level) - fix for mismatched casing or spacing
+      const allMembers = await prisma.boardMember.findMany({
+        where: { boardId },
+        select: { name: true }
+      });
+
+      const userEmail = (user.email || "").toLowerCase().trim();
+      const userName = (user.name || "").toLowerCase().trim();
+
+      const matched = allMembers.find(m => {
+        const memberName = (m.name || "").toLowerCase().trim();
+        return memberName === userEmail || memberName === userName;
+      });
+
+      return !!matched;
     };
 
     if (req.method === "GET") {

@@ -28,16 +28,33 @@ export default async function handler(
       const user = await prisma.user.findUnique({ where: { id: requesterId } });
       if (!user) return false;
 
+      // 1. Try strict match
       const member = await prisma.boardMember.findFirst({
         where: {
           boardId,
           OR: [
-            { name: user.name || "" }, // Handle potential null
+            { name: user.name || "" },
             { name: user.email }
           ]
         }
       });
-      return !!member;
+      if (member) return true;
+
+      // 2. Fallback: Loose match
+      const allMembers = await prisma.boardMember.findMany({
+        where: { boardId },
+        select: { name: true }
+      });
+
+      const userEmail = (user.email || "").toLowerCase().trim();
+      const userName = (user.name || "").toLowerCase().trim();
+
+      const matched = allMembers.find(m => {
+        const memberName = (m.name || "").toLowerCase().trim();
+        return memberName === userEmail || memberName === userName;
+      });
+
+      return !!matched;
     };
 
     if (req.method === "GET") {
