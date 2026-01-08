@@ -428,6 +428,15 @@ export default function ModalsWorkflow({
       setCommentFiles([]); // Reset files
       try {
         setLoadingTask(true);
+
+        // [fix] Skip fetch if temp task (prevent error popup)
+        if (String(task.id).startsWith("temp-")) {
+          setTaskId(task.id);
+          setTitle(task.title || "New Task");
+          setLoadingTask(false);
+          return;
+        }
+
         const data: any = await getTask(String(task.id));
         setTaskId(data.id);
         setTitle(data.title || "Untitled Task");
@@ -588,8 +597,13 @@ export default function ModalsWorkflow({
             );
           } catch (e) { }
         }
-      } catch (err) {
-        console.error("Failed to load task", err);
+      } catch (err: any) {
+        // console.error("Failed to load task", err);
+        setErrorModal({
+          open: true,
+          message: "ไม่สามารถโหลดข้อมูลงานได้",
+          description: "อาจเกิดข้อผิดพลาดในการเชื่อมต่อ หรือคุณไม่มีสิทธิ์เข้าถึงงานนี้",
+        });
       } finally {
         setLoadingTask(false);
       }
@@ -785,7 +799,7 @@ export default function ModalsWorkflow({
       const width = 176;
       let left = rect.right - width;
       if (left < 8) left = rect.left;
-      const top = rect.bottom + 6 + window.scrollY;
+      const top = rect.bottom + 6;
       setDropdownStyle({
         position: "fixed",
         top,
@@ -807,7 +821,7 @@ export default function ModalsWorkflow({
       const width = 176;
       let left = rect.right - width;
       if (left < 8) left = rect.left;
-      const top = rect.bottom + 6 + window.scrollY;
+      const top = rect.bottom + 6;
       setDropdownStyle({
         position: "fixed",
         top,
@@ -1834,12 +1848,37 @@ export default function ModalsWorkflow({
                     </div>
                   ) : null;
                 })}
-                <button
-                  onClick={() => setActivePopover("members")}
-                  className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"
-                >
-                  <Plus size={14} />
-                </button>
+                <div className="relative w-8 h-8">
+                  <button
+                    onClick={() => setActivePopover("members_header")}
+                    className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"
+                  >
+                    <Plus size={14} />
+                  </button>
+                  {activePopover === "members_header" && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-xl rounded-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
+                        <h4 className="font-bold text-xs text-slate-700">Members</h4>
+                        <button onClick={() => setActivePopover(null)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                      </div>
+                      <div className="p-2">
+                        <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                          {membersList.map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => toggleMember(m.id)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded text-left transition-colors"
+                            >
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white ${m.color}`}>{m.short}</div>
+                              <span className="text-xs font-semibold text-slate-700 flex-1 truncate">{m.name}</span>
+                              {assignedMembers.includes(m.id) && <CheckCircle2 size={14} className="text-blue-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex gap-2 items-center">
@@ -2798,6 +2837,12 @@ function CustomModals({
         message={errorModal.message}
         description={errorModal.description}
         onClose={() => setErrorModal({ ...errorModal, open: false })}
+      />
+      <ModalSuccess
+        open={successModal.open}
+        message={successModal.message}
+        onClose={() => setSuccessModal({ ...successModal, open: false })}
+        description={successModal.description}
       />
       <ModalDelete
         open={deleteModal.open}
