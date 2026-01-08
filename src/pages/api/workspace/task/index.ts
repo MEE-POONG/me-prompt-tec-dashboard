@@ -1,12 +1,45 @@
+// pages/api/workspace/task/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
+import { getAuthToken } from "@/lib/auth/cookies";
+import { verifyToken } from "@/lib/auth/jwt";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
+    // --- AUTHENTICATION & BOARD ACCESS CHECK ---
+    const token = getAuthToken(req.headers.cookie || "");
+    const decoded = token ? verifyToken(token) : null;
+    const requesterId = decoded?.userId;
+
+    if (!requesterId) {
+      if (req.method !== "GET") { // Allow public read if board is public (handled locally or via other logic), but strictly block writes
+        return res.status(401).json({ message: "Unauthorized: Please login" });
+      }
+    }
+
+    // Helper: Check if user is member of board
+    const checkBoardAccess = async (boardId: string) => {
+      if (!requesterId) return false;
+
+      const user = await prisma.user.findUnique({ where: { id: requesterId } });
+      if (!user) return false;
+
+      const member = await prisma.boardMember.findFirst({
+        where: {
+          boardId,
+          OR: [
+            { name: user.name || "" }, // Handle potential null
+            { name: user.email }
+          ]
+        }
+      });
+      return !!member;
+    };
+
     if (req.method === "GET") {
       const { columnId, boardId } = req.query as {
         columnId?: string;
@@ -16,7 +49,7 @@ export default async function handler(
       const where: any = {};
       if (columnId) where.columnId = columnId;
       if (boardId) where.column = { boardId };
-      
+
       // ✅ Default: Hide archived tasks
       if (req.query.archived === "true") {
         where.isArchived = true;
@@ -80,11 +113,27 @@ export default async function handler(
           .json({ message: "columnId and title are required" });
       }
 
+      // --- SECURITY CHECK ---
+      // 1. Get Board ID from Column
+      const column = await prisma.boardColumn.findUnique({
+        where: { id: columnId },
+        select: { boardId: true, title: true }
+      });
+
+      if (!column) {
+        return res.status(404).json({ message: "Column not found" });
+      }
+
+      // 2. Check if requester is a member of this board
+      const isMember = await checkBoardAccess(column.boardId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Forbidden: You are not a member of this board" });
+      }
+
       // determine if initial column should mark as completed
       let completedAt: Date | undefined = undefined;
       try {
-        const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { title: true } });
-        const t = (col?.title || "").toLowerCase();
+        const t = (column.title || "").toLowerCase();
         if (t.includes("done") || t.includes("completed")) completedAt = new Date();
       } catch (e) { /* ignore */ }
 
@@ -104,10 +153,10 @@ export default async function handler(
           completedAt,
           ...(assigneeIds &&
             assigneeIds.length > 0 && {
-              assignees: {
-                create: assigneeIds.map((uid: string) => ({ userId: uid })),
-              },
-            }),
+            assignees: {
+              create: assigneeIds.map((uid: string) => ({ userId: uid })),
+            },
+          }),
         },
 
         include: {
@@ -132,16 +181,14 @@ export default async function handler(
 
       // ✅ Publish Notification พร้อมชื่อ User
       try {
-        const col = await prisma.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } });
-        
-        if (col?.boardId) {
-            publish(String(col.boardId), { 
-                type: "task:created", 
-                payload: task,
-                user: user || "System", // ✅ ใช้ user ที่ส่งมา ถ้าไม่มีใช้ System
-                action: "created task", 
-                target: task.title
-            });
+        if (column.boardId) {
+          publish(String(column.boardId), {
+            type: "task:created",
+            payload: task,
+            user: user || "System", // ✅ ใช้ user ที่ส่งมา ถ้าไม่มีใช้ System
+            action: "created task",
+            target: task.title
+          });
         }
       } catch (e) {
         console.error("publish failed", e);
