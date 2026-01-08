@@ -1713,10 +1713,16 @@ export default function ModalsWorkflow({
       logActivity("saved card");
 
       // ✅ Correct Modal State
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const myMember = membersList.find((m) => m.userId === currentUserId);
+      const isAssigned = myMember && assignedMembers.includes(myMember.id);
+
       setSuccessModal({
         open: true,
         message: "บันทึกสำเร็จ",
-        description: "ข้อมูลงานของคุณได้รับการบันทึกเรียบร้อยแล้ว",
+        description: isAssigned
+          ? `คุณได้รับมอบหมายงาน "${title}" เรียบร้อยแล้ว`
+          : "ข้อมูลงานของคุณได้รับการบันทึกเรียบร้อยแล้ว",
       });
 
       try {
