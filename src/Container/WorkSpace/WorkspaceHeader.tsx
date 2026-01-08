@@ -190,11 +190,10 @@ export default function WorkspaceHeader({
             >
               <RotateCw
                 size={18}
-                className={`transition-all duration-500 ${
-                  isRefreshing
+                className={`transition-all duration-500 ${isRefreshing
                     ? "animate-spin text-blue-600"
                     : "active:rotate-180"
-                }`}
+                  }`}
               />
             </button>
           </div>
@@ -238,11 +237,10 @@ export default function WorkspaceHeader({
         <div className="relative" ref={notiRef}>
           <button
             onClick={() => setIsNotiOpen(!isNotiOpen)}
-            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${
-              isNotiOpen
+            className={`p-2.5 rounded-xl transition-all shrink-0 relative group ${isNotiOpen
                 ? "bg-purple-50 text-purple-600 ring-2 ring-purple-100"
                 : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            }`}
+              }`}
           >
             <Bell size={20} className={isNotiOpen ? "fill-purple-600" : ""} />
             {notifications.length > 0 && (
@@ -346,12 +344,7 @@ export default function WorkspaceHeader({
                     )}
                   </div>
 
-                  <div className="pt-2 pb-1 border-t border-slate-50 mt-2 text-center shrink-0">
-                    <button className="text-xs font-bold text-purple-600 hover:text-purple-700 hover:underline py-2 w-full flex items-center justify-center gap-1 transition-all">
-                      ดูประวัติการแจ้งเตือนทั้งหมด
-                      <ChevronRight size={12} />
-                    </button>
-                  </div>
+
                 </div>
               </div>
             </>
@@ -360,11 +353,10 @@ export default function WorkspaceHeader({
 
         <button
           onClick={onToggleFilter}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
-            isFilterOpen
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${isFilterOpen
               ? "bg-blue-50 text-blue-600 ring-1 ring-blue-200"
               : "text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
-          }`}
+            }`}
         >
           <Filter size={16} />
           Filter

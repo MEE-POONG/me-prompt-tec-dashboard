@@ -405,9 +405,35 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       }
     };
 
-    const intervalId = setInterval(checkUpdates, 10000); // ✅ เปลี่ยนเป็น 10 วินาที เพื่อให้ไม่ดูอัปเดตถี่เกินไป
+    const intervalId = setInterval(checkUpdates, 2000); // ✅ เปลี่ยนเป็น 2 วินาที เพื่อความ Realtime
     return () => clearInterval(intervalId);
   }, [workspaceId, fetchBoard]);
+
+  // ✅ Real-time Socket Listener
+  useEffect(() => {
+    if (!socket || !workspaceId) return;
+
+    // Optional: join-room if backend requires it
+    // socket.emit("join-workspace", workspaceId);
+
+    const handleBoardUpdate = (id: string) => {
+      // Refresh board only if ID matches (mostly redundant if room-based, but safe)
+      if (String(id) === String(workspaceId)) {
+        fetchBoard(); // Re-fetch data immediately
+      }
+    };
+
+    socket.on("board-updated", handleBoardUpdate);
+
+    // Note: If you want to listen for "send-notification" too:
+    // socket.on("send-notification", (data) => { ... logic to prepend to notifications ... });
+
+    return () => {
+      socket.off("board-updated", handleBoardUpdate);
+    };
+  }, [socket, workspaceId, fetchBoard]);
+
+
 
   const handleAddTaskApi = async (columnId: string | number) => {
     if (!board.newTaskTitle?.trim()) return;
