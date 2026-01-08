@@ -757,7 +757,19 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
   const handleTaskClickWithPermission = (task: any) => {
     const userId = currentUser?.id || currentUser?._id;
-    const isMember = members.some((m) => m.userId === userId || m.id === userId);
+    const userName = currentUser?.name?.toLowerCase().trim();
+    const userEmail = currentUser?.email?.toLowerCase().trim();
+
+    // Active Check: ID OR Name OR Email matching
+    const isMember = members.some((m) => {
+      const mName = m.name?.toLowerCase().trim();
+      return (
+        (m.userId && m.userId === userId) ||
+        (m.id === userId) || // Direct ID match
+        (mName && userName && mName === userName) || // Name match
+        (mName && userEmail && mName === userEmail) // Email match
+      );
+    });
 
     if (!isMember) {
       setErrorModal({

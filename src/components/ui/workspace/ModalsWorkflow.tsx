@@ -1798,19 +1798,7 @@ export default function ModalsWorkflow({
                   : "รับงาน"}
               </button>
 
-              <div className="h-6 w-px bg-slate-200 mx-2"></div>
 
-              {/* --- [ใหม่] ปุ่มเสร็จสิ้นงาน --- */}
-              <button
-                onClick={handleToggleComplete}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${isCompleted
-                  ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200"
-                  }`}
-              >
-                <CheckCircle2 size={16} className={isCompleted ? "text-white" : "text-current"} />
-                {isCompleted ? "เสร็จสิ้นแล้ว" : "เสร็จสิ้นงาน"}
-              </button>
 
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
 
