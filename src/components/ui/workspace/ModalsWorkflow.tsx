@@ -33,6 +33,12 @@ import {
   File as FileIcon,
   Download,
 } from "lucide-react";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import { format } from "date-fns";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -1704,6 +1710,27 @@ export default function ModalsWorkflow({
     }
   };
 
+  // ✅ Checklist Drag & Drop Handler
+  const handleChecklistDragEnd = (result: DropResult, blockId: string) => {
+    if (!result.destination) return;
+    if (result.destination.index === result.source.index) return;
+
+    setBlocks((prev) => {
+      const newBlocks = [...prev];
+      const blockIndex = newBlocks.findIndex((b) => b.id === blockId);
+      if (blockIndex === -1) return prev;
+
+      const block = { ...newBlocks[blockIndex] };
+      const items = Array.from(block.items || []);
+      const [moved] = items.splice(result.source.index, 1);
+      items.splice(result.destination!.index, 0, moved);
+
+      block.items = items;
+      newBlocks[blockIndex] = block;
+      return newBlocks;
+    });
+  };
+
   const handleSaveAll = async () => {
     if (!taskId) return;
     try {
@@ -2025,49 +2052,78 @@ export default function ModalsWorkflow({
                             ></div>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          {block.items?.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-start gap-3 group/item p-1.5 hover:bg-slate-50 rounded-lg -ml-1.5 transition-colors"
-                            >
-                              <GripVertical
-                                size={16}
-                                className="text-slate-300 mt-1 cursor-grab opacity-0 group-hover/item:opacity-100"
-                              />
-                              <input
-                                type="checkbox"
-                                checked={item.isChecked}
-                                onChange={() =>
-                                  toggleCheckItem(block.id, item.id)
-                                }
-                                className="w-5 h-5 rounded border-slate-300 text-emerald-600 cursor-pointer focus:ring-0 mt-0.5"
-                              />
-                              <input
-                                value={item.text}
-                                onChange={(e) =>
-                                  updateCheckItem(
-                                    block.id,
-                                    item.id,
-                                    e.target.value
-                                  )
-                                }
-                                className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${item.isChecked
-                                  ? "line-through text-slate-400"
-                                  : ""
-                                  }`}
-                              />
-                              <button
-                                onClick={() =>
-                                  deleteCheckItem(block.id, item.id)
-                                }
-                                className="text-slate-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 p-1"
+                        <DragDropContext
+                          onDragEnd={(res) =>
+                            handleChecklistDragEnd(res, block.id)
+                          }
+                        >
+                          <Droppable droppableId={`checklist-${block.id}`}>
+                            {(provided) => (
+                              <div
+                                className="space-y-2"
+                                ref={provided.innerRef}
+                                {...provided.droppableProps}
                               >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                                {block.items?.map((item, index) => (
+                                  <Draggable
+                                    key={item.id}
+                                    draggableId={item.id}
+                                    index={index}
+                                  >
+                                    {(provided) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className="flex items-start gap-3 group/item p-1.5 hover:bg-slate-50 rounded-lg -ml-1.5 transition-colors bg-white"
+                                      >
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          className="mt-1"
+                                        >
+                                          <GripVertical
+                                            size={16}
+                                            className="text-slate-300 cursor-grab opacity-0 group-hover/item:opacity-100 hover:text-slate-500"
+                                          />
+                                        </div>
+                                        <input
+                                          type="checkbox"
+                                          checked={item.isChecked}
+                                          onChange={() =>
+                                            toggleCheckItem(block.id, item.id)
+                                          }
+                                          className="w-5 h-5 rounded border-slate-300 text-emerald-600 cursor-pointer focus:ring-0 mt-0.5"
+                                        />
+                                        <input
+                                          value={item.text}
+                                          onChange={(e) =>
+                                            updateCheckItem(
+                                              block.id,
+                                              item.id,
+                                              e.target.value
+                                            )
+                                          }
+                                          className={`flex-1 text-sm font-medium bg-transparent border-none focus:ring-0 p-0 text-slate-900 ${item.isChecked
+                                            ? "line-through text-slate-400"
+                                            : ""
+                                            }`}
+                                        />
+                                        <button
+                                          onClick={() =>
+                                            deleteCheckItem(block.id, item.id)
+                                          }
+                                          className="text-slate-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 p-1"
+                                        >
+                                          <X size={16} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                ))}
+                                {provided.placeholder}
+                              </div>
+                            )}
+                          </Droppable>
+                        </DragDropContext>
                         <div className="pl-7 mt-2">
                           <button
                             className="text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 mb-2"
