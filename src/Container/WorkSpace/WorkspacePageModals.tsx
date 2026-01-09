@@ -433,8 +433,15 @@ export function WorkspaceSettingsSidebar({
                     <Copy size={14} /> Copy Board
                   </button>
                   <div className="h-px bg-slate-100 my-1"></div>
-                  {!isReadOnly && isAdmin && (
-                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  {!isReadOnly && (
+                    <button
+                      disabled={!isAdmin}
+                      title={!isAdmin ? "Only Admin can delete board" : ""}
+                      onClick={() => setDeleteModal({ ...deleteModal, open: true })}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isAdmin
+                        ? 'text-red-600 hover:bg-red-50 cursor-pointer'
+                        : 'text-slate-300 cursor-not-allowed bg-slate-50'}`}
+                    >
                       <Trash2 size={14} /> Delete Board
                     </button>
                   )}
@@ -1154,8 +1161,18 @@ export function MembersManageModal({
                   <div className="flex items-center gap-3">
                     <MemberAvatar member={member} className="w-10 h-10 text-sm" />
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-800">
+                      <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
                         {member.name}
+                        {(member.role === "Admin" || member.role === "Owner") && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase tracking-wider">
+                            Admin
+                          </span>
+                        )}
+                        {member.role === "Editor" && (
+                          <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
+                            Editor
+                          </span>
+                        )}
                       </span>
                       <span className="text-xs text-slate-500">
                         {member.role || "Member"}

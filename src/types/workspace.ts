@@ -30,7 +30,7 @@ export type WorkspaceMember = {
   name: string;
   avatar: string;
   userAvatar?: string; // URL of user's profile picture from User model
-  role?: string;
+  role?: "Viewer" | "Editor" | "Admin" | "Owner" | string;
   color: string;
   email?: string; // [added]
 };
