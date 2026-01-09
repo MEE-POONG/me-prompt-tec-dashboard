@@ -292,11 +292,13 @@ export default function ModalsWorkflow({
   onClose,
   task,
   onTaskUpdated,
+  isReadOnly = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
   task?: any;
   onTaskUpdated?: () => void;
+  isReadOnly?: boolean;
 }) {
   // State
   const [title, setTitle] = useState("Website Redesign");
@@ -1795,55 +1797,57 @@ export default function ModalsWorkflow({
             <div className="flex items-center gap-3">
 
               {/* --- ปุ่มรับงานเดิม (Assign Me) --- */}
-              <button
-                onClick={() => {
-                  const userId = currentUser?.id || currentUser?._id;
-                  const myMember = membersList.find((m) => m.userId === userId);
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    const userId = currentUser?.id || currentUser?._id;
+                    const myMember = membersList.find((m) => m.userId === userId);
 
-                  if (myMember) {
-                    toggleMember(myMember.id);
-                  } else {
-                    setErrorModal({
-                      open: true,
-                      message: "ไม่พบข้อมูลสมาชิก",
-                      description:
-                        "คุณยังไม่ได้เป็นสมาชิกของบอร์ดนี้ กรุณาติดต่อผู้ดูแลเพื่อเชิญเข้าสู่บอร์ด",
-                    });
-                  }
-                }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${(() => {
-                  const userId = currentUser?.id || currentUser?._id;
-                  const myMember = membersList.find(
-                    (m) => m.userId === userId
-                  );
-                  return myMember && assignedMembers.includes(myMember.id);
-                })()
-                  ? "bg-blue-100 text-blue-700 border-blue-200"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-              >
-                <CheckCircle2
-                  size={16}
-                  className={
-                    (() => {
-                      const userId = currentUser?.id || currentUser?._id;
-                      const myMember = membersList.find(
-                        (m) => m.userId === userId
-                      );
-                      return myMember && assignedMembers.includes(myMember.id);
-                    })()
-                      ? "fill-blue-600 text-white"
-                      : "text-slate-400"
-                  }
-                />
-                {(() => {
-                  const userId = currentUser?.id || currentUser?._id;
-                  const myMember = membersList.find((m) => m.userId === userId);
-                  return myMember && assignedMembers.includes(myMember.id);
-                })()
-                  ? "รับงานแล้ว"
-                  : "รับงาน"}
-              </button>
+                    if (myMember) {
+                      toggleMember(myMember.id);
+                    } else {
+                      setErrorModal({
+                        open: true,
+                        message: "ไม่พบข้อมูลสมาชิก",
+                        description:
+                          "คุณยังไม่ได้เป็นสมาชิกของบอร์ดนี้ กรุณาติดต่อผู้ดูแลเพื่อเชิญเข้าสู่บอร์ด",
+                      });
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${(() => {
+                    const userId = currentUser?.id || currentUser?._id;
+                    const myMember = membersList.find(
+                      (m) => m.userId === userId
+                    );
+                    return myMember && assignedMembers.includes(myMember.id);
+                  })()
+                    ? "bg-blue-100 text-blue-700 border-blue-200"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                >
+                  <CheckCircle2
+                    size={16}
+                    className={
+                      (() => {
+                        const userId = currentUser?.id || currentUser?._id;
+                        const myMember = membersList.find(
+                          (m) => m.userId === userId
+                        );
+                        return myMember && assignedMembers.includes(myMember.id);
+                      })()
+                        ? "fill-blue-600 text-white"
+                        : "text-slate-400"
+                    }
+                  />
+                  {(() => {
+                    const userId = currentUser?.id || currentUser?._id;
+                    const myMember = membersList.find((m) => m.userId === userId);
+                    return myMember && assignedMembers.includes(myMember.id);
+                  })()
+                    ? "รับงานแล้ว"
+                    : "รับงาน"}
+                </button>
+              )}
 
 
 
@@ -1876,12 +1880,14 @@ export default function ModalsWorkflow({
                   ) : null;
                 })}
                 <div className="relative w-8 h-8">
-                  <button
-                    onClick={() => setActivePopover("members_header")}
-                    className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"
-                  >
-                    <Plus size={14} />
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setActivePopover("members_header")}
+                      className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  )}
                   {activePopover === "members_header" && (
                     <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-xl rounded-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
@@ -1911,7 +1917,7 @@ export default function ModalsWorkflow({
             <div className="flex gap-2 items-center">
               <button
                 onClick={handleSaveAll}
-                disabled={isSaving}
+                disabled={isSaving || isReadOnly}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isSaving ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
                   } text-white transition-all disabled:opacity-60`}
               >
@@ -1936,6 +1942,7 @@ export default function ModalsWorkflow({
                   <div className="flex-1">
                     <input
                       value={title}
+                      disabled={isReadOnly}
                       onChange={(e) => setTitle(e.target.value)}
                       onBlur={() => saveField({ title })}
                       className="w-full text-3xl font-black text-slate-900 bg-transparent outline-none placeholder:text-slate-300"
@@ -1963,15 +1970,17 @@ export default function ModalsWorkflow({
                         </span>
                       ) : null;
                     })}
-                    <button
-                      onClick={() => {
-                        setActivePopover("tags");
-                        setTagView("list");
-                      }}
-                      className="w-8 h-8 rounded bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"
-                    >
-                      <Plus size={16} />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => {
+                          setActivePopover("tags");
+                          setTagView("list");
+                        }}
+                        className="w-8 h-8 rounded bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    )}
                   </div>
                 )}
                 {dateRange?.from && (
@@ -1997,6 +2006,7 @@ export default function ModalsWorkflow({
                 <div className="ml-9">
                   <textarea
                     value={desc}
+                    disabled={isReadOnly}
                     onChange={(e) => setDesc(e.target.value)}
                     onBlur={() => saveField({ description: desc })}
                     placeholder="เพิ่มรายละเอียดเพิ่มเติมเกี่ยวกับงานนี้..."
@@ -2227,100 +2237,102 @@ export default function ModalsWorkflow({
                 </div>
                 {activeTab === "comments" ? (
                   <div className="space-y-6">
-                    <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">
-                        {currentUser?.avatar ? (
-                          <img
-                            src={currentUser.avatar}
-                            alt="Me"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          (currentUser?.name || "Y").slice(0, 1).toUpperCase()
-                        )}
-                      </div>
-                      <div className="flex-1 relative">
-                        {/* ✅ Multiple Files Preview Area */}
-                        {commentFiles.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {commentFiles.map((file, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200 shadow-sm"
-                              >
-                                <FileIcon size={14} className="text-blue-500" />
-                                <span className="text-xs text-slate-600 truncate max-w-[150px]">
-                                  {file.name}
-                                </span>
-                                <button
-                                  onClick={() => removeCommentFile(index)}
-                                  className="text-slate-400 hover:text-red-500"
+                    {!isReadOnly && (
+                      <div className="flex gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">
+                          {currentUser?.avatar ? (
+                            <img
+                              src={currentUser.avatar}
+                              alt="Me"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            (currentUser?.name || "Y").slice(0, 1).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex-1 relative">
+                          {/* ✅ Multiple Files Preview Area */}
+                          {commentFiles.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {commentFiles.map((file, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200 shadow-sm"
                                 >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <textarea
-                          value={commentInput}
-                          onChange={(e) => setCommentInput(e.target.value)}
-                          className="w-full border-2 border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none min-h-[60px] text-slate-900"
-                          placeholder="Write a comment..."
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              sendComment();
-                            }
-                          }}
-                        />
-                        <div className="flex items-center gap-2 mt-2 justify-end">
-                          <button
-                            onClick={() => chatFileRef.current?.click()}
-                            className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-                          >
-                            <Paperclip size={16} />
-                          </button>
-                          <div className="relative" ref={emojiRef}>
+                                  <FileIcon size={14} className="text-blue-500" />
+                                  <span className="text-xs text-slate-600 truncate max-w-[150px]">
+                                    {file.name}
+                                  </span>
+                                  <button
+                                    onClick={() => removeCommentFile(index)}
+                                    className="text-slate-400 hover:text-red-500"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <textarea
+                            value={commentInput}
+                            onChange={(e) => setCommentInput(e.target.value)}
+                            className="w-full border-2 border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none min-h-[60px] text-slate-900"
+                            placeholder="Write a comment..."
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                sendComment();
+                              }
+                            }}
+                          />
+                          <div className="flex items-center gap-2 mt-2 justify-end">
                             <button
-                              onClick={() => setIsEmojiOpen(!isEmojiOpen)}
+                              onClick={() => chatFileRef.current?.click()}
                               className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                             >
-                              <Smile size={16} />
+                              <Paperclip size={16} />
                             </button>
-                            {isEmojiOpen && (
-                              <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 shadow-xl rounded-xl p-3 grid grid-cols-5 gap-2 w-64 z-50">
-                                {EMOJI_LIST.map((e) => (
-                                  <button
-                                    key={e}
-                                    onClick={() =>
-                                      setCommentInput((prev) => prev + e)
-                                    }
-                                    className="text-2xl hover:bg-slate-100 p-1 rounded transition"
-                                  >
-                                    {e}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            <div className="relative" ref={emojiRef}>
+                              <button
+                                onClick={() => setIsEmojiOpen(!isEmojiOpen)}
+                                className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                              >
+                                <Smile size={16} />
+                              </button>
+                              {isEmojiOpen && (
+                                <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 shadow-xl rounded-xl p-3 grid grid-cols-5 gap-2 w-64 z-50">
+                                  {EMOJI_LIST.map((e) => (
+                                    <button
+                                      key={e}
+                                      onClick={() =>
+                                        setCommentInput((prev) => prev + e)
+                                      }
+                                      className="text-2xl hover:bg-slate-100 p-1 rounded transition"
+                                    >
+                                      {e}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {/* Allow multiple files */}
+                            <input
+                              type="file"
+                              className="hidden"
+                              ref={chatFileRef}
+                              multiple
+                              onChange={handleCommentFileChange}
+                            />
+                            <button
+                              onClick={sendComment}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                              Send <Send size={14} />
+                            </button>
                           </div>
-                          {/* Allow multiple files */}
-                          <input
-                            type="file"
-                            className="hidden"
-                            ref={chatFileRef}
-                            multiple
-                            onChange={handleCommentFileChange}
-                          />
-                          <button
-                            onClick={sendComment}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
-                          >
-                            Send <Send size={14} />
-                          </button>
                         </div>
                       </div>
-                    </div>
+                    )}
                     <div className="space-y-5 pl-12">
                       {comments.map((c) => (
                         <div key={c.id} className="group w-full mb-4">
@@ -2492,326 +2504,328 @@ export default function ModalsWorkflow({
 
             {/* === RIGHT SIDEBAR (same as before) === */}
             <div className="w-72 bg-slate-50 border-l border-slate-200 p-6 flex flex-col gap-6 shadow-inner relative z-20 overflow-visible">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase mb-3 px-1 tracking-wider">
-                  Add to card
-                </p>
-                <div className="space-y-2 relative">
-                  <SidebarBtn
-                    icon={User}
-                    label="Members"
-                    active={activePopover === "members"}
-                    onClick={() => setActivePopover("members")}
-                  />
-                  <SidebarBtn
-                    icon={TagIcon}
-                    label="Labels"
-                    active={activePopover === "tags"}
-                    onClick={() => {
-                      setActivePopover("tags");
-                      setTagView("list");
-                    }}
-                  />
-                  <SidebarBtn
-                    icon={CheckSquare}
-                    label="Checklist"
-                    active={activePopover === "checklist"}
-                    onClick={() => setActivePopover("checklist")}
-                  />
-                  <SidebarBtn
-                    icon={Calendar}
-                    label="Dates"
-                    active={activePopover === "dates"}
-                    onClick={() => setActivePopover("dates")}
-                  />
-                  <SidebarBtn
-                    icon={Paperclip}
-                    label="Attachment"
-                    active={activePopover === "attachment"}
-                    onClick={() => setActivePopover("attachment")}
-                  />
-                  {/* ... Popovers ... */}
-                  {activePopover === "members" && (
-                    <PopoverContainer
-                      title="Members"
-                      onClose={() => setActivePopover(null)}
-                    >
-                      <div className="space-y-1">
-                        <input
-                          className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2"
-                          placeholder="Search members..."
-                        />
-                        {membersList.map((m) => (
-                          <button
-                            key={m.id}
-                            onClick={() => toggleMember(m.id)}
-                            className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700"
-                          >
-                            <div
-                              className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}
-                            >
-                              {m.short}
-                            </div>
-                            <span className="flex-1">{m.name}</span>
-                            {assignedMembers.includes(m.id) && (
-                              <CheckCircle2
-                                size={14}
-                                className="text-blue-600"
-                              />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContainer>
-                  )}
-                  {activePopover === "tags" && (
-                    <PopoverContainer
-                      title={
-                        tagView === "list"
-                          ? "Labels"
-                          : tagView === "create"
-                            ? "Create Label"
-                            : "Edit Label"
-                      }
-                      onClose={() => setActivePopover(null)}
-                      width="w-80"
-                      showBack={tagView !== "list"}
-                      onBack={() => setTagView("list")}
-                    >
-                      {tagView === "list" ? (
+              {!isReadOnly && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase mb-3 px-1 tracking-wider">
+                    Add to card
+                  </p>
+                  <div className="space-y-2 relative">
+                    <SidebarBtn
+                      icon={User}
+                      label="Members"
+                      active={activePopover === "members"}
+                      onClick={() => setActivePopover("members")}
+                    />
+                    <SidebarBtn
+                      icon={TagIcon}
+                      label="Labels"
+                      active={activePopover === "tags"}
+                      onClick={() => {
+                        setActivePopover("tags");
+                        setTagView("list");
+                      }}
+                    />
+                    <SidebarBtn
+                      icon={CheckSquare}
+                      label="Checklist"
+                      active={activePopover === "checklist"}
+                      onClick={() => setActivePopover("checklist")}
+                    />
+                    <SidebarBtn
+                      icon={Calendar}
+                      label="Dates"
+                      active={activePopover === "dates"}
+                      onClick={() => setActivePopover("dates")}
+                    />
+                    <SidebarBtn
+                      icon={Paperclip}
+                      label="Attachment"
+                      active={activePopover === "attachment"}
+                      onClick={() => setActivePopover("attachment")}
+                    />
+                    {/* ... Popovers ... */}
+                    {activePopover === "members" && (
+                      <PopoverContainer
+                        title="Members"
+                        onClose={() => setActivePopover(null)}
+                      >
                         <div className="space-y-1">
                           <input
-                            placeholder="Search labels..."
-                            className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500"
-                            value={tagSearch}
-                            onChange={(e) => setTagSearch(e.target.value)}
+                            className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2"
+                            placeholder="Search members..."
                           />
-                          <p className="text-xs font-bold text-slate-500 mb-1 mt-2">
-                            LABELS
-                          </p>
-                          {availableTags
-                            .filter((t) =>
-                              t.name
-                                .toLowerCase()
-                                .includes(tagSearch.toLowerCase())
-                            )
-                            .map((t) => (
-                              <div
-                                key={t.id}
-                                className="flex items-center gap-2 mb-1 group"
-                              >
-                                <div
-                                  onClick={() => toggleTag(t.id)}
-                                  className={`flex-1 h-8 rounded px-3 flex items-center justify-between text-sm font-bold shadow-sm transition-all cursor-pointer ${t.bgColor} ${t.textColor} hover:opacity-90`}
-                                >
-                                  {t.name}
-                                  {selectedTagIds.includes(t.id) && (
-                                    <CheckCircle2 size={16} />
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() => startEditTag(t)}
-                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                              </div>
-                            ))}
-                          <button
-                            onClick={startCreateTag}
-                            className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors"
-                          >
-                            Create a new label
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="h-24 bg-slate-50 rounded-lg flex items-center justify-center mb-2 border border-slate-100">
-                            <span
-                              className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm ${newTagColor.labelBg} ${newTagColor.labelText}`}
-                            >
-                              {newTagName || "Label Name"}
-                            </span>
-                          </div>
-                          <input
-                            className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
-                            value={newTagName}
-                            onChange={(e) => setNewTagName(e.target.value)}
-                            placeholder="Name"
-                          />
-                          <div className="grid grid-cols-5 gap-2">
-                            {TAG_COLORS.map((c) => (
-                              <div
-                                key={c.name}
-                                onClick={() => setNewTagColor(c)}
-                                className={`h-8 rounded cursor-pointer ${c.bg
-                                  } ${newTagColor.name === c.name
-                                    ? "ring-2 ring-blue-600 ring-offset-1"
-                                    : "hover:opacity-80"
-                                  }`}
-                              ></div>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
+                          {membersList.map((m) => (
                             <button
-                              onClick={
-                                tagView === "create"
-                                  ? handleCreateTag
-                                  : handleUpdateTag
-                              }
-                              className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700"
+                              key={m.id}
+                              onClick={() => toggleMember(m.id)}
+                              className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded flex items-center gap-2 text-sm text-slate-700"
                             >
-                              Save
-                            </button>
-                            {tagView === "edit" && (
-                              <button
-                                onClick={handleDeleteTag}
-                                className="bg-red-50 text-red-600 px-3 rounded text-sm font-bold hover:bg-red-100"
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${m.color}`}
                               >
-                                Delete
-                              </button>
-                            )}
+                                {m.short}
+                              </div>
+                              <span className="flex-1">{m.name}</span>
+                              {assignedMembers.includes(m.id) && (
+                                <CheckCircle2
+                                  size={14}
+                                  className="text-blue-600"
+                                />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContainer>
+                    )}
+                    {activePopover === "tags" && (
+                      <PopoverContainer
+                        title={
+                          tagView === "list"
+                            ? "Labels"
+                            : tagView === "create"
+                              ? "Create Label"
+                              : "Edit Label"
+                        }
+                        onClose={() => setActivePopover(null)}
+                        width="w-80"
+                        showBack={tagView !== "list"}
+                        onBack={() => setTagView("list")}
+                      >
+                        {tagView === "list" ? (
+                          <div className="space-y-1">
+                            <input
+                              placeholder="Search labels..."
+                              className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 focus:outline-none focus:border-blue-500"
+                              value={tagSearch}
+                              onChange={(e) => setTagSearch(e.target.value)}
+                            />
+                            <p className="text-xs font-bold text-slate-500 mb-1 mt-2">
+                              LABELS
+                            </p>
+                            {availableTags
+                              .filter((t) =>
+                                t.name
+                                  .toLowerCase()
+                                  .includes(tagSearch.toLowerCase())
+                              )
+                              .map((t) => (
+                                <div
+                                  key={t.id}
+                                  className="flex items-center gap-2 mb-1 group"
+                                >
+                                  <div
+                                    onClick={() => toggleTag(t.id)}
+                                    className={`flex-1 h-8 rounded px-3 flex items-center justify-between text-sm font-bold shadow-sm transition-all cursor-pointer ${t.bgColor} ${t.textColor} hover:opacity-90`}
+                                  >
+                                    {t.name}
+                                    {selectedTagIds.includes(t.id) && (
+                                      <CheckCircle2 size={16} />
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => startEditTag(t)}
+                                    className="p-1 text-slate-400 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                            <button
+                              onClick={startCreateTag}
+                              className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors"
+                            >
+                              Create a new label
+                            </button>
                           </div>
-                        </div>
-                      )}
-                    </PopoverContainer>
-                  )}
-                  {activePopover === "checklist" && (
-                    <PopoverContainer
-                      title="Add checklist"
-                      onClose={() => setActivePopover(null)}
-                    >
-                      <div className="space-y-3">
-                        <input
-                          autoFocus
-                          className="w-full border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 text-slate-900"
-                          placeholder="Title"
-                          value={newChecklistTitle}
-                          onChange={(e) => setNewChecklistTitle(e.target.value)}
-                        />
-                        <button
-                          onClick={addChecklistBlock}
-                          className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    </PopoverContainer>
-                  )}
-                  {activePopover === "dates" && (
-                    <PopoverContainer
-                      title="Dates"
-                      onClose={() => setActivePopover(null)}
-                      width="w-auto"
-                    >
-                      <div className="p-1">
-                        <DayPicker
-                          mode="range"
-                          defaultMonth={new Date()}
-                          selected={dateRange}
-                          onSelect={setDateRange}
-                          numberOfMonths={1}
-                        />
-                      </div>
-                      <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl">
-                        <button
-                          onClick={async () => {
-                            if (isSavingDate) return;
-                            setDateRange(undefined);
-                            await handleSaveDate();
-                          }}
-                          className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200"
-                          disabled={isSavingDate}
-                        >
-                          {isSavingDate ? "Saving..." : "Clear"}
-                        </button>
-                        <button
-                          onClick={handleSaveDate}
-                          disabled={!dateRange?.from || isSavingDate}
-                          className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          {isSavingDate ? "Saving..." : "Save"}
-                        </button>
-                      </div>
-                    </PopoverContainer>
-                  )}
-                  {activePopover === "attachment" && (
-                    <PopoverContainer
-                      title="Attach"
-                      onClose={() => setActivePopover(null)}
-                    >
-                      <div className="flex gap-2 mb-3 border-b border-slate-100 pb-2">
-                        <button
-                          onClick={() => setAttachmentTab("file")}
-                          className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "file"
-                            ? "bg-blue-50 text-blue-600"
-                            : "text-slate-500"
-                            }`}
-                        >
-                          Computer
-                        </button>
-                        <button
-                          onClick={() => setAttachmentTab("link")}
-                          className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "link"
-                            ? "bg-blue-50 text-blue-600"
-                            : "text-slate-500"
-                            }`}
-                        >
-                          Link
-                        </button>
-                      </div>
-                      {attachmentTab === "file" ? (
-                        <div
-                          className="border-2 border-dashed border-slate-200 rounded-xl py-6 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition-all"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <UploadCloud
-                            size={24}
-                            className="mx-auto mb-2 text-slate-400"
-                          />{" "}
-                          Click to upload file
-                          <input
-                            type="file"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={(e) => {
-                              if (e.target.files?.[0])
-                                handleAddAttachment(
-                                  "file",
-                                  e.target.files[0].name
-                                );
-                            }}
-                          />
-                        </div>
-                      ) : (
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="h-24 bg-slate-50 rounded-lg flex items-center justify-center mb-2 border border-slate-100">
+                              <span
+                                className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm ${newTagColor.labelBg} ${newTagColor.labelText}`}
+                              >
+                                {newTagName || "Label Name"}
+                              </span>
+                            </div>
+                            <input
+                              className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+                              value={newTagName}
+                              onChange={(e) => setNewTagName(e.target.value)}
+                              placeholder="Name"
+                            />
+                            <div className="grid grid-cols-5 gap-2">
+                              {TAG_COLORS.map((c) => (
+                                <div
+                                  key={c.name}
+                                  onClick={() => setNewTagColor(c)}
+                                  className={`h-8 rounded cursor-pointer ${c.bg
+                                    } ${newTagColor.name === c.name
+                                      ? "ring-2 ring-blue-600 ring-offset-1"
+                                      : "hover:opacity-80"
+                                    }`}
+                                ></div>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={
+                                  tagView === "create"
+                                    ? handleCreateTag
+                                    : handleUpdateTag
+                                }
+                                className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700"
+                              >
+                                Save
+                              </button>
+                              {tagView === "edit" && (
+                                <button
+                                  onClick={handleDeleteTag}
+                                  className="bg-red-50 text-red-600 px-3 rounded text-sm font-bold hover:bg-red-100"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </PopoverContainer>
+                    )}
+                    {activePopover === "checklist" && (
+                      <PopoverContainer
+                        title="Add checklist"
+                        onClose={() => setActivePopover(null)}
+                      >
                         <div className="space-y-3">
                           <input
-                            placeholder="Paste any link..."
-                            className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900"
-                            value={linkUrl}
-                            onChange={(e) => setLinkUrl(e.target.value)}
-                          />
-                          <input
-                            placeholder="Link name (optional)"
-                            className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900"
-                            value={linkText}
-                            onChange={(e) => setLinkText(e.target.value)}
+                            autoFocus
+                            className="w-full border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 text-slate-900"
+                            placeholder="Title"
+                            value={newChecklistTitle}
+                            onChange={(e) => setNewChecklistTitle(e.target.value)}
                           />
                           <button
-                            onClick={() =>
-                              handleAddAttachment("link", linkUrl, linkText)
-                            }
+                            onClick={addChecklistBlock}
                             className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700"
                           >
-                            Attach
+                            Add
                           </button>
                         </div>
-                      )}
-                    </PopoverContainer>
-                  )}
+                      </PopoverContainer>
+                    )}
+                    {activePopover === "dates" && (
+                      <PopoverContainer
+                        title="Dates"
+                        onClose={() => setActivePopover(null)}
+                        width="w-auto"
+                      >
+                        <div className="p-1">
+                          <DayPicker
+                            mode="range"
+                            defaultMonth={new Date()}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={1}
+                          />
+                        </div>
+                        <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 bg-slate-50/50 -mx-4 -mb-4 p-4 rounded-b-xl">
+                          <button
+                            onClick={async () => {
+                              if (isSavingDate) return;
+                              setDateRange(undefined);
+                              await handleSaveDate();
+                            }}
+                            className="px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                            disabled={isSavingDate}
+                          >
+                            {isSavingDate ? "Saving..." : "Clear"}
+                          </button>
+                          <button
+                            onClick={handleSaveDate}
+                            disabled={!dateRange?.from || isSavingDate}
+                            className="flex-1 bg-blue-600 text-white text-sm font-bold py-1.5 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            {isSavingDate ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                      </PopoverContainer>
+                    )}
+                    {activePopover === "attachment" && (
+                      <PopoverContainer
+                        title="Attach"
+                        onClose={() => setActivePopover(null)}
+                      >
+                        <div className="flex gap-2 mb-3 border-b border-slate-100 pb-2">
+                          <button
+                            onClick={() => setAttachmentTab("file")}
+                            className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "file"
+                              ? "bg-blue-50 text-blue-600"
+                              : "text-slate-500"
+                              }`}
+                          >
+                            Computer
+                          </button>
+                          <button
+                            onClick={() => setAttachmentTab("link")}
+                            className={`text-xs font-bold px-2 py-1 rounded ${attachmentTab === "link"
+                              ? "bg-blue-50 text-blue-600"
+                              : "text-slate-500"
+                              }`}
+                          >
+                            Link
+                          </button>
+                        </div>
+                        {attachmentTab === "file" ? (
+                          <div
+                            className="border-2 border-dashed border-slate-200 rounded-xl py-6 text-center text-xs text-slate-500 cursor-pointer hover:bg-slate-50 hover:border-blue-300 transition-all"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <UploadCloud
+                              size={24}
+                              className="mx-auto mb-2 text-slate-400"
+                            />{" "}
+                            Click to upload file
+                            <input
+                              type="file"
+                              className="hidden"
+                              ref={fileInputRef}
+                              onChange={(e) => {
+                                if (e.target.files?.[0])
+                                  handleAddAttachment(
+                                    "file",
+                                    e.target.files[0].name
+                                  );
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <input
+                              placeholder="Paste any link..."
+                              className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900"
+                              value={linkUrl}
+                              onChange={(e) => setLinkUrl(e.target.value)}
+                            />
+                            <input
+                              placeholder="Link name (optional)"
+                              className="w-full border border-slate-200 rounded px-3 py-2 text-sm text-slate-900"
+                              value={linkText}
+                              onChange={(e) => setLinkText(e.target.value)}
+                            />
+                            <button
+                              onClick={() =>
+                                handleAddAttachment("link", linkUrl, linkText)
+                              }
+                              className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700"
+                            >
+                              Attach
+                            </button>
+                          </div>
+                        )}
+                      </PopoverContainer>
+                    )}
+                  </div>
                 </div>
-              </div>
 
+              )}
             </div>
           </div>
         </div>

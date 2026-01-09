@@ -119,6 +119,13 @@ export function WorkspaceSettingsSidebar({
   const [members, setMembers] = useState<WorkspaceMember[]>(workspaceInfo.members);
   const [openMemberDropdownId, setOpenMemberDropdownId] = useState<number | null>(null);
 
+  // [RBAC] Determine if current user is Admin
+  const mb = workspaceInfo.members?.find((m) =>
+    (currentUser && m.userId === currentUser.id) ||
+    (currentUser && m.name === currentUser.name)
+  );
+  const isAdmin = mb?.role === "Admin" || mb?.role === "Owner";
+
   // ❌ ลบ State และ Logic ของ Difficulty Level ออกทั้งหมดตรงนี้
 
   // Archived Tasks State
@@ -426,7 +433,7 @@ export function WorkspaceSettingsSidebar({
                     <Copy size={14} /> Copy Board
                   </button>
                   <div className="h-px bg-slate-100 my-1"></div>
-                  {!isReadOnly && (
+                  {!isReadOnly && isAdmin && (
                     <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                       <Trash2 size={14} /> Delete Board
                     </button>
@@ -1133,7 +1140,7 @@ export function MembersManageModal({
                 currentUser &&
                 (member.userId === currentUser.id ||
                   member.id === currentUser.id);
-              const isOwner = member.role === "Owner";
+              const isOwner = member.role === "Owner" || member.role === "Admin";
 
               // Permission Logic
               const canDelete = !isSelf && !isOwner && isAdminOrOwner;
@@ -1166,7 +1173,7 @@ export function MembersManageModal({
                     >
                       <option value="Viewer">Viewer</option>
                       <option value="Editor">Editor</option>
-                      <option value="Admin">Admin</option>
+                      {member.role === "Admin" && <option value="Admin">Admin</option>}
                     </select>
                     {canDelete &&
                       (confirmRemoveId === member.id ? (

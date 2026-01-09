@@ -308,7 +308,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       return;
     }
 
-    const isMember = (workspaceInfo.members || []).some((m: any) => {
+    const foundMember = (workspaceInfo.members || []).find((m: any) => {
       const memberName = (m.name || "").toLowerCase();
       const userName = (currentUser.name || "").toLowerCase();
       const memberEmail = (m.email || "").toLowerCase();
@@ -321,7 +321,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       );
     });
 
-    if (!isMember) {
+    if (!foundMember) {
       if (workspaceInfo.visibility === "PRIVATE") {
         setErrorModal({
           open: true,
@@ -333,7 +333,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
       }
       setIsReadOnly(true);
     } else {
-      setIsReadOnly(false);
+      // [RBAC] check role
+      if (foundMember.role === "Viewer") {
+        setIsReadOnly(true);
+      } else {
+        setIsReadOnly(false);
+      }
     }
   }, [workspaceInfo, currentUser, router]);
 
@@ -1176,6 +1181,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           onClose={() => board.setIsModalOpen(false)}
           task={{ ...board.selectedTask, id: String(board.selectedTask.id) }}
           onTaskUpdated={fetchBoard}
+          isReadOnly={isReadOnly}
         />
       )}
 
