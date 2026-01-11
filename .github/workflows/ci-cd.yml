@@ -63,6 +63,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
 
   # ==========================================
   # Deploy to Staging (develop branch)
