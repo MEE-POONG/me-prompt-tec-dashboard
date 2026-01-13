@@ -89,7 +89,7 @@ export function useWorkspaceBoard(initialData: WorkspaceColumn[]) {
       tag: "General",
       tagColor: "bg-gray-100 text-gray-600",
       priority: "Medium",
-      members: ["ME"],
+      members: [],
       comments: 0,
       attachments: 0,
       date: "Today",

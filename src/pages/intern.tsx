@@ -23,7 +23,7 @@ export default function InternPage() {
   // ✅ แก้ไขตรงนี้: เพิ่ม as string[] เพื่อแก้ตัวแดง
   const genOptions = Array.from(
     new Set(internList.map((intern) => intern.gen).filter(Boolean))
-  ).sort((a, b) => Number(b) - Number(a)) as string[]; 
+  ).sort((a, b) => Number(b) - Number(a)) as string[];
 
   useEffect(() => {
     fetchInterns();
@@ -118,18 +118,18 @@ export default function InternPage() {
   return (
     <Layouts>
       <div className="relative min-h-screen bg-[#fffaf5] overflow-hidden font-sans text-slate-800">
-        
+
         {/* --- Background Aurora --- */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-orange-200/40 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
-            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-amber-200/40 rounded-full blur-[100px] mix-blend-multiply"></div>
-            <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-red-200/30 rounded-full blur-[100px] mix-blend-multiply"></div>
+          <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-orange-200/40 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
+          <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-amber-200/40 rounded-full blur-[100px] mix-blend-multiply"></div>
+          <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-red-200/30 rounded-full blur-[100px] mix-blend-multiply"></div>
         </div>
 
         <div className="relative z-10 container mx-auto px-4 sm:px-6 max-w-7xl py-8">
-          
+
           {/* ✅ เรียกใช้ Menu Section */}
-          <Interns_Menu_Section 
+          <Interns_Menu_Section
             totalCount={filteredInterns.length}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -166,13 +166,13 @@ export default function InternPage() {
             </div>
           ) : (
             // ✅ เรียกใช้ Card Section
-            <Card_Intern_Section 
-                interns={filteredInterns}
-                viewType={viewType}
-                selectedIds={selectedIds}
-                onToggleSelect={toggleSelect}
-                openModal={openModal}
-                selectedGen={selectedGen}
+            <Card_Intern_Section
+              interns={filteredInterns}
+              viewType={viewType}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              openModal={openModal}
+              selectedGen={selectedGen}
             />
           )}
 
@@ -180,22 +180,23 @@ export default function InternPage() {
           {modalUrl && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeModal}>
               <div className="relative w-full max-w-6xl h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                 <div className="flex justify-between items-center p-4 border-b bg-slate-50">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        <span className="text-slate-400 text-xs font-bold">SOURCE:</span>
-                        <a href={modalUrl} target="_blank" className="text-orange-600 text-sm font-bold hover:underline truncate max-w-xs">{modalUrl}</a>
-                    </div>
-                    <button onClick={closeModal} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-500"/></button>
-                 </div>
-                 <div className="w-full h-full bg-slate-200 flex justify-center">
-                    <iframe src={modalUrl} className="h-full w-full bg-white" frameBorder="0" />
-                 </div>
+                <div className="flex justify-between items-center p-4 border-b bg-slate-50">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="text-slate-400 text-xs font-bold">SOURCE:</span>
+                    <a href={modalUrl} target="_blank" className="text-orange-600 text-sm font-bold hover:underline truncate max-w-xs">{modalUrl}</a>
+                  </div>
+                  <button onClick={closeModal} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-500" /></button>
+                </div>
+                <div className="w-full h-full bg-slate-200 flex justify-center">
+                  <iframe src={modalUrl} className="h-full w-full bg-white" frameBorder="0" />
+                </div>
               </div>
             </div>
           )}
 
           {showDeleteModal && (
             <ModalDelete
+              open={showDeleteModal}
               message={`คุณแน่ใจหรือไม่ที่จะลบนักศึกษา ${selectedIds.length} คน?`}
               onClose={() => setShowDeleteModal(false)}
               onConfirm={onConfirmDelete}

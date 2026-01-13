@@ -13,7 +13,7 @@ export default function ManagePartnersPage() {
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // โหลดข้อมูลจาก API
@@ -25,7 +25,7 @@ export default function ManagePartnersPage() {
     try {
       setLoading(true);
       const res = await fetch("/api/partners");
-      
+
       if (!res.ok) {
         throw new Error(`Error: ${res.status}`);
       }
@@ -77,7 +77,7 @@ export default function ManagePartnersPage() {
 
       setPartnersList((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
       setSelectedIds([]);
-      setShowDeleteModal(false); 
+      setShowDeleteModal(false);
     } catch (err) {
       console.error("Delete failed", err);
       alert("ลบข้อมูลบางรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
@@ -87,18 +87,18 @@ export default function ManagePartnersPage() {
   return (
     <Layouts>
       <div className="relative min-h-screen bg-[#f8f9fc] overflow-hidden font-sans text-slate-800">
-        
+
         {/* --- Background Aurora --- */}
         {/* ✅✅ แก้ไขตรงนี้: เปลี่ยน z-0 เป็น -z-10 เพื่อให้ไปอยู่หลังสุด ไม่ทับ Header */}
         <div className="fixed inset-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-pink-200/40 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
-             <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-rose-200/40 rounded-full blur-[100px] mix-blend-multiply"></div>
-             <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/30 rounded-full blur-[100px] mix-blend-multiply"></div>
+          <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-pink-200/40 rounded-full blur-[100px] mix-blend-multiply animate-pulse"></div>
+          <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-rose-200/40 rounded-full blur-[100px] mix-blend-multiply"></div>
+          <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/30 rounded-full blur-[100px] mix-blend-multiply"></div>
         </div>
 
         {/* Content Container */}
         <div className="relative z-10 container mx-auto px-4 sm:px-6 max-w-7xl py-8">
-          
+
           <Partners_Menu_Section
             totalCount={partnersList.length}
             searchTerm={searchTerm}
@@ -115,13 +115,13 @@ export default function ManagePartnersPage() {
               <p className="text-slate-400 animate-pulse font-medium">กำลังโหลดข้อมูลพันธมิตร...</p>
             </div>
           ) : filteredPartners.length === 0 ? (
-             <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-4xl border-2 border-dashed border-slate-200 backdrop-blur-sm text-center">
-                <div className="bg-slate-50 p-6 rounded-full mb-4 shadow-sm">
-                    <Building2 size={48} className="text-slate-300" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-700 mb-2">ไม่พบข้อมูลพันธมิตร</h3>
-                <p className="text-slate-500">ลองค้นหาด้วยคำอื่น หรือเพิ่มพันธมิตรใหม่</p>
-             </div>
+            <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-4xl border-2 border-dashed border-slate-200 backdrop-blur-sm text-center">
+              <div className="bg-slate-50 p-6 rounded-full mb-4 shadow-sm">
+                <Building2 size={48} className="text-slate-300" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700 mb-2">ไม่พบข้อมูลพันธมิตร</h3>
+              <p className="text-slate-500">ลองค้นหาด้วยคำอื่น หรือเพิ่มพันธมิตรใหม่</p>
+            </div>
           ) : (
             <Card_Partner_Section
               partners={filteredPartners}
@@ -133,6 +133,7 @@ export default function ManagePartnersPage() {
 
           {showDeleteModal && (
             <ModalDelete
+              open={showDeleteModal}
               message={`คุณแน่ใจหรือไม่ที่จะลบพันธมิตร ${selectedIds.length} รายการ?`}
               onClose={() => setShowDeleteModal(false)}
               onConfirm={onConfirmDelete}
