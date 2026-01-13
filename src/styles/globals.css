@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@source "../../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -130,6 +129,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -139,18 +139,23 @@ body {
   0% {
     transform: scale(1);
   }
+
   10% {
     transform: scale(1.15);
   }
+
   20% {
     transform: scale(1);
   }
+
   30% {
     transform: scale(1.15);
   }
+
   40% {
     transform: scale(1);
   }
+
   100% {
     transform: scale(1);
   }
@@ -173,13 +178,16 @@ body {
   height: 6px;
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
