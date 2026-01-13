@@ -1,6 +1,8 @@
 // pages/api/workspace/board/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { getAuthToken } from "@/lib/auth/cookies";
+import { verifyToken } from "@/lib/auth/jwt";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,6 +15,46 @@ export default async function handler(
   }
 
   try {
+    // --- AUTHENTICATION CHECK ---
+    const token = getAuthToken(req.headers.cookie || "");
+    const decoded = token ? verifyToken(token) : null;
+    const requesterId = decoded?.userId;
+
+    if (!requesterId) {
+      if (req.method !== "GET") {
+        return res.status(401).json({ message: "Unauthorized: Please login" });
+      }
+    }
+
+    // Helper: Check requester's role
+    const getRequesterRole = async () => {
+      if (!requesterId) return null;
+      const user = await prisma.user.findUnique({ where: { id: requesterId } });
+      if (!user) return null;
+
+      // Try strict match first
+      const member = await prisma.boardMember.findFirst({
+        where: {
+          boardId: id,
+          OR: [{ name: user.name || "" }, { name: user.email }],
+        },
+      });
+
+      if (member) return member.role;
+
+      // Fallback: Loose match
+      const allMembers = await prisma.boardMember.findMany({
+        where: { boardId: id },
+      });
+      const userEmail = (user.email || "").toLowerCase().trim();
+      const userName = (user.name || "").toLowerCase().trim();
+      const matched = allMembers.find((m) => {
+        const mName = m.name.toLowerCase().trim();
+        return mName === userEmail || mName === userName;
+      });
+      return matched?.role || null;
+    };
+
     if (req.method === "GET") {
       const board = await prisma.projectBoard.findUnique({
         where: { id },
@@ -63,6 +105,11 @@ export default async function handler(
     }
 
     if (req.method === "PUT") {
+      const role = await getRequesterRole();
+      if (role !== "Admin" && role !== "Owner") {
+        return res.status(403).json({ message: "Forbidden: Only Admin/Owner can update board settings" });
+      }
+
       const { name, description, color, visibility } = req.body;
 
       const board = await prisma.projectBoard.update({
@@ -125,6 +172,11 @@ export default async function handler(
     }
 
     if (req.method === "DELETE") {
+      const role = await getRequesterRole();
+      if (role !== "Admin" && role !== "Owner") {
+        return res.status(403).json({ message: "Forbidden: Only Admin/Owner can delete board" });
+      }
+
       await prisma.projectBoard.delete({
         where: { id },
       });

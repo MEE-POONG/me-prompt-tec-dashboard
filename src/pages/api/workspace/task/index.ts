@@ -21,12 +21,12 @@ export default async function handler(
       }
     }
 
-    // Helper: Check if user is member of board
-    const checkBoardAccess = async (boardId: string) => {
-      if (!requesterId) return false;
+    // Helper: Check if user is member of board and return Role
+    const getBoardRole = async (boardId: string) => {
+      if (!requesterId) return null;
 
       const user = await prisma.user.findUnique({ where: { id: requesterId } });
-      if (!user) return false;
+      if (!user) return null;
 
       // 1. Try strict match
       const member = await prisma.boardMember.findFirst({
@@ -38,13 +38,12 @@ export default async function handler(
           ]
         }
       });
-      if (member) return true;
+      if (member) return member.role;
 
       // 2. Fallback: Loose match
       const allMembers = await prisma.boardMember.findMany({
         where: { boardId },
-        select: { name: true }
-      });
+      }); // Remove select name: true to get full object including role
 
       const userEmail = (user.email || "").toLowerCase().trim();
       const userName = (user.name || "").toLowerCase().trim();
@@ -54,7 +53,7 @@ export default async function handler(
         return memberName === userEmail || memberName === userName;
       });
 
-      return !!matched;
+      return matched?.role || null;
     };
 
     if (req.method === "GET") {
@@ -142,9 +141,13 @@ export default async function handler(
       }
 
       // 2. Check if requester is a member of this board
-      const isMember = await checkBoardAccess(column.boardId);
-      if (!isMember) {
+      // 2. Check if requester is a member of this board
+      const role = await getBoardRole(column.boardId);
+      if (!role) {
         return res.status(403).json({ message: "Forbidden: You are not a member of this board" });
+      }
+      if (role === "Viewer") {
+        return res.status(403).json({ message: "Forbidden: Viewer cannot create tasks" });
       }
 
       // determine if initial column should mark as completed

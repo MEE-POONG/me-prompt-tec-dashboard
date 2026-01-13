@@ -188,6 +188,13 @@ export default async function handler(
           return res.status(403).json({ message: "Cannot change the Owner's role" });
         }
 
+        // Prevent assigning Admin role (Exclusive to Creator logic - strict)
+        if (role === "Admin" && targetMember.role !== "Admin") {
+          // Exception: If system allows promoting, validation goes here.
+          // Current rule: "Admin role is exclusive to board creator"
+          return res.status(403).json({ message: "Cannot assign Admin role (Exclusive to Owner)" });
+        }
+
         const updatedMember = await prisma.boardMember.update({
           where: { id },
           data: { role },
@@ -237,7 +244,7 @@ export default async function handler(
 
         // Prevent deleting the Owner (unless they are deleting themselves? - usually board owner transfer is separate logic)
         // Assuming Owner cannot be simply removed this way for safety
-        if (memberToDelete.role === "Owner" && !isRemovingSelf) {
+        if (memberToDelete.role === "Owner") {
           return res.status(403).json({ message: "Cannot remove the Board Owner" });
         }
 
