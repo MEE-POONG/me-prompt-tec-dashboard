@@ -1,6 +1,6 @@
 import React from "react";
 import Layouts from "@/components/Layouts";
-import { Intern } from "@/Data/temp_intern";
+import { Intern } from "@/Data/data_intern";
 
 // Import Components
 import DashboardHeader from "@/Container/Dashboard/DashboardHeader";
