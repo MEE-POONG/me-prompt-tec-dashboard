@@ -26,6 +26,7 @@ export default function ProjectTimeline({
   tasks = [],
   labels = [],
   onCreateTask,
+  isReadOnly,
 }: {
   tasks?: any[];
   labels?: any[];
@@ -35,6 +36,7 @@ export default function ProjectTimeline({
     duration: number;
     status: string;
   }) => Promise<any>;
+  isReadOnly?: boolean;
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("Month");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -104,10 +106,10 @@ export default function ProjectTimeline({
   const daysToShow =
     viewMode === "Month"
       ? new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth() + 1,
-          0
-        ).getDate()
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      ).getDate()
       : 7;
 
   const startDate =
@@ -183,7 +185,7 @@ export default function ProjectTimeline({
   return (
     // ✅ เปลี่ยนพื้นหลังเป็น bg-slate-50 เพื่อลดความจ้าและเพิ่มมิติ
     <div className="flex flex-col h-full bg-slate-50 relative font-sans text-slate-800">
-      
+
       {/* --- Toolbar --- */}
       <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4 bg-white shadow-sm z-20 shrink-0">
         {/* Left: Navigation */}
@@ -191,21 +193,19 @@ export default function ProjectTimeline({
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setViewMode("Month")}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
-                viewMode === "Month"
-                  ? "bg-white text-slate-800 shadow-slate-200"
-                  : "bg-transparent text-slate-500 hover:text-slate-700 shadow-none"
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${viewMode === "Month"
+                ? "bg-white text-slate-800 shadow-slate-200"
+                : "bg-transparent text-slate-500 hover:text-slate-700 shadow-none"
+                }`}
             >
               Month
             </button>
             <button
               onClick={() => setViewMode("Week")}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
-                viewMode === "Week"
-                  ? "bg-white text-slate-800 shadow-slate-200"
-                  : "bg-transparent text-slate-500 hover:text-slate-700 shadow-none"
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${viewMode === "Week"
+                ? "bg-white text-slate-800 shadow-slate-200"
+                : "bg-transparent text-slate-500 hover:text-slate-700 shadow-none"
+                }`}
             >
               Week
             </button>
@@ -247,11 +247,10 @@ export default function ProjectTimeline({
         <div className="flex items-center gap-3">
           {/* Search */}
           <div
-            className={`flex items-center transition-all duration-300 border border-slate-200 rounded-xl overflow-hidden shadow-sm ${
-              isSearchActive
-                ? "w-64 bg-white ring-2 ring-blue-100 border-blue-200"
-                : "w-10 bg-white hover:bg-slate-50"
-            }`}
+            className={`flex items-center transition-all duration-300 border border-slate-200 rounded-xl overflow-hidden shadow-sm ${isSearchActive
+              ? "w-64 bg-white ring-2 ring-blue-100 border-blue-200"
+              : "w-10 bg-white hover:bg-slate-50"
+              }`}
           >
             <button
               onClick={() => setIsSearchActive(!isSearchActive)}
@@ -275,11 +274,10 @@ export default function ProjectTimeline({
           <div className="relative" ref={filterButtonRef}>
             <button
               onClick={() => setIsFilterPopoverOpen(!isFilterPopoverOpen)}
-              className={`p-2.5 rounded-xl border transition-all shadow-sm ${
-                isFilterPopoverOpen
-                  ? "bg-blue-50 border-blue-200 text-blue-600 shadow-inner"
-                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-              }`}
+              className={`p-2.5 rounded-xl border transition-all shadow-sm ${isFilterPopoverOpen
+                ? "bg-blue-50 border-blue-200 text-blue-600 shadow-inner"
+                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                }`}
             >
               <Tag size={18} />
             </button>
@@ -324,13 +322,15 @@ export default function ProjectTimeline({
             )}
           </div>
 
-          {/* Create Task Button */}
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95 ml-2 hover:-translate-y-0.5"
-          >
-            <Plus size={20} /> Create task
-          </button>
+          {/* Create Task Button - Only for non-viewers */}
+          {!isReadOnly && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center gap-2 active:scale-95 ml-2 hover:-translate-y-0.5"
+            >
+              <Plus size={20} /> Create task
+            </button>
+          )}
         </div>
       </div>
 
@@ -346,25 +346,21 @@ export default function ProjectTimeline({
               return (
                 <div
                   key={i}
-                  className={`flex-1 ${
-                    viewMode === "Week" ? "min-w-[150px]" : "min-w-[60px]"
-                  } border-r border-slate-100 py-4 text-center group transition-colors ${
-                    isToday ? "bg-blue-50/50" : isWeekend ? "bg-slate-50/50" : ""
-                  }`}
+                  className={`flex-1 ${viewMode === "Week" ? "min-w-[150px]" : "min-w-[60px]"
+                    } border-r border-slate-100 py-4 text-center group transition-colors ${isToday ? "bg-blue-50/50" : isWeekend ? "bg-slate-50/50" : ""
+                    }`}
                 >
                   <div
-                    className={`text-[10px] font-bold uppercase mb-1.5 tracking-wider ${
-                      isToday ? "text-blue-600" : "text-slate-400"
-                    }`}
+                    className={`text-[10px] font-bold uppercase mb-1.5 tracking-wider ${isToday ? "text-blue-600" : "text-slate-400"
+                      }`}
                   >
                     {date.toLocaleDateString("en-US", { weekday: "short" })}
                   </div>
                   <div
-                    className={`text-base font-bold w-9 h-9 flex items-center justify-center mx-auto rounded-full transition-all ${
-                      isToday
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-200 scale-110"
-                        : "text-slate-700 group-hover:bg-slate-100"
-                    }`}
+                    className={`text-base font-bold w-9 h-9 flex items-center justify-center mx-auto rounded-full transition-all ${isToday
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-200 scale-110"
+                      : "text-slate-700 group-hover:bg-slate-100"
+                      }`}
                   >
                     {date.getDate()}
                   </div>
@@ -385,15 +381,13 @@ export default function ProjectTimeline({
                 return (
                   <div
                     key={i}
-                    className={`flex-1 ${
-                      viewMode === "Week" ? "min-w-[150px]" : "min-w-[60px]"
-                    } border-r border-slate-200/60 h-full ${
-                      isToday
+                    className={`flex-1 ${viewMode === "Week" ? "min-w-[150px]" : "min-w-[60px]"
+                      } border-r border-slate-200/60 h-full ${isToday
                         ? "bg-blue-50/30" // ✅ Highlight คอลัมน์วันนี้
                         : isWeekend
-                        ? "bg-slate-100/40"
-                        : ""
-                    }`}
+                          ? "bg-slate-100/40"
+                          : ""
+                      }`}
                   ></div>
                 );
               })}

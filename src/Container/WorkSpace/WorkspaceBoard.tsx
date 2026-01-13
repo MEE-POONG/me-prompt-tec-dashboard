@@ -1164,6 +1164,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
             tasks={board.columns.flatMap((c) => c.tasks || [])}
             labels={labels}
             onCreateTask={handleCreateTaskFromTimeline}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentView === "report" && (
