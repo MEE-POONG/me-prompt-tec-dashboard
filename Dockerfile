@@ -11,14 +11,7 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
 # Install dependencies based on lockfile
-RUN \
-  if [ -f pnpm-lock.yaml ]; then \
-    corepack enable pnpm && pnpm i --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then \
-    npm ci; \
-  else \
-    npm i; \
-  fi
+RUN npm install
 
 # ==========================================
 # Stage 2: Builder
