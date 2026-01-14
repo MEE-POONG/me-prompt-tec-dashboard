@@ -20,7 +20,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Build arguments
-ARG DATABASE_URL
+ARG DATABASE_URL=mongodb://dummy:27017/dummy
 ENV DATABASE_URL=${DATABASE_URL}
 
 # Copy dependencies from deps stage
@@ -28,7 +28,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN DATABASE_URL=${DATABASE_URL} npx prisma generate
 
 # Set environment for build
 ENV NEXT_TELEMETRY_DISABLED=1
