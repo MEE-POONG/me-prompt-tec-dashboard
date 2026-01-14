@@ -32,3 +32,61 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         NEXT_TELEMETRY_DISABLED: 1
+
+  deploy:
+    needs: test-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - id: string
+        uses: ASzc/change-string-case-action@v1
+        with:
+          string: ${{ github.event.repository.name }}
+
+      - name: SSH Command docker pull
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+
+      - name: SSH Command docker stop
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker stop ${{ steps.string.outputs.lowercase }} || true
+
+      - name: SSH Command docker rm
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker rm ${{ steps.string.outputs.lowercase }} || true
+
+      - name: SSH Command docker run
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker run --name ${{ steps.string.outputs.lowercase }} --label io.portainer.accesscontrol.teams=discord --restart=always -d -p 7075:3000 -e DATABASE_URL="${{ secrets.DATABASE_URL }}" -e JWT_SECRET="${{ secrets.JWT_SECRET }}" -e EXT_PUBLIC_SOCKET_URL="${{ secrets.EXT_PUBLIC_SOCKET_URL }}" -e REDIS_URL="${{ secrets.REDIS_URL }}" -e NODE_ENV="${{ secrets.NODE_ENV }}" --memory=512m --memory-swap=512m --cpus=1.5 --log-opt max-size=10m --log-opt max-file=3 chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+
+      - name: SSH Command docker image prune
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker image prune -a -f
+
+      - name: SSH Command docker logs
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker logs --timestamps --since=1h ${{ steps.string.outputs.lowercase }}
