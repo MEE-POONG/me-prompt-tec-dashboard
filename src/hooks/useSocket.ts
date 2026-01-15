@@ -9,7 +9,7 @@ export const useSocket = () => {
     // 1. เรียก API เพื่อ "ปลุก" Socket Server (จำเป็นสำหรับ Next.js API Route)
     const socketInitializer = async () => {
       try {
-        await fetch("/api/socket/io");
+        await fetch("/api/socket/init");
       } catch (error) {
         console.error("Failed to init socket server", error);
       }
