@@ -10,7 +10,7 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 วัน (seconds)
 export function setAuthCookie(res: NextApiResponse, token: string) {
   const cookie = serialize(AUTH_COOKIE_NAME, token, {
     httpOnly: true, // ป้องกัน XSS - ไม่สามารถเข้าถึงผ่าน JavaScript
-    secure: process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_Site_URL?.startsWith("https") || false, // ใช้ HTTPS เฉพาะถ้า URL เป็น https
+    secure: process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https") || false, // ใช้ HTTPS เฉพาะถ้า URL เป็น https
     sameSite: "lax", // ป้องกัน CSRF
     maxAge: COOKIE_MAX_AGE,
     path: "/",
@@ -25,7 +25,7 @@ export function setAuthCookie(res: NextApiResponse, token: string) {
 export function removeAuthCookie(res: NextApiResponse) {
   const cookie = serialize(AUTH_COOKIE_NAME, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_Site_URL?.startsWith("https") || false,
+    secure: process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https") || false,
     sameSite: "lax",
     maxAge: 0, // ลบทันที
     path: "/",
