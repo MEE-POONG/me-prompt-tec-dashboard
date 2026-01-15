@@ -15,7 +15,11 @@ export default async function handler(
 
   const { username, password } = req.body;
 
+  // Log for debugging (remove in production if needed)
+  console.log('Login attempt:', { username, hasPassword: !!password });
+
   if (!username || !password) {
+    console.log('Login failed: Missing credentials');
     return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบถ้วน" });
   }
 
