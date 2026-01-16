@@ -37,7 +37,15 @@ export default async function handler(
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
+    console.log('Upload API called');
+    console.log('Environment check:', {
+      hasAccountId: !!accountId,
+      hasApiToken: !!apiToken,
+      accountIdLength: accountId?.length,
+    });
+
     if (!accountId || !apiToken) {
+      console.error('Missing Cloudflare credentials');
       return res.status(500).json({
         error: "Cloudflare credentials not configured",
         message: "Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in .env"
@@ -45,13 +53,30 @@ export default async function handler(
     }
 
     // Parse form data with formidable
-    const form = formidable({ multiples: false });
+    // กำหนด uploadDir สำหรับ Docker environment
+    const uploadDir = process.env.UPLOAD_DIR || '/tmp';
+    console.log('Using upload directory:', uploadDir);
 
+    const form = formidable({
+      multiples: false,
+      uploadDir: uploadDir,
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+    });
+
+    console.log('Parsing form data...');
     const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>(
       (resolve, reject) => {
         form.parse(req, (err, fields, files) => {
-          if (err) reject(err);
-          else resolve([fields, files]);
+          if (err) {
+            console.error('Form parse error:', err);
+            reject(err);
+          } else {
+            console.log('Form parsed successfully');
+            console.log('Fields:', Object.keys(fields));
+            console.log('Files:', Object.keys(files));
+            resolve([fields, files]);
+          }
         });
       }
     );
@@ -59,10 +84,17 @@ export default async function handler(
     // ดึงข้อมูลไฟล์
     const fileArray = files.file;
     if (!fileArray || fileArray.length === 0) {
+      console.error('No file in upload request');
       return res.status(400).json({ error: "No file uploaded" });
     }
 
     const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+    console.log('File info:', {
+      filename: file.originalFilename,
+      size: file.size,
+      mimetype: file.mimetype,
+      filepath: file.filepath
+    });
 
     // Metadata จาก form
     const relatedType = fields.relatedType ? String(fields.relatedType[0]) : null;
@@ -71,7 +103,9 @@ export default async function handler(
     const tags = fields.tags ? JSON.parse(String(fields.tags[0])) : [];
 
     // อ่านไฟล์เป็น Buffer
+    console.log('Reading file buffer...');
     const fileBuffer = fs.readFileSync(file.filepath);
+    console.log('File buffer size:', fileBuffer.length);
 
     // สร้าง FormData สำหรับส่งไปยัง Cloudflare
     const formData = new FormData();
@@ -80,6 +114,7 @@ export default async function handler(
 
     // อัพโหลดไปยัง Cloudflare Images
     const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
+    console.log('Uploading to Cloudflare...');
 
     const cloudflareResponse = await fetch(uploadUrl, {
       method: "POST",
@@ -88,6 +123,8 @@ export default async function handler(
       },
       body: formData,
     });
+
+    console.log('Cloudflare response status:', cloudflareResponse.status);
 
     if (!cloudflareResponse.ok) {
       const errorData = await cloudflareResponse.json();
