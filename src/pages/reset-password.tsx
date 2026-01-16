@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 import { Lock, CheckCircle2, AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
@@ -90,8 +91,13 @@ export default function ResetPasswordPage() {
 
     if (!token) {
         return (
-            <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center px-4">
-                <div className="text-center">
+            <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-indigo-100 flex items-center justify-center px-4 relative overflow-hidden">
+                {/* Animated Gradient Blobs */}
+                <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+
+                <div className="text-center relative z-10">
                     <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
                     <h1 className="text-2xl font-bold text-slate-800 mb-2">
                         ลิงก์ไม่ถูกต้อง
@@ -101,134 +107,175 @@ export default function ResetPasswordPage() {
                     </p>
                     <Link
                         href="/login"
-                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                     >
                         <ArrowLeft size={20} />
                         กลับไปหน้าเข้าสู่ระบบ
                     </Link>
                 </div>
+
+                <style jsx>{`
+          @keyframes blob {
+            0%, 100% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+          }
+          .animate-blob {
+            animation: blob 4s infinite;
+          }
+          .animation-delay-2000 {
+            animation-delay: 2s;
+          }
+          .animation-delay-4000 {
+            animation-delay: 2.5s;
+          }
+        `}</style>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#f8f9fc] py-8 px-4 relative overflow-hidden font-sans">
-            {/* Background Aurora */}
-            <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[120px] mix-blend-multiply"></div>
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-pink-200/30 rounded-full blur-[120px] mix-blend-multiply"></div>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Enhanced Animated Gradient Blobs */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+            <div className="absolute top-1/2 left-1/4 w-80 h-80 bg-gradient-to-br from-violet-400 to-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-6000"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-cyan-400 to-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-blob animation-delay-3000"></div>
 
-            <div className="max-w-md mx-auto relative z-10">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex p-4 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl text-white shadow-lg shadow-purple-500/30 mb-4">
-                        <Lock size={40} strokeWidth={1.5} />
-                    </div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                        ตั้งรหัสผ่านใหม่
-                    </h1>
-                    <p className="text-slate-500 font-medium">
-                        กรุณากรอกรหัสผ่านใหม่ของคุณ
-                    </p>
-                </div>
+            <div className="w-full max-w-md relative z-10">
+                {/* Reset Password Card */}
+                <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                    {/* Logo & Branding Section */}
+                    <div className="bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 px-8 py-10 text-center relative overflow-hidden">
+                        {/* Decorative circles */}
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
 
-                {/* Form Card */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/60 overflow-hidden p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* New Password */}
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                รหัสผ่านใหม่ <span className="text-red-500">*</span>
-                            </label>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <Lock size={18} />
+                        <div className="relative z-10">
+                            {/* Logo */}
+                            <div className="inline-block mb-5">
+                                <div className="relative w-20 h-20 bg-white rounded-2xl p-3 shadow-xl">
+                                    <Image
+                                        src="/img/logo/Artboard 1.png"
+                                        alt="ME PROMPT Logo"
+                                        fill
+                                        className="object-contain"
+                                    />
                                 </div>
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    required
-                                    className="w-full pl-12 pr-12 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-400 bg-white font-medium"
-                                    placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
                             </div>
-                        </div>
 
-                        {/* Confirm Password */}
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                ยืนยันรหัสผ่านใหม่ <span className="text-red-500">*</span>
-                            </label>
-                            <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <Lock size={18} />
-                                </div>
-                                <input
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    required
-                                    className="w-full pl-12 pr-12 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-400 bg-white font-medium"
-                                    placeholder="กรอกรหัสผ่านอีกครั้ง"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                >
-                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Password Requirements */}
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                            <p className="text-xs font-bold text-blue-800 mb-2">
-                                ข้อกำหนดรหัสผ่าน:
+                            {/* Title */}
+                            <h1 className="text-3xl font-black text-white mb-2 tracking-tight">
+                                ตั้งรหัสผ่านใหม่
+                            </h1>
+                            <p className="text-white/90 text-sm font-medium">
+                                กรุณากรอกรหัสผ่านใหม่ของคุณ
                             </p>
-                            <ul className="text-xs text-blue-700 space-y-1">
-                                <li className="flex items-center gap-2">
-                                    <CheckCircle2 size={14} className={newPassword.length >= 6 ? "text-green-600" : "text-slate-400"} />
-                                    อย่างน้อย 6 ตัวอักษร
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <CheckCircle2 size={14} className={newPassword === confirmPassword && newPassword ? "text-green-600" : "text-slate-400"} />
-                                    รหัสผ่านตรงกัน
-                                </li>
-                            </ul>
                         </div>
+                    </div>
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-xl hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                        >
-                            {isSubmitting ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
-                        </button>
+                    {/* Form Section */}
+                    <div className="p-8">
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {/* New Password */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    รหัสผ่านใหม่ <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        required
+                                        className="block w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-medium"
+                                        placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
 
-                        {/* Back to Login */}
-                        <div className="text-center pt-4">
-                            <Link
-                                href="/login"
-                                className="inline-flex items-center gap-2 text-slate-600 hover:text-purple-600 font-medium text-sm transition-colors"
+                            {/* Confirm Password */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    ยืนยันรหัสผ่านใหม่ <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                        className="block w-full pl-11 pr-11 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-medium"
+                                        placeholder="กรอกรหัสผ่านอีกครั้ง"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Password Requirements */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                <p className="text-xs font-bold text-blue-800 mb-2">
+                                    ข้อกำหนดรหัสผ่าน:
+                                </p>
+                                <ul className="text-xs text-blue-700 space-y-1">
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className={newPassword.length >= 6 ? "text-green-600" : "text-gray-400"} />
+                                        อย่างน้อย 6 ตัวอักษร
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className={newPassword === confirmPassword && newPassword ? "text-green-600" : "text-gray-400"} />
+                                        รหัสผ่านตรงกัน
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3.5 px-4 rounded-xl font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
-                                <ArrowLeft size={16} />
-                                กลับไปหน้าเข้าสู่ระบบ
-                            </Link>
-                        </div>
-                    </form>
+                                {isSubmitting ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
+                            </button>
+
+                            {/* Back to Login */}
+                            <div className="text-center pt-4">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center gap-2 text-gray-600 hover:text-purple-600 font-semibold text-sm transition-colors"
+                                >
+                                    <ArrowLeft size={16} />
+                                    กลับไปหน้าเข้าสู่ระบบ
+                                </Link>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+
+                {/* Footer */}
+                <p className="text-center text-sm text-gray-600 mt-6">
+                    © 2026 ME PROMPT Technology. All rights reserved.
+                </p>
             </div>
 
             {/* Modals */}
@@ -245,6 +292,38 @@ export default function ResetPasswordPage() {
                 description={errorModal.description}
                 onClose={() => setErrorModal({ ...errorModal, open: false })}
             />
+
+            <style jsx>{`
+        @keyframes blob {
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+        }
+        .animate-blob {
+          animation: blob 4s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-3000 {
+          animation-delay: 1.5s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 2.5s;
+        }
+        .animation-delay-6000 {
+          animation-delay: 3s;
+        }
+      `}</style>
         </div>
     );
 }
