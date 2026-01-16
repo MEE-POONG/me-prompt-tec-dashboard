@@ -1,20 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, Briefcase, GraduationCap, Building2, ArrowUpRight } from 'lucide-react';
+import { Users, Briefcase, GraduationCap, Building2, ArrowUpRight, TrendingUp, Eye } from 'lucide-react';
 
 export default function DashboardStats() {
   const [counts, setCounts] = useState({
     projects: 0, members: 0, interns: 0, partners: 0
   });
+  const [analytics, setAnalytics] = useState({
+    totalViews: 0,
+    growth: '0',
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
-      const [resProject, resMember, resIntern, resPartner] = await Promise.all([
-        fetch('/api/project'), 
+      const [resProject, resMember, resIntern, resPartner, resAnalytics] = await Promise.all([
+        fetch('/api/project'),
         fetch('/api/member'),
         fetch('/api/intern'),
-        fetch('/api/partners')
+        fetch('/api/partners'),
+        fetch('/api/analytics/stats?period=30')
       ]);
 
       const getCount = (data: any) => {
@@ -28,12 +33,18 @@ export default function DashboardStats() {
       const dataMember = resMember.ok ? await resMember.json() : [];
       const dataIntern = resIntern.ok ? await resIntern.json() : [];
       const dataPartner = resPartner.ok ? await resPartner.json() : [];
+      const dataAnalytics = resAnalytics.ok ? await resAnalytics.json() : { totalViews: 0, growth: '0' };
 
       setCounts({
         projects: getCount(dataProject),
         members: getCount(dataMember),
         interns: getCount(dataIntern),
         partners: getCount(dataPartner),
+      });
+
+      setAnalytics({
+        totalViews: dataAnalytics.totalViews || 0,
+        growth: dataAnalytics.growth || '0',
       });
 
     } catch (error) {
@@ -51,6 +62,19 @@ export default function DashboardStats() {
 
   // Config การ์ดแต่ละใบ (ลบ ringColor ออกแล้ว)
   const stats = [
+    {
+      label: "Website Traffic",
+      sub: "สถิติเว็บไซต์ (Traffic)",
+      value: analytics.totalViews,
+      unit: "views",
+      growth: analytics.growth,
+      icon: <Eye size={28} />,
+      link: "#",
+      textGradient: "from-emerald-600 to-teal-500",
+      iconBg: "bg-emerald-100 text-emerald-600",
+      glowColor: "group-hover:shadow-emerald-500/20",
+      showGrowth: true,
+    },
     {
       label: "Portfolio",
       sub: "จัดการโปรเจกต์",
@@ -94,7 +118,7 @@ export default function DashboardStats() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       {stats.map((stat, index) => (
         <Link key={index} href={stat.link}>
           {/* ลบ hover:ring-2 และ ${stat.ringColor} ออกจาก className */}
@@ -105,36 +129,36 @@ export default function DashboardStats() {
              shadow-[0_8px_30px_rgb(0,0,0,0.04)]
              ${stat.glowColor} hover:shadow-2xl
           `}>
-            
+
             {/* Header: Icon & Arrow */}
             <div className="flex justify-between items-start mb-6">
-               <div className={`
+              <div className={`
                   p-3.5 rounded-2xl ${stat.iconBg} shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3
                `}>
-                  {stat.icon}
-               </div>
-               <div className="p-2 rounded-full bg-white text-gray-300 shadow-sm opacity-50 group-hover:opacity-100 group-hover:text-gray-600 transition-all">
-                  <ArrowUpRight size={20} />
-               </div>
+                {stat.icon}
+              </div>
+              <div className="p-2 rounded-full bg-white text-gray-300 shadow-sm opacity-50 group-hover:opacity-100 group-hover:text-gray-600 transition-all">
+                <ArrowUpRight size={20} />
+              </div>
             </div>
 
             {/* Content: Numbers (Gradient) */}
             <div className="space-y-1">
-               <div className="h-12 flex items-baseline gap-2">
-                 {isLoading ? (
-                    <div className="h-8 w-20 bg-gray-200/50 rounded-lg animate-pulse"></div>
-                 ) : (
-                    <>
-                        <h3 className={`text-5xl font-black tracking-tight bg-linear-to-r ${stat.textGradient} bg-clip-text text-transparent`}>
-                            {stat.value}
-                        </h3>
-                        <span className="text-sm font-bold text-gray-400 mb-1">{stat.unit}</span>
-                    </>
-                 )}
-               </div>
-               
-               <h4 className="text-lg font-bold text-gray-700">{stat.label}</h4>
-               <p className="text-xs text-gray-400 font-medium">{stat.sub}</p>
+              <div className="h-12 flex items-baseline gap-2">
+                {isLoading ? (
+                  <div className="h-8 w-20 bg-gray-200/50 rounded-lg animate-pulse"></div>
+                ) : (
+                  <>
+                    <h3 className={`text-5xl font-black tracking-tight bg-linear-to-r ${stat.textGradient} bg-clip-text text-transparent`}>
+                      {stat.value}
+                    </h3>
+                    <span className="text-sm font-bold text-gray-400 mb-1">{stat.unit}</span>
+                  </>
+                )}
+              </div>
+
+              <h4 className="text-lg font-bold text-gray-700">{stat.label}</h4>
+              <p className="text-xs text-gray-400 font-medium">{stat.sub}</p>
             </div>
 
             {/* Decorative Glow (แสงฟุ้งด้านหลังการ์ดเวลา Hover) */}

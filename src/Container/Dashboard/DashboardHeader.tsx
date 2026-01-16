@@ -210,8 +210,8 @@ export default function DashboardHeader() {
           <div className="relative">
             <button
               className={`relative p-3 rounded-2xl transition-all duration-300 border ${isOpen
-                  ? "bg-violet-50 text-violet-600 border-violet-200"
-                  : "bg-white text-slate-400 border-white hover:border-violet-100 hover:text-violet-600 hover:shadow-md"
+                ? "bg-violet-50 text-violet-600 border-violet-200"
+                : "bg-white text-slate-400 border-white hover:border-violet-100 hover:text-violet-600 hover:shadow-md"
                 }`}
               onClick={() => setIsOpen(!isOpen)}
             >
@@ -288,11 +288,6 @@ export default function DashboardHeader() {
 
           {/* Buttons Group */}
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-5 py-3 rounded-2xl text-sm font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hover:shadow-md">
-              <Download size={18} />
-              <span className="hidden sm:inline">Download Report</span>
-            </button>
-
             <Link href="/project_create">
               <button className="flex items-center gap-2 bg-violet-600 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-violet-700 transition-all shadow-lg shadow-violet-600/30 hover:-translate-y-1">
                 <Plus size={18} />

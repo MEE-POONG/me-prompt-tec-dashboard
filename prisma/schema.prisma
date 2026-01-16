@@ -206,6 +206,23 @@ model User {
   @@index([role])
 }
 
+// Analytics Model - Track page views from main website
+model PageView {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId     String   // Unique session identifier
+  ipAddress     String?  // User IP (optional for privacy)
+  userAgent     String?  // Browser/device info
+  page          String   // Page URL visited
+  referrer      String?  // Where they came from
+  country       String?  // Geolocation (optional)
+  createdAt     DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([sessionId])
+  @@map("pageviews")
+}
+
+
 // singleton โปรไฟล์บริษัท
 model Company {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
