@@ -56,7 +56,7 @@ export default async function handler(
         });
 
         // Process daily data
-        const dailyStats = viewsByDay.reduce((acc: any, item) => {
+        const dailyStats = viewsByDay.reduce((acc: Record<string, number>, item: any) => {
             const date = new Date(item.createdAt).toISOString().split("T")[0];
             if (!acc[date]) {
                 acc[date] = 0;
@@ -110,7 +110,7 @@ export default async function handler(
                 date,
                 count,
             })),
-            topPages: topPages.map((p) => ({
+            topPages: topPages.map((p: any) => ({
                 page: p.page,
                 views: p._count.id,
             })),
