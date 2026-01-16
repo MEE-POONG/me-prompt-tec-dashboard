@@ -119,6 +119,14 @@ export default async function handler(
         });
     } catch (error) {
         console.error("Analytics stats error:", error);
-        return res.status(500).json({ error: "Failed to fetch analytics" });
+        // Return empty data instead of error to prevent UI crash
+        return res.status(200).json({
+            totalViews: 0,
+            uniqueVisitors: 0,
+            viewsByDay: [],
+            topPages: [],
+            growth: '0',
+            period: parseInt(req.query.period as string || "30"),
+        });
     }
 }

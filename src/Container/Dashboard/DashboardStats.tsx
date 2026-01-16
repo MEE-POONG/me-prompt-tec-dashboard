@@ -19,7 +19,7 @@ export default function DashboardStats() {
         fetch('/api/member'),
         fetch('/api/intern'),
         fetch('/api/partners'),
-        fetch('/api/analytics/stats?period=30')
+        fetch('/api/analytics/stats?period=30').catch(() => null) // Don't fail if analytics API fails
       ]);
 
       const getCount = (data: any) => {
@@ -33,7 +33,17 @@ export default function DashboardStats() {
       const dataMember = resMember.ok ? await resMember.json() : [];
       const dataIntern = resIntern.ok ? await resIntern.json() : [];
       const dataPartner = resPartner.ok ? await resPartner.json() : [];
-      const dataAnalytics = resAnalytics.ok ? await resAnalytics.json() : { totalViews: 0, growth: '0' };
+
+      // Handle analytics data safely
+      let dataAnalytics = { totalViews: 0, growth: '0' };
+      if (resAnalytics && resAnalytics.ok) {
+        try {
+          const text = await resAnalytics.text();
+          dataAnalytics = text ? JSON.parse(text) : { totalViews: 0, growth: '0' };
+        } catch (e) {
+          console.log('Analytics API not ready yet');
+        }
+      }
 
       setCounts({
         projects: getCount(dataProject),
