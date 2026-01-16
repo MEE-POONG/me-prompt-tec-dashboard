@@ -24,7 +24,7 @@ type UserProfile = {
   phone: string | null;
   position: string | null;
   role: string | null;
-  isVerified: boolean;
+  emailVerified: boolean;
   avatar?: string | null;
 };
 
@@ -34,6 +34,8 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [sendingResetEmail, setSendingResetEmail] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -264,6 +266,38 @@ export default function ProfilePage() {
         message: "เกิดข้อผิดพลาด",
         description: error.message || "ไม่สามารถเปลี่ยนรหัสผ่านได้",
       });
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      setSendingResetEmail(true);
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "ส่งอีเมลไม่สำเร็จ");
+
+      setShowPasswordModal(false);
+      setShowForgotPasswordModal(false);
+      setSuccessModal({
+        open: true,
+        message: "ส่งอีเมลสำเร็จ!",
+        description: "กรุณาตรวจสอบอีเมลของคุณเพื่อรีเซ็ตรหัสผ่าน",
+      });
+    } catch (err) {
+      setErrorModal({
+        open: true,
+        message: "เกิดข้อผิดพลาด",
+        description: err instanceof Error ? err.message : "ไม่สามารถส่งอีเมลได้",
+      });
+    } finally {
+      setSendingResetEmail(false);
     }
   };
 
@@ -554,7 +588,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-slate-400 mt-1">
                     {(profile?.role || "viewer").toUpperCase()}
                   </p>
-                  {profile?.isVerified ? (
+                  {profile?.emailVerified ? (
                     <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
                       ✔ อีเมลยืนยันแล้ว
                     </span>
@@ -690,6 +724,16 @@ export default function ProfilePage() {
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
                     placeholder="กรอกรหัสผ่านปัจจุบัน"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setShowForgotPasswordModal(true);
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-medium mt-1"
+                  >
+                    ลืมรหัสผ่านปัจจุบัน?
+                  </button>
                 </div>
 
                 <div>
@@ -745,13 +789,68 @@ export default function ProfilePage() {
                   <button
                     onClick={handlePasswordChange}
                     disabled={isUploading}
-                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${
-                      isUploading
-                        ? "bg-purple-400 cursor-not-allowed"
-                        : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
-                    } text-white`}
+                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${isUploading
+                      ? "bg-purple-400 cursor-not-allowed"
+                      : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
+                      } text-white`}
                   >
                     {isUploading ? "กำลังอัปโหลดรูป..." : "บันทึก"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Forgot Password Modal */}
+        {showForgotPasswordModal && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Mail size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold">ลืมรหัสผ่าน?</h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowForgotPasswordModal(false);
+                      setShowPasswordModal(true);
+                    }}
+                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <p className="text-slate-600 mb-6">
+                  เราจะส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณ:{" "}
+                  <strong>{formData.email}</strong>
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowForgotPasswordModal(false);
+                      setShowPasswordModal(true);
+                    }}
+                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold hover:bg-slate-50 transition-all"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleForgotPassword}
+                    disabled={sendingResetEmail}
+                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${sendingResetEmail
+                        ? "bg-purple-400 cursor-not-allowed"
+                        : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
+                      } text-white`}
+                  >
+                    {sendingResetEmail ? "กำลังส่ง..." : "ส่งอีเมล"}
                   </button>
                 </div>
               </div>

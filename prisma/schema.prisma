@@ -179,6 +179,8 @@ model User {
   verifyToken  String?
   tokenExpire  DateTime?
   isVerified   Boolean   @default(false)
+  resetToken   String?
+  resetTokenExpire DateTime?
 
   name     String? // ชื่อ-นามสกุล (ใช้แทน fullName)
   phone    String? // เบอร์โทร
