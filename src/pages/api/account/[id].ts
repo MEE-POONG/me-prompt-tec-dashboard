@@ -51,8 +51,8 @@ async function handleGet(id: string, res: NextApiResponse) {
     position: user.position,
     role: user.role,
     isActive: user.isActive,
-    emailVerified: user.isVerified,   // 👈 ใช้ตรงนี้
-    avatar: user.avatar,              // 👈 เพิ่ม avatar
+    isVerified: user.isVerified,
+    avatar: user.avatar,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     password: "",

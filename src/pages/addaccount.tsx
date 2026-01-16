@@ -66,7 +66,7 @@ export default function AddOrEditAccount() {
             setPosition(data.position || "");
             setRole(data.role || "viewer");
             setIsActive(data.isActive ?? false);
-            setEmailVerified(data.emailVerified ?? false);
+            setEmailVerified(data.isVerified ?? false);
           } else {
             console.error("User not found");
             router.push("/account");
@@ -396,18 +396,16 @@ export default function AddOrEditAccount() {
                 {/* Active Status */}
                 <div className="md:col-span-2">
                   <label
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      isActive
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${isActive
                         ? "border-green-500 bg-green-50"
                         : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
+                      }`}
                   >
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        isActive
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isActive
                           ? "bg-green-500 border-green-500"
                           : "border-slate-300 bg-white"
-                      }`}
+                        }`}
                     >
                       {isActive && (
                         <CheckCircle2 size={16} className="text-white" />
@@ -421,9 +419,8 @@ export default function AddOrEditAccount() {
                     />
                     <div>
                       <span
-                        className={`block text-sm font-bold ${
-                          isActive ? "text-green-700" : "text-slate-700"
-                        }`}
+                        className={`block text-sm font-bold ${isActive ? "text-green-700" : "text-slate-700"
+                          }`}
                       >
                         เปิดใช้งานบัญชี (Active)
                       </span>
@@ -450,11 +447,10 @@ export default function AddOrEditAccount() {
                 type="submit"
                 disabled={isSubmitting}
                 className={`px-10 py-3.5 rounded-2xl text-white font-bold shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed
-                        ${
-                          isEditMode
-                            ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30"
-                            : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"
-                        }
+                        ${isEditMode
+                    ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30"
+                    : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/30"
+                  }
                     `}
               >
                 {isSubmitting ? (
@@ -465,8 +461,8 @@ export default function AddOrEditAccount() {
                 {isSubmitting
                   ? "กำลังบันทึก..."
                   : isEditMode
-                  ? "บันทึกการแก้ไข"
-                  : "สร้างบัญชี"}
+                    ? "บันทึกการแก้ไข"
+                    : "สร้างบัญชี"}
               </button>
             </div>
           </form>
