@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+
 // -------------------------------------------------------------------
 // API Handler
 // -------------------------------------------------------------------
@@ -41,10 +42,10 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     if (keyword && keyword.trim() !== "") {
       const key = keyword.trim();
       where.OR = [
-        { name: { contains: keyword, mode: "insensitive" } },
-        { email: { contains: keyword, mode: "insensitive" } },
-        { position: { contains: keyword, mode: "insensitive" } },
-        { phone: { contains: keyword, mode: "insensitive" } },
+        { name: { contains: key, mode: "insensitive" } },
+        { email: { contains: key, mode: "insensitive" } },
+        { position: { contains: key, mode: "insensitive" } },
+        { phone: { contains: key, mode: "insensitive" } },
       ];
     }
 
@@ -60,10 +61,18 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         role: true,
         isVerified: true,
         isActive: true,
+        avatar: true,
       },
     });
 
-    return res.status(200).json(users);
+    // Ensure isVerified and isActive are explicitly boolean
+    const transformedUsers = users.map((user: any) => ({
+      ...user,
+      isVerified: !!user.isVerified,
+      isActive: !!user.isActive,
+    }));
+
+    return res.status(200).json(transformedUsers);
   } catch (error: any) {
     if (error.message === "UNAUTHORIZED") {
       return res.status(401).json({

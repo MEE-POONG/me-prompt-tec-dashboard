@@ -117,6 +117,8 @@ export default function ProfilePage() {
         avatar: avatarFromApi,
       });
       setAvatarUrl(avatarFromApi);
+      // Ensure we have the latest data including isVerified
+      setProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
       setErrorModal({
@@ -592,13 +594,13 @@ export default function ProfilePage() {
                   <p className="text-sm text-slate-400 mt-1">
                     {(profile?.role || "viewer").toUpperCase()}
                   </p>
-                  {profile?.isVerified === true ? (
-                    <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
+                  {profile?.isVerified ? (
+                    <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100 shadow-xs">
                       ✔ ยืนยันแล้ว
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100">
-                      ✖ ยังไม่ยืนยันอีเมล {String(profile?.isVerified)}
+                    <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100 shadow-xs">
+                      ✖ ยังไม่ยืนยันอีเมล
                     </span>
                   )}
                 </div>

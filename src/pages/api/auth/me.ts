@@ -44,7 +44,7 @@ export default async function handler(
 
     // ดึงข้อมูล User จาก database
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: (payload as any).userId },
       select: {
         id: true,
         email: true,
@@ -53,6 +53,7 @@ export default async function handler(
         position: true,
         phone: true,
         isActive: true,
+        isVerified: true,
       }
     });
 
@@ -72,7 +73,11 @@ export default async function handler(
 
     return res.status(200).json({
       success: true,
-      user
+      user: {
+        ...user,
+        isVerified: !!user.isVerified,
+        isActive: !!user.isActive,
+      }
     });
 
   } catch (error) {
