@@ -66,7 +66,12 @@ export default function WorkList({
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/workspace/board");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch("/api/workspace/board", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -111,8 +116,12 @@ export default function WorkList({
     if (!confirm("คุณต้องการลบโปรเจกต์นี้ใช่หรือไม่?")) return;
 
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch(`/api/workspace/board/${id}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (res.ok) {
         setProjects((prev) => prev.filter((p) => p.id !== id));
@@ -204,9 +213,13 @@ export default function WorkList({
     };
 
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch(`/api/workspace/board/${editingProject.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(updatedData),
       });
 
@@ -231,9 +244,8 @@ export default function WorkList({
 
     return (
       <div
-        className={`relative group block h-full transition-all duration-200 ${
-          activeDropdownId === project.id ? "z-50" : "z-0"
-        }`}
+        className={`relative group block h-full transition-all duration-200 ${activeDropdownId === project.id ? "z-50" : "z-0"
+          }`}
       >
         <div
           className="absolute inset-0 z-0 cursor-pointer"
@@ -251,18 +263,16 @@ export default function WorkList({
         />
 
         <div
-          className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all h-full relative z-10 pointer-events-none ${
-            viewType === "grid"
+          className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
               ? "flex flex-col"
               : "flex flex-row items-center gap-6"
-          }`}
+            }`}
         >
           <div
-            className={`flex ${
-              viewType === "grid"
+            className={`flex ${viewType === "grid"
                 ? "justify-between items-start mb-4 w-full"
                 : "items-center gap-4 flex-1"
-            }`}
+              }`}
           >
             {/* --- ส่วนแสดงผล Grid View --- */}
             {viewType === "grid" ? (
@@ -468,11 +478,10 @@ export default function WorkList({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id
                   ? "bg-white text-blue-600 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-              }`}
+                }`}
             >
               <tab.icon size={16} />
               {tab.label}
@@ -485,8 +494,8 @@ export default function WorkList({
             {activeTab === "all"
               ? "All Projects"
               : activeTab === "my"
-              ? "My Projects"
-              : "Joined Projects"}{" "}
+                ? "My Projects"
+                : "Joined Projects"}{" "}
             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
               {filteredProjects.length}
             </span>
@@ -506,11 +515,10 @@ export default function WorkList({
             {activeTab !== "joined" && !selectedDate && (
               <Link href="/workspace/add" className="block h-full">
                 <div
-                  className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${
-                    viewType === "grid"
+                  className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${viewType === "grid"
                       ? "flex-col justify-center min-h-[220px]"
                       : "flex-row gap-4 min-h-[100px]"
-                  }`}
+                    }`}
                 >
                   <div className="rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors w-12 h-12 mb-3">
                     <Plus size={24} className="group-hover:text-blue-600" />
@@ -609,13 +617,11 @@ export default function WorkList({
                 >
                   <button
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${
-                      isSelected
+                    className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isSelected
                         ? "bg-blue-600 text-white shadow-lg"
                         : "hover:bg-gray-100"
-                    } ${
-                      hasEvent && !isSelected ? "font-bold text-blue-600" : ""
-                    }`}
+                      } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""
+                      }`}
                   >
                     {day}
                   </button>
