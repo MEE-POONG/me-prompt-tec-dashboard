@@ -15,7 +15,12 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
 
   const fetchWorkspaces = async () => {
-    const res = await fetch("/api/workspace/board");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const res = await fetch("/api/workspace/board", {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     const data = await res.json();
 
     console.log("🔥 FRONTEND DATA:", data);

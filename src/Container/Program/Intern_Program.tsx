@@ -32,7 +32,12 @@ export default function ManageInternship() {
   const fetchPositions = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/positions"); // ดึงข้อมูลจาก API จริง
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch("/api/positions", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }); // ดึงข้อมูลจาก API จริง
       const data = await res.json();
       setPositions(data);
     } catch (error) {
@@ -45,7 +50,7 @@ export default function ManageInternship() {
   // --- Functions เปิด Modal ---
   const openAddModal = () => {
     setCurrentId(null);
-    setFormData({ title: "", description: "", isOpen: true });  
+    setFormData({ title: "", description: "", isOpen: true });
     setIsModalOpen(true);
   };
 
@@ -62,33 +67,41 @@ export default function ManageInternship() {
   // --- 2. Save (บันทึกลง Database) ---
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (currentId) {
         // --- แก้ไข (Update) ---
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const res = await fetch(`/api/positions/${currentId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        
-        if (res.ok) {
-           const updatedItem = await res.json();
-           setPositions((prev) => 
-             prev.map((item) => (item.id === currentId ? updatedItem : item))
-           );
-        }
-      } else {
-        // --- เพิ่มใหม่ (Create) ---
-        const res = await fetch("/api/positions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(formData),
         });
 
         if (res.ok) {
-            const newItem = await res.json();
-            setPositions([newItem, ...positions]); // เพิ่มตัวใหม่ไว้บนสุด
+          const updatedItem = await res.json();
+          setPositions((prev) =>
+            prev.map((item) => (item.id === currentId ? updatedItem : item))
+          );
+        }
+      } else {
+        // --- เพิ่มใหม่ (Create) ---
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const res = await fetch("/api/positions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          const newItem = await res.json();
+          setPositions([newItem, ...positions]); // เพิ่มตัวใหม่ไว้บนสุด
         }
       }
       setIsModalOpen(false);
@@ -102,12 +115,16 @@ export default function ManageInternship() {
   const handleDelete = async (id: string) => {
     if (confirm("ต้องการลบตำแหน่งงานนี้ใช่หรือไม่?")) {
       try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const res = await fetch(`/api/positions/${id}`, {
           method: "DELETE",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
 
         if (res.ok) {
-            setPositions((prev) => prev.filter((item) => item.id !== id));
+          setPositions((prev) => prev.filter((item) => item.id !== id));
         }
       } catch (error) {
         console.error("Error deleting:", error);
@@ -118,7 +135,7 @@ export default function ManageInternship() {
   // --- 4. Toggle Status (เปิด/ปิดรับสมัคร) ---
   const toggleStatus = async (position: Position) => {
     const newStatus = !position.isOpen;
-    
+
     // อัปเดตหน้าจอทันที (Optimistic Update)
     setPositions((prev) =>
       prev.map((item) =>
@@ -127,20 +144,24 @@ export default function ManageInternship() {
     );
 
     try {
-        // ส่งค่าไปอัปเดต Database
-        await fetch(`/api/positions/${position.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...position, isOpen: newStatus }),
-        });
+      // ส่งค่าไปอัปเดต Database
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`/api/positions/${position.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ ...position, isOpen: newStatus }),
+      });
     } catch (error) {
-        console.error("Error toggling:", error);
-        // ถ้า Error ให้เปลี่ยนค่ากลับ
-        setPositions((prev) =>
-            prev.map((item) =>
-              item.id === position.id ? { ...item, isOpen: !newStatus } : item
-            )
-          );
+      console.error("Error toggling:", error);
+      // ถ้า Error ให้เปลี่ยนค่ากลับ
+      setPositions((prev) =>
+        prev.map((item) =>
+          item.id === position.id ? { ...item, isOpen: !newStatus } : item
+        )
+      );
     }
   };
 
@@ -168,13 +189,13 @@ export default function ManageInternship() {
 
         {/* List of Positions */}
         <div className="w-full max-w-4xl space-y-4">
-            
+
           {/* Loading State */}
           {isLoading ? (
-             <div className="text-center py-10 flex flex-col items-center justify-center text-gray-400">
-                <Loader2 className="animate-spin h-8 w-8 mb-2 text-blue-500" />
-                กำลังโหลดข้อมูล...
-             </div>
+            <div className="text-center py-10 flex flex-col items-center justify-center text-gray-400">
+              <Loader2 className="animate-spin h-8 w-8 mb-2 text-blue-500" />
+              กำลังโหลดข้อมูล...
+            </div>
           ) : positions.length === 0 ? (
             <div className="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
               ยังไม่มีตำแหน่งงานในระบบ
@@ -183,11 +204,10 @@ export default function ManageInternship() {
             positions.map((position) => (
               <div
                 key={position.id}
-                className={`group bg-white rounded-xl p-6 shadow-sm border flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition-all ${
-                  position.isOpen
+                className={`group bg-white rounded-xl p-6 shadow-sm border flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition-all ${position.isOpen
                     ? "border-l-4 border-l-green-500 border-gray-200"
                     : "border-l-4 border-l-gray-300 border-gray-200 opacity-75"
-                }`}
+                  }`}
               >
                 {/* เนื้อหา */}
                 <div className="text-center md:text-left flex-1">
@@ -196,11 +216,10 @@ export default function ManageInternship() {
                       {position.title}
                     </h3>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        position.isOpen
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${position.isOpen
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-500"
-                      }`}
+                        }`}
                     >
                       {position.isOpen ? "เปิดรับสมัคร" : "ปิดรับชั่วคราว"}
                     </span>
@@ -210,21 +229,19 @@ export default function ManageInternship() {
 
                 {/* --- ส่วน Action & Toggle --- */}
                 <div className="flex items-center gap-4 md:gap-6 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 w-full md:w-auto justify-center md:justify-end">
-                  
+
                   {/* Toggle Switch */}
                   <div
                     className="flex flex-col items-center gap-1 cursor-pointer"
                     onClick={() => toggleStatus(position)}
                   >
                     <div
-                      className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ease-in-out flex items-center ${
-                        position.isOpen ? "bg-green-500" : "bg-gray-300"
-                      }`}
+                      className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ease-in-out flex items-center ${position.isOpen ? "bg-green-500" : "bg-gray-300"
+                        }`}
                     >
                       <div
-                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
-                          position.isOpen ? "translate-x-6" : "translate-x-0"
-                        }`}
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${position.isOpen ? "translate-x-6" : "translate-x-0"
+                          }`}
                       ></div>
                     </div>
                     <span className="text-[10px] text-gray-400 font-medium">
@@ -316,14 +333,12 @@ export default function ManageInternship() {
                     onClick={() =>
                       setFormData({ ...formData, isOpen: !formData.isOpen })
                     }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.isOpen ? "bg-green-500" : "bg-gray-300"
-                    }`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isOpen ? "bg-green-500" : "bg-gray-300"
+                      }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.isOpen ? "translate-x-6" : "translate-x-1"
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isOpen ? "translate-x-6" : "translate-x-1"
+                        }`}
                     />
                   </button>
                   <span className="text-sm text-gray-500">

@@ -14,13 +14,18 @@ interface UserData {
 export default function TestAuthPage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [testResults, setTestResults] = useState<{[key: string]: any}>({});
+  const [testResults, setTestResults] = useState<{ [key: string]: any }>({});
 
   // ดึงข้อมูล User ปัจจุบัน
   const fetchCurrentUser = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/auth/me");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch("/api/auth/me", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -43,7 +48,12 @@ export default function TestAuthPage() {
   // ทดสอบ API
   const testAPI = async (endpoint: string, name: string) => {
     try {
-      const response = await fetch(endpoint);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch(endpoint, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const data = await response.json();
 
       setTestResults(prev => ({
@@ -69,8 +79,12 @@ export default function TestAuthPage() {
   // Logout
   const handleLogout = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const response = await fetch("/api/auth/logout", {
         method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (response.ok) {
@@ -146,19 +160,17 @@ export default function TestAuthPage() {
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-sm text-slate-500">Role</p>
-                  <span className={`inline-block px-3 py-1 rounded-lg font-bold text-sm ${
-                    user.role === "admin" ? "bg-red-100 text-red-700" :
-                    user.role === "staff" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>
+                  <span className={`inline-block px-3 py-1 rounded-lg font-bold text-sm ${user.role === "admin" ? "bg-red-100 text-red-700" :
+                      user.role === "staff" ? "bg-blue-100 text-blue-700" :
+                        "bg-gray-100 text-gray-700"
+                    }`}>
                     {user.role.toUpperCase()}
                   </span>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-sm text-slate-500">Status</p>
-                  <span className={`inline-block px-3 py-1 rounded-lg font-bold text-sm ${
-                    user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                  }`}>
+                  <span className={`inline-block px-3 py-1 rounded-lg font-bold text-sm ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>
                     {user.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>

@@ -37,7 +37,12 @@ export default function NewsletterPage() {
       });
       if (search.trim()) params.set("search", search.trim());
 
-      const res = await fetch(`/api/newsletter?${params.toString()}`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/newsletter?${params.toString()}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const json = await res.json();
 
       if (json.success) {
@@ -70,8 +75,12 @@ export default function NewsletterPage() {
     if (!deleteId) return;
 
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch(`/api/newsletter?id=${deleteId}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const json = await res.json();
 

@@ -65,10 +65,12 @@ export default function AddWorkspacePage() {
         creator: JSON.parse(localStorage.getItem("user") || "{}"),
       };
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch("/api/workspace/board", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });

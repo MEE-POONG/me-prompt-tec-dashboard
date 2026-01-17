@@ -76,7 +76,12 @@ export default function Menu_Message_Section() {
       if (debouncedSearch) params.append("search", debouncedSearch);
       if (filterDate) params.append("date", filterDate);
 
-      const res = await fetch(`/api/contact/contacts?${params.toString()}`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/contact/contacts?${params.toString()}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
 
       const data = await res.json();
@@ -95,8 +100,13 @@ export default function Menu_Message_Section() {
     if (!msg || msg.status !== "new") return;
 
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       await fetch(`/api/contact/${id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ status: "in-progress" }),
       });
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: "in-progress" } : m)));
@@ -109,9 +119,13 @@ export default function Menu_Message_Section() {
     const newStatus = !currentMsg.isStarred;
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, isStarred: newStatus } : m)));
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch(`/api/contact/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ isStarred: newStatus }),
       });
       if (!res.ok) throw new Error("Failed to update star");
@@ -126,7 +140,13 @@ export default function Menu_Message_Section() {
   const handleDeleteConfirm = async () => {
     if (!deleteId) return;
     try {
-      await fetch(`/api/contact/${deleteId}`, { method: "DELETE" });
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`/api/contact/${deleteId}`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       setMessages((prev) => prev.filter((m) => m.id !== deleteId));
       if (selectedId === deleteId) setSelectedId(null);
       setShowDeleteModal(false); setShowSuccessModal(true); setDeleteId(null);

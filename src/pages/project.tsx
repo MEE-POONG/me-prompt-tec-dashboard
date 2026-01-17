@@ -34,7 +34,12 @@ export default function ProjectPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/project?limit=100");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch("/api/project?limit=100", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch projects");
@@ -65,8 +70,12 @@ export default function ProjectPage() {
     if (!deleteId) return;
 
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const response = await fetch(`/api/project/${deleteId}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) {

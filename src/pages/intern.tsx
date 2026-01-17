@@ -33,7 +33,12 @@ export default function InternPage() {
     setIsLoading(true);
     setInternList([]);
     try {
-      const response = await fetch(`/api/intern?limit=100&gen=${selectedGen}`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch(`/api/intern?limit=100&gen=${selectedGen}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const result = await response.json();
 
       if (response.ok) {
@@ -92,8 +97,16 @@ export default function InternPage() {
 
   const onConfirmDelete = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       await Promise.all(
-        selectedIds.map((id) => fetch(`/api/intern/${id}`, { method: "DELETE" }))
+        selectedIds.map((id) =>
+          fetch(`/api/intern/${id}`, {
+            method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          })
+        )
       );
       setSelectedIds([]);
       await fetchInterns();

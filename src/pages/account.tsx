@@ -26,9 +26,13 @@ export default function AccountPage() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const res = await fetch("/api/account/all", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           keyword: searchTerm,
         }),
@@ -55,7 +59,13 @@ export default function AccountPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/account/${id}`, { method: "DELETE" });
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/account/${id}`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (res.ok) {
         setAccounts((prev) => prev.filter((acc) => acc.id !== id));
         setShowDeleteModal(false);
@@ -168,13 +178,12 @@ export default function AccountPage() {
                         <td className="p-5 text-slate-500">{acc.email}</td>
                         <td className="p-5 text-center">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                              acc.role === "admin"
+                            className={`px-3 py-1 rounded-full text-xs font-bold border ${acc.role === "admin"
                                 ? "bg-purple-50 text-purple-600 border-purple-100"
                                 : acc.role === "staff"
-                                ? "bg-blue-50 text-blue-600 border-blue-100"
-                                : "bg-slate-100 text-slate-500 border-slate-200"
-                            }`}
+                                  ? "bg-blue-50 text-blue-600 border-blue-100"
+                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                              }`}
                           >
                             {(acc.role || "-").toUpperCase()}
                           </span>

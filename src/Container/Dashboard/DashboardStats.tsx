@@ -14,12 +14,17 @@ export default function DashboardStats() {
 
   const fetchStats = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const headers = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const [resProject, resMember, resIntern, resPartner, resAnalytics] = await Promise.all([
-        fetch('/api/project'),
-        fetch('/api/member'),
-        fetch('/api/intern'),
-        fetch('/api/partners'),
-        fetch('/api/analytics/stats?period=30').catch(() => null) // Don't fail if analytics API fails
+        fetch('/api/project', { headers }),
+        fetch('/api/member', { headers }),
+        fetch('/api/intern', { headers }),
+        fetch('/api/partners', { headers }),
+        fetch('/api/analytics/stats?period=30', { headers }).catch(() => null) // Don't fail if analytics API fails
       ]);
 
       const getCount = (data: any) => {

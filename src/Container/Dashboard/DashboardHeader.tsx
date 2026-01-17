@@ -29,10 +29,15 @@ export default function DashboardHeader() {
   // --- Logic การดึงข้อมูล ---
   const fetchNotifications = useCallback(async () => {
     try {
-      const resNew = await fetch(`/api/contact/contacts?status=new&limit=5`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const headers = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const resNew = await fetch(`/api/contact/contacts?status=new&limit=5`, { headers });
       const dataNew = await resNew.json();
 
-      const resOld = await fetch(`/api/contact/contacts?status=in-progress&limit=3`);
+      const resOld = await fetch(`/api/contact/contacts?status=in-progress&limit=3`, { headers });
       const dataOld = await resOld.json();
 
       const combined = [...(dataNew.data || []), ...(dataOld.data || [])];
@@ -65,9 +70,13 @@ export default function DashboardHeader() {
   // --- Logic เมื่อคลิกอ่าน ---
   const handleClickNotification = async (id: number) => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       await fetch(`/api/contact/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ status: "in-progress" }),
       });
 

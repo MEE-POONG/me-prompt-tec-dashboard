@@ -24,7 +24,12 @@ export default function ManagePartnersPage() {
   const loadPartners = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/partners");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch("/api/partners", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       if (!res.ok) {
         throw new Error(`Error: ${res.status}`);
@@ -68,9 +73,15 @@ export default function ManagePartnersPage() {
 
   const onConfirmDelete = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       await Promise.all(
         selectedIds.map(async (id) => {
-          const res = await fetch(`/api/partners/${id}`, { method: "DELETE" });
+          const res = await fetch(`/api/partners/${id}`, {
+            method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
           if (!res.ok) throw new Error(`Failed to delete ${id}`);
         })
       );

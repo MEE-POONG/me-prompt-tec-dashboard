@@ -30,7 +30,12 @@ export default function TeamMemberPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/member?limit=100");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const response = await fetch("/api/member?limit=100", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch members");
@@ -104,9 +109,15 @@ export default function TeamMemberPage() {
 
   const onConfirmDelete = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       await Promise.all(
         selectedIds.map((id) =>
-          fetch(`/api/member/${id}`, { method: "DELETE" })
+          fetch(`/api/member/${id}`, {
+            method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          })
         )
       );
       setSelectedIds([]);
