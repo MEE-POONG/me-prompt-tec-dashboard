@@ -24,7 +24,7 @@ type UserProfile = {
   phone: string | null;
   position: string | null;
   role: string | null;
-  emailVerified: boolean;
+  isVerified: boolean;
   avatar?: string | null;
 };
 
@@ -588,7 +588,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-slate-400 mt-1">
                     {(profile?.role || "viewer").toUpperCase()}
                   </p>
-                  {profile?.emailVerified ? (
+                  {profile?.isVerified ? (
                     <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
                       ✔ อีเมลยืนยันแล้ว
                     </span>
@@ -846,8 +846,8 @@ export default function ProfilePage() {
                     onClick={handleForgotPassword}
                     disabled={sendingResetEmail}
                     className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${sendingResetEmail
-                        ? "bg-purple-400 cursor-not-allowed"
-                        : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
+                      ? "bg-purple-400 cursor-not-allowed"
+                      : "bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20"
                       } text-white`}
                   >
                     {sendingResetEmail ? "กำลังส่ง..." : "ส่งอีเมล"}
