@@ -25,12 +25,12 @@ jobs:
     - name: Generate Prisma
       run: npx prisma generate
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_URL: mongodb://dummy:27017/dummy
         
     - name: Try Build
       run: npm run build
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_URL: mongodb://dummy:27017/dummy
         NEXT_TELEMETRY_DISABLED: 1
 
     - id: string
