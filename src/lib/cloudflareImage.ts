@@ -52,8 +52,13 @@ export async function uploadImage(
     formData.append("tags", JSON.stringify(options.tags));
   }
 
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
   const response = await fetch("/api/cloudflare-image/upload", {
     method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: formData,
   });
 
@@ -70,8 +75,12 @@ export async function uploadImage(
  * ลบรูปภาพจาก Cloudflare Images
  */
 export async function deleteImage(imageId: string): Promise<void> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const response = await fetch(`/api/cloudflare-image/${imageId}`, {
     method: "DELETE",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   if (!response.ok) {
@@ -84,7 +93,12 @@ export async function deleteImage(imageId: string): Promise<void> {
  * ดึงข้อมูลรูปภาพตาม ID
  */
 export async function getImage(imageId: string): Promise<CloudflareImageData> {
-  const response = await fetch(`/api/cloudflare-image/${imageId}`);
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const response = await fetch(`/api/cloudflare-image/${imageId}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
 
   if (!response.ok) {
     const error = await response.json();
@@ -121,7 +135,12 @@ export async function getImages(
     params.append("tags", options.tags.join(","));
   }
 
-  const response = await fetch(`/api/cloudflare-image?${params.toString()}`);
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const response = await fetch(`/api/cloudflare-image?${params.toString()}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
 
   if (!response.ok) {
     const error = await response.json();
