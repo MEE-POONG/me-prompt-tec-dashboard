@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "migrate:images": "tsx scripts/migrate-images-to-cloudflare.ts"
+    "migrate:images": "tsx scripts/migrate-images-to-cloudflare.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

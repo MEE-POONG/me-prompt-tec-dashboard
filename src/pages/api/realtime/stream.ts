@@ -1,6 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { subscribe } from "@/lib/realtime";
 
+// ⚠️ CRITICAL: Disable body parsing for SSE to work properly
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+    externalResolver: true,
+  },
+};
+
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // SSE endpoint: /api/realtime/stream?channel=<boardId>
   const { channel } = req.query as { channel?: string };
@@ -14,7 +23,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Content-Encoding", "none");
-  
+
   // flushHeaders จำเป็นสำหรับบาง Hosting (เช่น Vercel) เพื่อให้ส่งข้อมูลทันที
   if (res.flushHeaders) {
     res.flushHeaders();
@@ -23,9 +32,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // 2. ฟังก์ชันส่งข้อมูลไปยัง Frontend
   const send = (data: any) => {
     try {
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
-      // บังคับส่งทันที (ถ้าทำได้)
-      if ((res as any).flush) (res as any).flush();
+      // Check if response is still writable
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+        // บังคับส่งทันที (ถ้าทำได้)
+        if ((res as any).flush) (res as any).flush();
+      }
     } catch (e) {
       console.error("Error writing stream", e);
     }
@@ -39,7 +51,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // 4. ส่ง Ping ทุก 20 วินาที เพื่อเลี้ยง Connection ไม่ให้หลุด
   const ping = setInterval(() => {
     try {
-      res.write(`: ping\n\n`);
+      if (!res.writableEnded) {
+        res.write(`: ping\n\n`);
+      }
     } catch (e) {
       clearInterval(ping);
     }

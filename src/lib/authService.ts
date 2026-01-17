@@ -1,6 +1,6 @@
 // src/lib/authService.ts
 import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma";
+import { Role } from "@prisma/client";
 import crypto from "crypto";
 
 export async function createUser(data: {

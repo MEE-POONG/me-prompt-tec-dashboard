@@ -631,6 +631,12 @@ export default function ModalsWorkflow({
 
     es.onmessage = (ev) => {
       try {
+        // Check if data is valid JSON before parsing
+        if (!ev.data || ev.data.trim().startsWith('<')) {
+          console.warn("Received HTML instead of JSON from SSE, ignoring");
+          return;
+        }
+
         const data = JSON.parse(ev.data);
         const { type, payload } = data;
         if (!type) return;
