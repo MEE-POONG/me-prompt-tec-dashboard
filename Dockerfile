@@ -11,7 +11,7 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
 # Install dependencies based on lockfile
-RUN npm install
+RUN npm install --ignore-scripts
 
 # ==========================================
 # Stage 2: Builder
