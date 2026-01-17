@@ -172,8 +172,8 @@ export default function ProjectStatus() {
               </h3>
               {parseFloat(growthPercent) !== 0 && (
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${parseFloat(growthPercent) >= 0
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
                   }`}>
                   <ArrowUp size={10} className={parseFloat(growthPercent) < 0 ? 'rotate-180' : ''} />
                   {growthPercent}%
@@ -204,9 +204,9 @@ export default function ProjectStatus() {
       </div>
 
       {/* --- ส่วนกราฟ (Graphs) --- */}
-      <div className="flex-1 w-full min-h-[300px]">
+      <div className="w-full min-h-[300px]">
         {activeTab === 'traffic' && (
-          <div className="h-full animate-in fade-in zoom-in duration-500">
+          <div className="h-[300px] animate-in fade-in zoom-in duration-500">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trafficData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -232,7 +232,7 @@ export default function ProjectStatus() {
 
         {/* ✅ กราฟ Newsletter (Bar Chart สีม่วง) */}
         {activeTab === 'newsletter' && (
-          <div className="h-full animate-in fade-in zoom-in duration-500">
+          <div className="h-[300px] animate-in fade-in zoom-in duration-500">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={newsletterGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.5} />
