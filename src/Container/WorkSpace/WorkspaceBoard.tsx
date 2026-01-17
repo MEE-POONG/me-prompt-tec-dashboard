@@ -348,8 +348,14 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
 
     const checkUpdates = async () => {
       try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         const res = await fetch(
-          `/api/workspace/activity?boardId=${workspaceId}&limit=1`
+          `/api/workspace/activity?boardId=${workspaceId}&limit=1`,
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
         );
         if (res.ok) {
           const data = await res.json();
