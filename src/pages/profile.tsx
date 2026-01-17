@@ -90,9 +90,10 @@ export default function ProfilePage() {
         return;
       }
 
-      const res = await fetch(`/api/account/${user.id}`, {
+      const res = await fetch(`/api/account/${user.id}?t=${Date.now()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
       });
 
@@ -101,15 +102,23 @@ export default function ProfilePage() {
       }
 
       const data = await res.json();
-      console.log("API Response:", data); // Debug log
-      console.log("Avatar from API:", data.avatar); // Debug log
+      console.log("Profile Data Loaded:", data);
 
       setProfile(data);
 
-      // Update both formData and avatarUrl from API response
-      const avatarFromApi = data.avatar || "";
-      console.log("Setting avatarUrl to:", avatarFromApi); // Debug log
+      // 🔄 Sync localStorage so Header/Sidebar update too
+      localStorage.setItem("user", JSON.stringify({
+        ...user,
+        name: data.name,
+        email: data.email,
+        position: data.position,
+        role: data.role,
+        isVerified: data.isVerified,
+        avatar: data.avatar
+      }));
 
+      // Update formData and avatarUrl
+      const avatarFromApi = data.avatar || "";
       setFormData({
         name: data.name || "",
         email: data.email || "",
@@ -117,8 +126,6 @@ export default function ProfilePage() {
         avatar: avatarFromApi,
       });
       setAvatarUrl(avatarFromApi);
-      // Ensure we have the latest data including isVerified
-      setProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
       setErrorModal({
