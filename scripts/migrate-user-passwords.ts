@@ -6,7 +6,7 @@
  * 2. รัน: npx tsx scripts/migrate-user-passwords.ts
  */
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth/password";
 
 const prisma = new PrismaClient();

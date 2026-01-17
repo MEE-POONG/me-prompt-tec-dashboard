@@ -6,7 +6,7 @@
  * 2. รัน: npx tsx scripts/migrate-images-to-cloudflare.ts
  */
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 
 

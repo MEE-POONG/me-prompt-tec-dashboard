@@ -9,7 +9,7 @@
  * npx tsx scripts/auto-hash-passwords.ts
  */
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth/password";
 
 const prisma = new PrismaClient();
