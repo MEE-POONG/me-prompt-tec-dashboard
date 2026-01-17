@@ -1,4 +1,4 @@
-name: Test Build (No Upload)
+name: CI/CD Pipeline
 
 on:
   push:
@@ -7,34 +7,36 @@ on:
     branches: [master]
 
 jobs:
-  test-build:
+  # 1. 🧪 Test & Verify Code (รันในทุก Push / PR)
+  verify-code:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v3
-    
     - name: Use Node.js 20
       uses: actions/setup-node@v3
       with:
         node-version: '20'
         cache: 'npm'
-        
     - name: Install dependencies
       run: npm ci
-      env:
-        DATABASE_URL: mongodb://dummy:27017/dummy
-
-    - name: Generate Prisma
+    - name: Generate Prisma Client
       run: npx prisma generate
       env:
-        DATABASE_URL: mongodb://dummy:27017/dummy
-        
-    - name: Try Build
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    - name: Check Build
       run: npm run build
       env:
-        DATABASE_URL: mongodb://dummy:27017/dummy
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
         NEXT_TELEMETRY_DISABLED: 1
 
+  # 2. 🐳 Build Docker & Push (รันเฉพาะเมื่อ Push ลง Master และ verify-code ผ่าน)
+  build-push:
+    needs: verify-code
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
     - id: string
       uses: ASzc/change-string-case-action@v1
       with:
@@ -52,69 +54,59 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Build and push
+    - name: Build and Push Docker Image
       uses: docker/build-push-action@v6
       with:
         context: .
         push: true
         tags: chunwarayut/${{ steps.string.outputs.lowercase }}:latest
         build-args: |
-          DATABASE_URL=mongodb://dummy:27017/dummy
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
 
+  # 3. 🚀 Deploy to Server (รันหลังจาก Push Image เสร็จ)
   deploy:
-    needs: test-build
+    needs: build-push
     runs-on: ubuntu-latest
-
     steps:
       - id: string
         uses: ASzc/change-string-case-action@v1
         with:
           string: ${{ github.event.repository.name }}
 
-      - name: SSH Command docker pull
+      - name: SSH Deploy
         uses: D3rHase/ssh-command-action@v0.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
-          command: docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
-
-      - name: SSH Command docker stop
-        uses: D3rHase/ssh-command-action@v0.2.2
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          user: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SSH_KEY }}
-          command: docker stop ${{ steps.string.outputs.lowercase }} || true
-
-      - name: SSH Command docker rm
-        uses: D3rHase/ssh-command-action@v0.2.2
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          user: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SSH_KEY }}
-          command: docker rm ${{ steps.string.outputs.lowercase }} || true
-
-      - name: SSH Command docker run
-        uses: D3rHase/ssh-command-action@v0.2.2
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          user: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SSH_KEY }}
-          command: docker run --name ${{ steps.string.outputs.lowercase }} --label io.portainer.accesscontrol.teams=discord --restart=always -d -p 7077:3000 -e DATABASE_URL="${{ secrets.DATABASE_URL }}" -e JWT_SECRET="${{ secrets.JWT_SECRET }}" -e EXT_PUBLIC_SOCKET_URL="${{ secrets.EXT_PUBLIC_SOCKET_URL }}" -e REDIS_URL="${{ secrets.REDIS_URL }}" -e NODE_ENV="${{ secrets.NODE_ENV }}" -e BASE_URL="${{ secrets.BASE_URL }}" -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" -e CLOUDFLARE_KEY="${{ secrets.CLOUDFLARE_KEY }}" -e CLOUDFLARE_ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" -e CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" -e MAIL_USER="${{ secrets.MAIL_USER }}" -e MAIL_PASS="${{ secrets.MAIL_PASS }}" --memory=512m --memory-swap=512m --cpus=1.5 --log-opt max-size=10m --log-opt max-file=3 chunwarayut/${{ steps.string.outputs.lowercase }}:latest
-
-      - name: SSH Command docker image prune
-        uses: D3rHase/ssh-command-action@v0.2.2
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          user: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SSH_KEY }}
-          command: docker image prune -a -f
-
-      - name: SSH Command docker logs
-        uses: D3rHase/ssh-command-action@v0.2.2
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          user: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SSH_KEY }}
-          command: docker logs --timestamps --since=1h ${{ steps.string.outputs.lowercase }}
+          # สั่ง Server: Pull -> Stop -> Remove -> Run -> Prune
+          command: |
+            echo "⬇️ Pulling latest image..."
+            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+            
+            echo "🛑 Stopping old container..."
+            docker stop ${{ steps.string.outputs.lowercase }} || true
+            docker rm ${{ steps.string.outputs.lowercase }} || true
+            
+            echo "🚀 Starting new container..."
+            docker run --name ${{ steps.string.outputs.lowercase }} \
+              --label io.portainer.accesscontrol.teams=discord \
+              --restart=always -d -p 7077:3000 \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e EXT_PUBLIC_SOCKET_URL="${{ secrets.EXT_PUBLIC_SOCKET_URL }}" \
+              -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+              -e NODE_ENV="production" \
+              -e BASE_URL="${{ secrets.BASE_URL }}" \
+              -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
+              -e CLOUDFLARE_KEY="${{ secrets.CLOUDFLARE_KEY }}" \
+              -e CLOUDFLARE_ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+              -e CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -e MAIL_USER="${{ secrets.MAIL_USER }}" \
+              -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
+              --memory=512m --memory-swap=512m --cpus=1.5 \
+              --log-opt max-size=10m --log-opt max-file=3 \
+              chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+              
+            echo "🧹 Cleaning up old images..."
+            docker image prune -a -f
