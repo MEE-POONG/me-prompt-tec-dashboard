@@ -1,15 +1,30 @@
-// lib/api/workspace.ts
-// API helper functions for workspace operations
+const getAuthHeaders = (contentType = "application/json") => {
+  if (typeof window === "undefined") return contentType ? { "Content-Type": contentType } : {};
+  const token = localStorage.getItem("token");
+  const headers: any = {};
+  if (contentType) headers["Content-Type"] = contentType;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+};
+
+const getFetchOptions = (method = "GET", body: any = null) => {
+  const options: any = {
+    method,
+    headers: getAuthHeaders(),
+  };
+  if (body) options.body = JSON.stringify(body);
+  return options;
+};
 
 // ==================== ProjectBoard APIs ====================
 export const getBoards = async () => {
-  const res = await fetch("/api/workspace/board");
+  const res = await fetch("/api/workspace/board", getFetchOptions("GET"));
   if (!res.ok) throw new Error("Failed to fetch boards");
   return res.json();
 };
 
 export const getBoard = async (id: string) => {
-  const res = await fetch(`/api/workspace/board/${id}`);
+  const res = await fetch(`/api/workspace/board/${id}`, getFetchOptions("GET"));
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Failed to fetch board: ${res.status} ${res.statusText} - ${text}`);
@@ -22,11 +37,7 @@ export const createBoard = async (data: {
   description?: string;
   color?: string;
 }) => {
-  const res = await fetch("/api/workspace/board", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  const res = await fetch("/api/workspace/board", getFetchOptions("POST", data));
   if (!res.ok) throw new Error("Failed to create board");
   return res.json();
 };
@@ -40,32 +51,26 @@ export const updateBoard = async (
     visibility?: "PRIVATE" | "PUBLIC";
   }
 ) => {
-  const res = await fetch(`/api/workspace/board/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  const res = await fetch(`/api/workspace/board/${id}`, getFetchOptions("PUT", data));
   if (!res.ok) throw new Error("Failed to update board");
   return res.json();
 };
 
 export const deleteBoard = async (id: string) => {
-  const res = await fetch(`/api/workspace/board/${id}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(`/api/workspace/board/${id}`, getFetchOptions("DELETE"));
   if (!res.ok) throw new Error("Failed to delete board");
   return res.ok;
 };
 
 // ==================== BoardColumn APIs ====================
 export const getColumns = async (boardId: string) => {
-  const res = await fetch(`/api/workspace/column?boardId=${boardId}`);
+  const res = await fetch(`/api/workspace/column?boardId=${boardId}`, getFetchOptions("GET"));
   if (!res.ok) throw new Error("Failed to fetch columns");
   return res.json();
 };
 
 export const getColumn = async (id: string) => {
-  const res = await fetch(`/api/workspace/column/${id}`);
+  const res = await fetch(`/api/workspace/column/${id}`, getFetchOptions("GET"));
   if (!res.ok) throw new Error("Failed to fetch column");
   return res.json();
 };
@@ -77,11 +82,7 @@ export const createColumn = async (data: {
   color?: string;
   user?: string; // ✅ เพิ่ม user
 }) => {
-  const res = await fetch("/api/workspace/column", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  const res = await fetch("/api/workspace/column", getFetchOptions("POST", data));
   if (!res.ok) throw new Error("Failed to create column");
   return res.json();
 };
@@ -90,19 +91,13 @@ export const updateColumn = async (
   id: string,
   data: { title?: string; order?: number; color?: string; user?: string } // ✅ เพิ่ม user
 ) => {
-  const res = await fetch(`/api/workspace/column/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  const res = await fetch(`/api/workspace/column/${id}`, getFetchOptions("PUT", data));
   if (!res.ok) throw new Error("Failed to update column");
   return res.json();
 };
 
 export const deleteColumn = async (id: string) => {
-  const res = await fetch(`/api/workspace/column/${id}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(`/api/workspace/column/${id}`, getFetchOptions("DELETE"));
   if (!res.ok) throw new Error("Failed to delete column");
   return res.ok;
 };

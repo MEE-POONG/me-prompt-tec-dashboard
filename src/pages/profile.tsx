@@ -491,7 +491,11 @@ export default function ProfilePage() {
                               });
 
                               // Send request
+                              const token = localStorage.getItem("token");
                               xhr.open("POST", "/api/cloudflare-image/upload");
+                              if (token) {
+                                xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+                              }
                               xhr.send(formData);
                             } catch (error) {
                               setIsUploading(false);
@@ -594,7 +598,7 @@ export default function ProfilePage() {
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-100">
-                      ✖ ยังไม่ยืนยันอีเมล
+                      ✖ ยังไม่ยืนยันอีเมล {String(profile?.isVerified)}
                     </span>
                   )}
                 </div>

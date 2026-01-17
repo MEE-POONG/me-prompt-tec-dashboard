@@ -43,6 +43,12 @@ async function handleGet(id: string, res: NextApiResponse) {
     return res.status(404).json({ error: "User not found" });
   }
 
+  console.log(`[GET /api/account/${id}] User found:`, {
+    email: user.email,
+    isVerified: user.isVerified,
+    role: user.role
+  });
+
   return res.status(200).json({
     id: user.id,
     email: user.email,

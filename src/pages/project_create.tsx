@@ -156,9 +156,13 @@ export default function ProjectCreate() {
         featured,
       };
 
+      const token = localStorage.getItem("token");
       const response = await fetch("/api/project", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(projectData),
       });
 
@@ -376,11 +380,10 @@ export default function ProjectCreate() {
                   <div>
                     <label className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-violet-50 hover:border-violet-200 transition-all group">
                       <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          featured
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${featured
                             ? "bg-violet-500 border-violet-500"
                             : "border-slate-300 bg-white"
-                        }`}
+                          }`}
                       >
                         {featured && (
                           <CheckCircle2 size={16} className="text-white" />

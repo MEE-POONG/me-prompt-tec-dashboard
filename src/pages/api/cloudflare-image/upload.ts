@@ -64,22 +64,11 @@ export default async function handler(
       maxFileSize: 10 * 1024 * 1024, // 10MB
     });
 
-    console.log('Parsing form data...');
-    const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>(
-      (resolve, reject) => {
-        form.parse(req, (err, fields, files) => {
-          if (err) {
-            console.error('Form parse error:', err);
-            reject(err);
-          } else {
-            console.log('Form parsed successfully');
-            console.log('Fields:', Object.keys(fields));
-            console.log('Files:', Object.keys(files));
-            resolve([fields, files]);
-          }
-        });
-      }
-    );
+    console.log('Parsing form data (v3 style)...');
+    const [fields, files] = await form.parse(req);
+    console.log('Form parsed successfully');
+    console.log('Fields:', Object.keys(fields));
+    console.log('Files:', Object.keys(files));
 
     // ดึงข้อมูลไฟล์
     const fileArray = files.file;
@@ -170,11 +159,14 @@ export default async function handler(
       data: imageRecord,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload error:", error);
+    // ส่ง Error รายละเอียดกลับไปให้ Frontend เห็น (สำหรับ Debug)
     return res.status(500).json({
       error: "Internal Server Error",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error.message || "Unknown error",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      rawBody: req.body ? "Body present" : "No body"
     });
   }
 }
