@@ -63,12 +63,27 @@ export async function uploadImage(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to upload image");
+    let errorMsg = "Failed to upload image";
+    try {
+      const errorData = await response.json();
+      errorMsg = errorData.message || errorData.error || errorMsg;
+    } catch (e) {
+      // If response is not JSON (e.g. HTML error page)
+      const text = await response.text();
+      console.error("Non-JSON error response from upload API:", text);
+      errorMsg = `Server error (${response.status}): ${text.slice(0, 200)}...`;
+    }
+    throw new Error(errorMsg);
   }
 
-  const result = await response.json();
-  return result.data;
+  try {
+    const result = await response.json();
+    return result.data;
+  } catch (e) {
+    const text = await response.text();
+    console.error("Non-JSON success response from upload API:", text);
+    throw new Error(`Unexpected non-JSON response from server: ${text.slice(0, 100)}`);
+  }
 }
 
 /**

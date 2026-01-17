@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import formidable from "formidable";
 import fs from "fs";
+import os from "os";
 
 // ปิด body parser ของ Next.js เพื่อใช้ formidable
 export const config = {
@@ -27,8 +28,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Allow", ["POST", "OPTIONS"]);
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
+    res.setHeader("Allow", ["POST", "OPTIONS"]);
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 
@@ -53,9 +59,14 @@ export default async function handler(
     }
 
     // Parse form data with formidable
-    // กำหนด uploadDir สำหรับ Docker environment
-    const uploadDir = process.env.UPLOAD_DIR || '/tmp';
+    const uploadDir = process.env.UPLOAD_DIR || os.tmpdir();
     console.log('Using upload directory:', uploadDir);
+
+    // Ensure upload dir exists
+    if (!fs.existsSync(uploadDir)) {
+      console.log('Creating upload directory...');
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
     const form = formidable({
       multiples: false,
@@ -116,19 +127,39 @@ export default async function handler(
     console.log('Cloudflare response status:', cloudflareResponse.status);
 
     if (!cloudflareResponse.ok) {
-      const errorData = await cloudflareResponse.json();
-      console.error("Cloudflare upload error:", errorData);
-      return res.status(cloudflareResponse.status).json({
-        error: "Failed to upload to Cloudflare",
-        details: errorData
+      const errorText = await cloudflareResponse.text();
+      console.error("Cloudflare upload error (Raw):", errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        return res.status(cloudflareResponse.status).json({
+          error: "Failed to upload to Cloudflare",
+          details: errorData
+        });
+      } catch (e) {
+        return res.status(cloudflareResponse.status).json({
+          error: "Failed to upload to Cloudflare (Non-JSON response)",
+          details: errorText.slice(0, 500)
+        });
+      }
+    }
+
+    const cloudflareText = await cloudflareResponse.text();
+    console.log('Cloudflare raw response:', cloudflareText);
+
+    let cloudflareData: CloudflareImageResponse;
+    try {
+      cloudflareData = JSON.parse(cloudflareText);
+    } catch (e) {
+      console.error('Failed to parse Cloudflare success response:', cloudflareText);
+      return res.status(500).json({
+        error: "Cloudflare returned invalid JSON",
+        raw: cloudflareText.slice(0, 500)
       });
     }
 
-    const cloudflareData: CloudflareImageResponse = await cloudflareResponse.json();
-
     if (!cloudflareData.success) {
       return res.status(500).json({
-        error: "Cloudflare upload failed",
+        error: "Cloudflare upload failed (success=false)",
         details: cloudflareData.errors
       });
     }

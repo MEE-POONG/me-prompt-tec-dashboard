@@ -5,6 +5,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Allow", ["GET", "DELETE", "OPTIONS"]);
+    return res.status(200).end();
+  }
+
   try {
     switch (req.method) {
       case "GET":
@@ -12,7 +17,7 @@ export default async function handler(
       case "DELETE":
         return await handleDelete(req, res);
       default:
-        res.setHeader("Allow", ["GET", "DELETE"]);
+        res.setHeader("Allow", ["GET", "DELETE", "OPTIONS"]);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
   } catch (error) {
