@@ -84,6 +84,8 @@ jobs:
           # สั่ง Server: Pull -> Stop -> Remove -> Run -> Prune
           command: |
             echo "⬇️ Pulling latest image..."
+            # Force remove old image to ensure we get the fresh layer
+            docker rmi chunwarayut/${{ steps.string.outputs.lowercase }}:latest || true
             docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
             
             echo "🛑 Stopping old container..."
