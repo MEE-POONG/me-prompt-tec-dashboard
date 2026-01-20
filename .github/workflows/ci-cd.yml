@@ -97,6 +97,9 @@ jobs:
             # Pull new image
             docker pull chunwarayut/me-prompt-tec-dashboard:$TAG
             
+            echo "🖼️ Current images on server:"
+            docker images | grep me-prompt-tec-dashboard
+            
             echo "🚀 Starting new container..."
             docker run --name me-prompt-tec-dashboard \
               --label io.portainer.accesscontrol.teams=discord \
@@ -120,6 +123,9 @@ jobs:
             # Verify running
             sleep 5
             docker ps | grep me-prompt-tec-dashboard
+            
+            echo "🧹 Cleaning up old images..."
+            docker image prune -a -f
             
             echo "✅ Deployment successful with tag: $TAG"
 
