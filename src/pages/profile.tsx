@@ -72,7 +72,7 @@ export default function ProfilePage() {
 
   // Fetch current user profile
   useEffect(() => {
-    console.log("Profile Page v0.1.2 Loaded - Verification Badge Removed");
+    console.log("Profile Page v0.1.3 Loaded - Deployment Verification");
     fetchProfile();
   }, []);
 
