@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, Briefcase, GraduationCap, Building2, ArrowUpRight, TrendingUp, Eye } from 'lucide-react';
+import { Users, Briefcase, GraduationCap, Building2, ArrowUpRight, TrendingUp } from 'lucide-react';
 
 export default function DashboardStats() {
   const [counts, setCounts] = useState({
     projects: 0, members: 0, interns: 0, partners: 0
-  });
-  const [analytics, setAnalytics] = useState({
-    totalViews: 0,
-    growth: '0',
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,12 +15,11 @@ export default function DashboardStats() {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
-      const [resProject, resMember, resIntern, resPartner, resAnalytics] = await Promise.all([
+      const [resProject, resMember, resIntern, resPartner] = await Promise.all([
         fetch('/api/project', { headers }),
         fetch('/api/member', { headers }),
         fetch('/api/intern', { headers }),
         fetch('/api/partners', { headers }),
-        fetch('/api/analytics/stats?period=30', { headers }).catch(() => null) // Don't fail if analytics API fails
       ]);
 
       const getCount = (data: any) => {
@@ -39,27 +34,11 @@ export default function DashboardStats() {
       const dataIntern = resIntern.ok ? await resIntern.json() : [];
       const dataPartner = resPartner.ok ? await resPartner.json() : [];
 
-      // Handle analytics data safely
-      let dataAnalytics = { totalViews: 0, growth: '0' };
-      if (resAnalytics && resAnalytics.ok) {
-        try {
-          const text = await resAnalytics.text();
-          dataAnalytics = text ? JSON.parse(text) : { totalViews: 0, growth: '0' };
-        } catch (e) {
-          console.log('Analytics API not ready yet');
-        }
-      }
-
       setCounts({
         projects: getCount(dataProject),
         members: getCount(dataMember),
         interns: getCount(dataIntern),
         partners: getCount(dataPartner),
-      });
-
-      setAnalytics({
-        totalViews: dataAnalytics.totalViews || 0,
-        growth: dataAnalytics.growth || '0',
       });
 
     } catch (error) {
@@ -77,19 +56,6 @@ export default function DashboardStats() {
 
   // Config การ์ดแต่ละใบ (ลบ ringColor ออกแล้ว)
   const stats = [
-    {
-      label: "Website Traffic",
-      sub: "สถิติเว็บไซต์ (Traffic)",
-      value: analytics.totalViews,
-      unit: "views",
-      growth: analytics.growth,
-      icon: <Eye size={28} />,
-      link: "#",
-      textGradient: "from-emerald-600 to-teal-500",
-      iconBg: "bg-emerald-100 text-emerald-600",
-      glowColor: "group-hover:shadow-emerald-500/20",
-      showGrowth: true,
-    },
     {
       label: "Portfolio",
       sub: "จัดการโปรเจกต์",
@@ -133,7 +99,7 @@ export default function DashboardStats() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
         <Link key={index} href={stat.link}>
           {/* ลบ hover:ring-2 และ ${stat.ringColor} ออกจาก className */}
@@ -175,6 +141,7 @@ export default function DashboardStats() {
               <h4 className="text-lg font-bold text-gray-700">{stat.label}</h4>
               <p className="text-xs text-gray-400 font-medium">{stat.sub}</p>
             </div>
+
 
             {/* Decorative Glow (แสงฟุ้งด้านหลังการ์ดเวลา Hover) */}
             <div className={`

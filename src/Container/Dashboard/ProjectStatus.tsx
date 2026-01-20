@@ -6,20 +6,22 @@ import { TrendingUp, Users, Mail, ArrowUp } from 'lucide-react';
 
 export default function ProjectStatus() {
   const [activeTab, setActiveTab] = useState<'traffic' | 'newsletter'>('traffic');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // State ข้อมูล Traffic (Real Data)
   const [trafficData, setTrafficData] = useState<any[]>([]);
   const [totalVisitors, setTotalVisitors] = useState(0);
   const [growthPercent, setGrowthPercent] = useState('0');
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   // State ข้อมูล Newsletter
   const [newsletterGraphData, setNewsletterGraphData] = useState<any[]>([]);
   const [totalSubscribers, setTotalSubscribers] = useState(0);
 
   // Fetch Analytics Data (Traffic)
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = async (year: number = selectedYear) => {
     try {
-      const res = await fetch('/api/analytics/stats?period=180'); // 6 months
+      const res = await fetch(`/api/analytics/stats?period=365&year=${year}`);
       const data = await res.json();
 
       if (data) {
@@ -29,35 +31,43 @@ export default function ProjectStatus() {
         // Process data for chart - group by month
         const viewsByDay = data.viewsByDay || [];
         const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-        const monthData: Record<string, { visitors: number; pageViews: number }> = {};
+        const monthData: Record<string, number> = {};
+        const years = new Set<number>();
+
+        // Initialize all months with 0
+        months.forEach(month => monthData[month] = 0);
 
         viewsByDay.forEach((item: any) => {
           const date = new Date(item.date);
+          const itemYear = date.getFullYear();
           const monthIndex = date.getMonth();
           const monthName = months[monthIndex];
 
-          if (!monthData[monthName]) {
-            monthData[monthName] = { visitors: 0, pageViews: 0 };
+          years.add(itemYear);
+
+          // Only count data for selected year
+          if (itemYear === year) {
+            monthData[monthName] += item.count;
           }
-          monthData[monthName].visitors += item.count;
-          monthData[monthName].pageViews += item.count; // Assuming 1:1 for now
         });
 
-        // Convert to array for chart (last 6 months)
+        // Update available years
+        const yearArray = Array.from(years).sort((a, b) => b - a);
+        setAvailableYears(yearArray.length > 0 ? yearArray : [new Date().getFullYear()]);
+
+        // Convert to array for chart - ALL 12 months
         const chartData = months.map(month => ({
           name: month,
-          visitors: monthData[month]?.visitors || 0,
-          pageViews: monthData[month]?.pageViews || 0,
-        })).filter(item => item.visitors > 0 || item.pageViews > 0);
+          visitors: monthData[month] || 0,
+        }));
 
-        setTrafficData(chartData.length > 0 ? chartData : [
-          { name: 'ม.ค.', visitors: 0, pageViews: 0 }
-        ]);
+        setTrafficData(chartData);
       }
     } catch (error) {
       console.error("Error fetching analytics data:", error);
-      // Fallback to empty data
-      setTrafficData([{ name: 'ม.ค.', visitors: 0, pageViews: 0 }]);
+      // Fallback to all 12 months with 0 data
+      const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      setTrafficData(months.map(month => ({ name: month, visitors: 0 })));
     }
   };
 
@@ -96,17 +106,17 @@ export default function ProjectStatus() {
   };
 
   useEffect(() => {
-    fetchAnalyticsData();
+    fetchAnalyticsData(selectedYear);
     fetchNewsletterData();
 
     // Refresh every 30 seconds
     const interval = setInterval(() => {
-      fetchAnalyticsData();
+      fetchAnalyticsData(selectedYear);
       fetchNewsletterData();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedYear]);
 
   // Tooltip สวยๆ
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -208,24 +218,15 @@ export default function ProjectStatus() {
         {activeTab === 'traffic' && (
           <div className="h-[300px] animate-in fade-in zoom-in duration-500">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trafficData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorVis" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={trafficData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.5} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorVis)" name="Visitors" />
-                <Area type="monotone" dataKey="pageViews" stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorPv)" name="Page Views" />
-              </AreaChart>
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f3f4f6', radius: 8 }} />
+                <Legend verticalAlign="top" align="right" height={30} iconType="circle" wrapperStyle={{ top: -10, right: 0, fontSize: '12px', fontWeight: 600 }} />
+                <Bar dataKey="visitors" name="ผู้เข้าชม" fill="#3b82f6" radius={[8, 8, 8, 8]} />
+                <Bar dataKey="pageViews" name="จำนวนหน้า" fill="#a855f7" radius={[8, 8, 8, 8]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         )}
