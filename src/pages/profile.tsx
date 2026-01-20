@@ -356,7 +356,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-4xl font-black tracking-tight bg-linear-to-r from-slate-800 via-blue-800 to-slate-800 bg-clip-text text-transparent">
-                  โปรไฟล์ของฉัน
+                  โปรไฟล์ของฉัน <span className="text-xs text-slate-300 font-normal ml-2">(v0.1.4)</span>
                 </h1>
                 <p className="text-slate-500 mt-1 font-medium">
                   จัดการข้อมูลส่วนตัวของคุณ
