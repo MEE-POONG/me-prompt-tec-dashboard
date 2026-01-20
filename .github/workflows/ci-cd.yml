@@ -61,9 +61,13 @@ jobs:
       with:
         context: .
         push: true
-        tags: chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+        tags: |
+          chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+          chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
+          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.sha }}
         build-args: |
           DATABASE_URL=${{ secrets.DATABASE_URL }}
+        no-cache: true
 
   # 3. 🚀 Deploy to Server (รันหลังจาก Push Image เสร็จ)
   deploy:
@@ -86,7 +90,8 @@ jobs:
             echo "⬇️ Pulling latest image..."
             # Force remove old image to ensure we get the fresh layer
             docker rmi chunwarayut/${{ steps.string.outputs.lowercase }}:latest || true
-            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+            docker rmi chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5 || true
+            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
             
             echo "🛑 Stopping old container..."
             docker stop ${{ steps.string.outputs.lowercase }} || true
@@ -110,7 +115,8 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+              chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
               
             echo "🧹 Cleaning up old images..."
             docker image prune -a -f
+
