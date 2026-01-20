@@ -56,10 +56,6 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Get timestamp
-      id: timestamp
-      run: echo "value=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
-
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v6
       with:
@@ -67,7 +63,7 @@ jobs:
         push: true
         tags: |
           chunwarayut/${{ steps.string.outputs.lowercase }}:latest
-          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ steps.timestamp.outputs.value }}
+          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
         build-args: |
           DATABASE_URL=${{ secrets.DATABASE_URL }}
         no-cache: true
@@ -75,16 +71,13 @@ jobs:
   # 3. 🚀 Deploy to Server (รันหลังจาก Push Image เสร็จ)
   deploy:
     needs: build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - id: string
         uses: ASzc/change-string-case-action@v1
         with:
           string: ${{ github.event.repository.name }}
-
-      - name: Get timestamp
-        id: timestamp
-        run: echo "value=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
 
       - name: SSH Deploy
         uses: D3rHase/ssh-command-action@v0.2.2
@@ -94,24 +87,17 @@ jobs:
           private_key: ${{ secrets.SSH_KEY }}
           command: |
             set -e
-            TIMESTAMP="${{ steps.timestamp.outputs.value }}"
+            TAG="${{ github.run_id }}"
             
-            echo "⬇️ Pulling image with timestamp: $TIMESTAMP"
-            # Remove ALL old images aggressively
+            echo "⬇️ Pulling image with tag: $TAG"
+            # Remove old container and image to avoid using cache
             docker stop me-prompt-tec-dashboard || true
             docker rm me-prompt-tec-dashboard || true
-            docker rmi -f $(docker images | grep me-prompt-tec-dashboard | awk '{print $3}') || true
             
-            # Pull new image with timestamp tag
-            docker pull chunwarayut/me-prompt-tec-dashboard:$TIMESTAMP
+            # Pull new image
+            docker pull chunwarayut/me-prompt-tec-dashboard:$TAG
             
-            # Verify image was pulled
-            if ! docker images | grep -q "chunwarayut/me-prompt-tec-dashboard.*$TIMESTAMP"; then
-              echo "ERROR: Failed to pull image with timestamp $TIMESTAMP!"
-              exit 1
-            fi
-            
-            echo "🚀 Starting new container with fresh image..."
+            echo "🚀 Starting new container..."
             docker run --name me-prompt-tec-dashboard \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d -p 7077:3000 \
@@ -129,19 +115,11 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/me-prompt-tec-dashboard:$TIMESTAMP
+              chunwarayut/me-prompt-tec-dashboard:$TAG
             
-            # Verify container is running
-            sleep 3
-            if ! docker ps | grep -q me-prompt-tec-dashboard; then
-              echo "ERROR: Container failed to start!"
-              docker logs me-prompt-tec-dashboard
-              exit 1
-            fi
-            
-            echo "🧹 Cleaning up..."
-            docker image prune -a -f
-            
-            echo "✅ Deployment successful with timestamp: $TIMESTAMP"
+            # Verify running
+            sleep 5
             docker ps | grep me-prompt-tec-dashboard
+            
+            echo "✅ Deployment successful with tag: $TAG"
 

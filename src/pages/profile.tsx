@@ -70,9 +70,7 @@ export default function ProfilePage() {
     description: "",
   });
 
-  // Fetch current user profile
   useEffect(() => {
-    console.log("Profile Page v0.1.3 Loaded - Deployment Verification");
     fetchProfile();
   }, []);
 
