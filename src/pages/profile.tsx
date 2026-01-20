@@ -348,9 +348,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="bg-red-500 text-white text-center py-2 font-bold rounded-lg mb-4 animate-pulse">
-            SYSTEM UPDATED v0.1.7 - DEPLOYMENT FIXED!
-          </div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
@@ -359,7 +356,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-4xl font-black tracking-tight bg-linear-to-r from-slate-800 via-blue-800 to-slate-800 bg-clip-text text-transparent">
-                  โปรไฟล์ของฉัน <span className="text-xs text-slate-300 font-normal ml-2">(v0.1.4)</span>
+                  โปรไฟล์ของฉัน
                 </h1>
                 <p className="text-slate-500 mt-1 font-medium">
                   จัดการข้อมูลส่วนตัวของคุณ
