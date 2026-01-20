@@ -87,18 +87,27 @@ jobs:
           private_key: ${{ secrets.SSH_KEY }}
           # สั่ง Server: Pull -> Stop -> Remove -> Run -> Prune
           command: |
+            set -e
             echo "⬇️ Pulling latest image..."
-            # Force remove old image to ensure we get the fresh layer
-            docker rmi chunwarayut/${{ steps.string.outputs.lowercase }}:latest || true
-            docker rmi chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5 || true
-            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
+            # Force remove old images
+            docker rmi chunwarayut/me-prompt-tec-dashboard:latest || true
+            docker rmi chunwarayut/me-prompt-tec-dashboard:v0.1.5 || true
+            
+            # Pull new image with verification
+            docker pull chunwarayut/me-prompt-tec-dashboard:v0.1.5
+            
+            # Verify image was pulled
+            if ! docker images | grep -q "chunwarayut/me-prompt-tec-dashboard.*v0.1.5"; then
+              echo "ERROR: Failed to pull image!"
+              exit 1
+            fi
             
             echo "🛑 Stopping old container..."
-            docker stop ${{ steps.string.outputs.lowercase }} || true
-            docker rm ${{ steps.string.outputs.lowercase }} || true
+            docker stop me-prompt-tec-dashboard || true
+            docker rm me-prompt-tec-dashboard || true
             
             echo "🚀 Starting new container..."
-            docker run --name ${{ steps.string.outputs.lowercase }} \
+            docker run --name me-prompt-tec-dashboard \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d -p 7077:3000 \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
@@ -115,8 +124,19 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
-              
+              chunwarayut/me-prompt-tec-dashboard:v0.1.5
+            
+            # Verify container is running
+            sleep 3
+            if ! docker ps | grep -q me-prompt-tec-dashboard; then
+              echo "ERROR: Container failed to start!"
+              docker logs me-prompt-tec-dashboard
+              exit 1
+            fi
+            
             echo "🧹 Cleaning up old images..."
             docker image prune -a -f
+            
+            echo "✅ Deployment successful!"
+            docker ps | grep me-prompt-tec-dashboard
 
