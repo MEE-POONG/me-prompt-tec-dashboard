@@ -21,10 +21,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Force unique build ID to invalidate browser cache
-  generateBuildId: async () => {
-    return `v0.1.4-${Date.now()}`;
-  },
 };
 
 export default nextConfig;

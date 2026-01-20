@@ -348,6 +348,9 @@ export default function ProfilePage() {
         </div>
 
         <div className="max-w-4xl mx-auto relative z-10">
+          <div className="bg-red-500 text-white text-center py-2 font-bold rounded-lg mb-4 animate-pulse">
+            SYSTEM UPDATED v0.1.5 - IF YOU SEE THIS, THE DEPLOYMENT WORKED!
+          </div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
