@@ -56,6 +56,10 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
+    - name: Get timestamp
+      id: timestamp
+      run: echo "value=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v6
       with:
@@ -63,8 +67,7 @@ jobs:
         push: true
         tags: |
           chunwarayut/${{ steps.string.outputs.lowercase }}:latest
-          chunwarayut/${{ steps.string.outputs.lowercase }}:v0.1.5
-          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.sha }}
+          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ steps.timestamp.outputs.value }}
         build-args: |
           DATABASE_URL=${{ secrets.DATABASE_URL }}
         no-cache: true
@@ -79,34 +82,36 @@ jobs:
         with:
           string: ${{ github.event.repository.name }}
 
+      - name: Get timestamp
+        id: timestamp
+        run: echo "value=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
       - name: SSH Deploy
         uses: D3rHase/ssh-command-action@v0.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
-          # สั่ง Server: Pull -> Stop -> Remove -> Run -> Prune
           command: |
             set -e
-            echo "⬇️ Pulling latest image..."
-            # Force remove old images
-            docker rmi chunwarayut/me-prompt-tec-dashboard:latest || true
-            docker rmi chunwarayut/me-prompt-tec-dashboard:v0.1.5 || true
+            TIMESTAMP="${{ steps.timestamp.outputs.value }}"
             
-            # Pull new image with verification
-            docker pull chunwarayut/me-prompt-tec-dashboard:v0.1.5
+            echo "⬇️ Pulling image with timestamp: $TIMESTAMP"
+            # Remove ALL old images aggressively
+            docker stop me-prompt-tec-dashboard || true
+            docker rm me-prompt-tec-dashboard || true
+            docker rmi -f $(docker images | grep me-prompt-tec-dashboard | awk '{print $3}') || true
+            
+            # Pull new image with timestamp tag
+            docker pull chunwarayut/me-prompt-tec-dashboard:$TIMESTAMP
             
             # Verify image was pulled
-            if ! docker images | grep -q "chunwarayut/me-prompt-tec-dashboard.*v0.1.5"; then
-              echo "ERROR: Failed to pull image!"
+            if ! docker images | grep -q "chunwarayut/me-prompt-tec-dashboard.*$TIMESTAMP"; then
+              echo "ERROR: Failed to pull image with timestamp $TIMESTAMP!"
               exit 1
             fi
             
-            echo "🛑 Stopping old container..."
-            docker stop me-prompt-tec-dashboard || true
-            docker rm me-prompt-tec-dashboard || true
-            
-            echo "🚀 Starting new container..."
+            echo "🚀 Starting new container with fresh image..."
             docker run --name me-prompt-tec-dashboard \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d -p 7077:3000 \
@@ -124,7 +129,7 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/me-prompt-tec-dashboard:v0.1.5
+              chunwarayut/me-prompt-tec-dashboard:$TIMESTAMP
             
             # Verify container is running
             sleep 3
@@ -134,9 +139,9 @@ jobs:
               exit 1
             fi
             
-            echo "🧹 Cleaning up old images..."
+            echo "🧹 Cleaning up..."
             docker image prune -a -f
             
-            echo "✅ Deployment successful!"
+            echo "✅ Deployment successful with timestamp: $TIMESTAMP"
             docker ps | grep me-prompt-tec-dashboard
 
