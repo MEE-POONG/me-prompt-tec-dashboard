@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { TrendingUp, Users, Mail, ArrowUp } from 'lucide-react';
+import { TrendingUp, Users, Mail, ArrowUp, ChevronDown } from 'lucide-react';
 
 export default function ProjectStatus() {
   const [activeTab, setActiveTab] = useState<'traffic' | 'newsletter'>('traffic');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef<HTMLDivElement>(null);
 
   // State ข้อมูล Traffic (Real Data)
   const [trafficData, setTrafficData] = useState<any[]>([]);
@@ -32,7 +34,6 @@ export default function ProjectStatus() {
         const viewsByDay = data.viewsByDay || [];
         const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
         const monthData: Record<string, number> = {};
-        const years = new Set<number>();
 
         // Initialize all months with 0
         months.forEach(month => monthData[month] = 0);
@@ -43,17 +44,15 @@ export default function ProjectStatus() {
           const monthIndex = date.getMonth();
           const monthName = months[monthIndex];
 
-          years.add(itemYear);
-
           // Only count data for selected year
           if (itemYear === year) {
             monthData[monthName] += item.count;
           }
         });
 
-        // Update available years
-        const yearArray = Array.from(years).sort((a, b) => b - a);
-        setAvailableYears(yearArray.length > 0 ? yearArray : [new Date().getFullYear()]);
+        // Generate available years (2025-2035)
+        const yearRange = Array.from({ length: 11 }, (_, i) => 2025 + i);
+        setAvailableYears(yearRange);
 
         // Convert to array for chart - ALL 12 months
         const chartData = months.map(month => ({
@@ -68,23 +67,33 @@ export default function ProjectStatus() {
       // Fallback to all 12 months with 0 data
       const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
       setTrafficData(months.map(month => ({ name: month, visitors: 0 })));
+
+      // Still generate year range even on error (2025-2035)
+      const yearRange = Array.from({ length: 11 }, (_, i) => 2025 + i);
+      setAvailableYears(yearRange);
     }
   };
 
   // Fetch Newsletter Data
-  const fetchNewsletterData = async () => {
+  const fetchNewsletterData = async (year: number = selectedYear) => {
     try {
       const res = await fetch('/api/newsletter');
       const json = await res.json();
       const subscribers = json.data || [];
 
-      setTotalSubscribers(subscribers.length);
+      // Filter by selected year and count total
+      const yearFilteredSubs = subscribers.filter((sub: any) => {
+        const date = new Date(sub.createdAt);
+        return date.getFullYear() === year;
+      });
+
+      setTotalSubscribers(yearFilteredSubs.length);
 
       const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
       const groupMap: Record<string, number> = {};
       months.forEach(m => groupMap[m] = 0);
 
-      subscribers.forEach((sub: any) => {
+      yearFilteredSubs.forEach((sub: any) => {
         const date = new Date(sub.createdAt);
         const monthIndex = date.getMonth();
         const monthName = months[monthIndex];
@@ -96,7 +105,7 @@ export default function ProjectStatus() {
       const graphArray = months.map(m => ({
         name: m,
         subscribers: groupMap[m]
-      })).filter(item => item.subscribers >= 0);
+      }));
 
       setNewsletterGraphData(graphArray);
 
@@ -107,16 +116,33 @@ export default function ProjectStatus() {
 
   useEffect(() => {
     fetchAnalyticsData(selectedYear);
-    fetchNewsletterData();
+    fetchNewsletterData(selectedYear);
 
     // Refresh every 30 seconds
     const interval = setInterval(() => {
       fetchAnalyticsData(selectedYear);
-      fetchNewsletterData();
+      fetchNewsletterData(selectedYear);
     }, 30000);
 
     return () => clearInterval(interval);
   }, [selectedYear]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+        setIsYearDropdownOpen(false);
+      }
+    };
+
+    if (isYearDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isYearDropdownOpen]);
 
   // Tooltip สวยๆ
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -159,10 +185,46 @@ export default function ProjectStatus() {
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex bg-gray-100/50 p-1.5 rounded-xl backdrop-blur-sm border border-white/50">
-          <button onClick={() => setActiveTab('traffic')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'traffic' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Traffic</button>
-          <button onClick={() => setActiveTab('newsletter')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'newsletter' ? 'bg-white text-purple-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Newsletter</button>
+        <div className="flex items-center gap-3">
+          {/* Year Dropdown Selector */}
+          {availableYears.length > 0 && (
+            <div className="relative" ref={yearDropdownRef}>
+              <button
+                onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-gray-100/50 border border-white/50 text-gray-700 hover:bg-white hover:shadow-sm transition-all duration-300"
+              >
+                <span>{selectedYear}</span>
+                <ChevronDown size={14} className={`transition-transform duration-300 ${isYearDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isYearDropdownOpen && (
+                <div className="absolute top-full mt-2 right-0 bg-white rounded-xl shadow-xl border border-gray-200 py-2 min-w-[100px] z-50 animate-in fade-in zoom-in duration-200">
+                  {availableYears.map(year => (
+                    <button
+                      key={year}
+                      onClick={() => {
+                        setSelectedYear(year);
+                        setIsYearDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2 text-sm font-semibold text-left transition-colors ${selectedYear === year
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Switcher */}
+          <div className="flex bg-gray-100/50 p-1.5 rounded-xl backdrop-blur-sm border border-white/50">
+            <button onClick={() => setActiveTab('traffic')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'traffic' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Traffic</button>
+            <button onClick={() => setActiveTab('newsletter')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === 'newsletter' ? 'bg-white text-purple-600 shadow-sm scale-105' : 'text-gray-500 hover:text-gray-700'}`}>Newsletter</button>
+          </div>
         </div>
       </div>
 
@@ -223,9 +285,7 @@ export default function ProjectStatus() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f3f4f6', radius: 8 }} />
-                <Legend verticalAlign="top" align="right" height={30} iconType="circle" wrapperStyle={{ top: -10, right: 0, fontSize: '12px', fontWeight: 600 }} />
                 <Bar dataKey="visitors" name="ผู้เข้าชม" fill="#3b82f6" radius={[8, 8, 8, 8]} />
-                <Bar dataKey="pageViews" name="จำนวนหน้า" fill="#a855f7" radius={[8, 8, 8, 8]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
