@@ -39,10 +39,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - id: string
-      uses: ASzc/change-string-case-action@v1
-      with:
-        string: ${{ github.event.repository.name }}
+    - name: Convert repository name to lowercase
+      id: string
+      run: echo "lowercase=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -74,10 +73,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - id: string
-        uses: ASzc/change-string-case-action@v1
-        with:
-          string: ${{ github.event.repository.name }}
+      - name: Convert repository name to lowercase
+        id: string
+        run: echo "lowercase=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: SSH Deploy
         uses: D3rHase/ssh-command-action@v0.2.2
