@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(
     req: NextApiRequest,
@@ -13,7 +13,7 @@ export default async function handler(
         console.log('🔄 Starting migration: Admin → Owner...');
 
         // Update all members with role "Admin" to "Owner"
-        const result = await prisma.workspaceMember.updateMany({
+        const result = await prisma.boardMember.updateMany({
             where: {
                 role: 'Admin'
             },
@@ -25,7 +25,7 @@ export default async function handler(
         console.log(`✅ Migration complete! Updated ${result.count} members.`);
 
         // Get updated members
-        const updatedMembers = await prisma.workspaceMember.findMany({
+        const updatedMembers = await prisma.boardMember.findMany({
             where: {
                 role: 'Owner'
             },
@@ -45,7 +45,7 @@ export default async function handler(
             success: true,
             message: `Migration complete! Updated ${result.count} members from Admin to Owner.`,
             updatedCount: result.count,
-            updatedMembers: updatedMembers.map(m => ({
+            updatedMembers: updatedMembers.map((m: any) => ({
                 name: m.name,
                 role: m.role,
                 boardName: m.board?.name || 'N/A'
