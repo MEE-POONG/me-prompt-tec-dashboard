@@ -21,7 +21,14 @@ WORKDIR /app
 
 # Build arguments
 ARG DATABASE_URL=mongodb://dummy:27017/dummy
+ARG BUILD_ID=local
+ARG COMMIT_SHA=unknown
+ARG BUILD_TIME=unknown
+
 ENV DATABASE_URL=${DATABASE_URL}
+ENV NEXT_PUBLIC_BUILD_ID=${BUILD_ID}
+ENV NEXT_PUBLIC_COMMIT_SHA=${COMMIT_SHA}
+ENV NEXT_PUBLIC_BUILD_TIME=${BUILD_TIME}
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules

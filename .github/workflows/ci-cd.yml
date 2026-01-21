@@ -65,6 +65,9 @@ jobs:
           chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
         build-args: |
           DATABASE_URL=${{ secrets.DATABASE_URL }}
+          BUILD_ID=${{ github.run_id }}
+          COMMIT_SHA=${{ github.sha }}
+          BUILD_TIME=${{ github.event.head_commit.timestamp }}
         no-cache: true
 
   # 3. 🚀 Deploy to Server (รันหลังจาก Push Image เสร็จ)
