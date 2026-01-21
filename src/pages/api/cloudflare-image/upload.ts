@@ -59,20 +59,39 @@ export default async function handler(
     }
 
     // Parse form data with formidable
-    const uploadDir = process.env.UPLOAD_DIR || os.tmpdir();
-    console.log('Using upload directory:', uploadDir);
+    // กำหนด Upload Directory ให้ชัดเจน
+    // ใน Vercel/Docker environment ควรใช้ /tmp หรือ path ที่เขียนได้
+    const isWindows = os.platform() === 'win32';
+    const uploadDir = process.env.UPLOAD_DIR || (isWindows ? os.tmpdir() : '/tmp');
 
-    // Ensure upload dir exists
-    if (!fs.existsSync(uploadDir)) {
-      console.log('Creating upload directory...');
-      fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('Setup upload directory:', uploadDir);
+
+    // Ensure upload dir exists with proper permissions
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        console.log('Creating upload directory...');
+        fs.mkdirSync(uploadDir, { recursive: true, mode: 0o777 });
+      } else {
+        // ตรวจสอบว่าเขียนได้ไหม
+        fs.accessSync(uploadDir, fs.constants.W_OK);
+      }
+    } catch (err: any) {
+      console.error('Failed to access/create upload directory:', err);
+      // Fallback to os.tmpdir() if custom path fails
+      console.log('Falling back to os.tmpdir()');
     }
 
     const form = formidable({
       multiples: false,
-      uploadDir: uploadDir,
+      uploadDir: fs.existsSync(uploadDir) ? uploadDir : os.tmpdir(), // Safety fallback
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB
+      filename: (name, ext, part, form) => {
+        // สร้างชื่อไฟล์ที่ปลอดภัยและไม่ซ้ำกัน
+        const timestamp = Date.now();
+        const safeName = part.originalFilename?.replace(/[^a-z0-9.]/gi, '_') || 'unknown';
+        return `${timestamp}_${safeName}`;
+      }
     });
 
     console.log('Parsing form data (v3 style)...');
