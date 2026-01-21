@@ -124,7 +124,7 @@ export function WorkspaceSettingsSidebar({
     (currentUser && m.userId === currentUser.id) ||
     (currentUser && m.name === currentUser.name)
   );
-  const isAdmin = mb?.role === "Admin" || mb?.role === "Owner";
+  const isOwner = mb?.role === "Owner";
 
   // ❌ ลบ State และ Logic ของ Difficulty Level ออกทั้งหมดตรงนี้
 
@@ -435,10 +435,10 @@ export function WorkspaceSettingsSidebar({
                   <div className="h-px bg-slate-100 my-1"></div>
                   {!isReadOnly && (
                     <button
-                      disabled={!isAdmin}
-                      title={!isAdmin ? "Only Admin can delete board" : ""}
+                      disabled={!isOwner}
+                      title={!isOwner ? "Only Owner can delete board" : ""}
                       onClick={() => setDeleteModal({ ...deleteModal, open: true })}
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isAdmin
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isOwner
                         ? 'text-red-600 hover:bg-red-50 cursor-pointer'
                         : 'text-slate-300 cursor-not-allowed bg-slate-50'}`}
                     >
@@ -666,9 +666,9 @@ export function WorkspaceSettingsSidebar({
                           (currentUser && m.name === currentUser.name)
                         );
                         const currentUserRole = currentUserMember?.role || "Viewer";
-                        const isAdminOrOwner = currentUserRole === "Admin" || currentUserRole === "Owner";
-                        const isOwner = m.role === "Owner";
-                        const canEdit = !isOwner && isAdminOrOwner;
+                        const isOwner = currentUserRole === "Owner";
+                        const isBoardOwner = m.role === "Owner";
+                        const canEdit = !isBoardOwner && isOwner;
 
                         return (
                           <button
@@ -692,7 +692,7 @@ export function WorkspaceSettingsSidebar({
                           ref={memberDropdownRef}
                           className="absolute right-0 top-8 w-40 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-50 animate-in fade-in zoom-in-95"
                         >
-                          {["Admin", "Editor", "Viewer"].map((role) => (
+                          {["Owner", "Editor", "Viewer"].map((role) => (
                             <button
                               key={role}
                               onClick={() => handleRoleChange(i, role)}
@@ -1141,17 +1141,17 @@ export function MembersManageModal({
                 (currentUser && m.name === currentUser.name)
               );
               const currentUserRole = currentUserMember?.role || "Viewer";
-              const isAdminOrOwner = currentUserRole === "Admin" || currentUserRole === "Owner";
+              const isOwner = currentUserRole === "Owner";
 
               const isSelf =
                 currentUser &&
                 (member.userId === currentUser.id ||
                   member.id === currentUser.id);
-              const isOwner = member.role === "Owner" || member.role === "Admin";
+              const isBoardOwner = member.role === "Owner";
 
               // Permission Logic
-              const canDelete = !isSelf && !isOwner && isAdminOrOwner;
-              const canEdit = !isOwner && isAdminOrOwner;
+              const canDelete = !isSelf && !isBoardOwner && isOwner;
+              const canEdit = !isBoardOwner && isOwner;
 
               return (
                 <div
@@ -1166,11 +1166,6 @@ export function MembersManageModal({
                         {member.role === "Owner" && (
                           <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px] font-extrabold uppercase tracking-wider">
                             Owner
-                          </span>
-                        )}
-                        {member.role === "Admin" && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase tracking-wider">
-                            Admin
                           </span>
                         )}
                         {member.role === "Editor" && (
@@ -1195,7 +1190,7 @@ export function MembersManageModal({
                     >
                       <option value="Viewer">Viewer</option>
                       <option value="Editor">Editor</option>
-                      {member.role === "Admin" && <option value="Admin">Admin</option>}
+                      {member.role === "Owner" && <option value="Owner">Owner</option>}
                     </select>
                     {canDelete &&
                       (confirmRemoveId === member.id ? (

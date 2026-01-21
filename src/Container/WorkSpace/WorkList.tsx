@@ -161,18 +161,18 @@ export default function WorkList({
 
   const isUserMember = (project: Project) => !!getUserMemberData(project);
 
-  const isUserAdmin = (project: Project) => {
+  const isUserOwner = (project: Project) => {
     const member = getUserMemberData(project);
-    return member?.role === "Admin" || member?.role === "Owner";
+    return member?.role === "Owner";
   };
 
   const filteredProjects = projects.filter((p) => {
     // 1. Filter by Category Tab
     if (activeTab === "my") {
-      if (!isUserAdmin(p)) return false;
+      if (!isUserOwner(p)) return false;
     } else if (activeTab === "joined") {
-      // Joined = Member but NOT Admin
-      if (!isUserMember(p) || isUserAdmin(p)) return false;
+      // Joined = Member but NOT Owner
+      if (!isUserMember(p) || isUserOwner(p)) return false;
     }
 
     // 3. Filter by Search and Date
@@ -187,12 +187,12 @@ export default function WorkList({
   });
 
   const handleEditClick = (project: Project) => {
-    if (!isUserAdmin(project)) {
+    if (!isUserOwner(project)) {
       setPermissionModal({
         open: true,
         message: "คุณไม่มีสิทธิ์แก้ไขโปรเจกต์นี้",
         description:
-          "คุณต้องเป็น Admin หรือเจ้าของเพื่อแก้ไขรายละเอียดโปรเจกต์นี้",
+          "คุณต้องเป็นเจ้าของเพื่อแก้ไขรายละเอียดโปรเจกต์นี้",
       });
       return;
     }
@@ -264,14 +264,14 @@ export default function WorkList({
 
         <div
           className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
-              ? "flex flex-col"
-              : "flex flex-row items-center gap-6"
+            ? "flex flex-col"
+            : "flex flex-row items-center gap-6"
             }`}
         >
           <div
             className={`flex ${viewType === "grid"
-                ? "justify-between items-start mb-4 w-full"
-                : "items-center gap-4 flex-1"
+              ? "justify-between items-start mb-4 w-full"
+              : "items-center gap-4 flex-1"
               }`}
           >
             {/* --- ส่วนแสดงผล Grid View --- */}
@@ -342,7 +342,7 @@ export default function WorkList({
               </div>
             )}
 
-            {isUserAdmin(project) && (
+            {isUserOwner(project) && (
               <div className="relative pointer-events-auto ml-auto">
                 <button
                   className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
@@ -479,8 +479,8 @@ export default function WorkList({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                 }`}
             >
               <tab.icon size={16} />
@@ -516,8 +516,8 @@ export default function WorkList({
               <Link href="/workspace/add" className="block h-full">
                 <div
                   className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${viewType === "grid"
-                      ? "flex-col justify-center min-h-[220px]"
-                      : "flex-row gap-4 min-h-[100px]"
+                    ? "flex-col justify-center min-h-[220px]"
+                    : "flex-row gap-4 min-h-[100px]"
                     }`}
                 >
                   <div className="rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors w-12 h-12 mb-3">
@@ -618,8 +618,8 @@ export default function WorkList({
                   <button
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isSelected
-                        ? "bg-blue-600 text-white shadow-lg"
-                        : "hover:bg-gray-100"
+                      ? "bg-blue-600 text-white shadow-lg"
+                      : "hover:bg-gray-100"
                       } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""
                       }`}
                   >
