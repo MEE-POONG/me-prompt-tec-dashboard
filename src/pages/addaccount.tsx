@@ -151,8 +151,16 @@ export default function AddOrEditAccount() {
       if (res.ok) {
         setShowSuccessModal(true);
       } else {
-        const data = await res.json();
-        throw new Error(data.error || "เกิดข้อผิดพลาด");
+        // ตรวจสอบว่า Response เป็น JSON หรือไม่
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          throw new Error(data.error || "เกิดข้อผิดพลาด");
+        } else {
+          // ถ้าไม่ใช่ JSON ให้อ่านเป็น Text
+          const text = await res.text();
+          throw new Error(`Server Error: ${res.status} - ${text.substring(0, 100)}`);
+        }
       }
     } catch (error) {
       console.error("Error saving:", error);
@@ -397,14 +405,14 @@ export default function AddOrEditAccount() {
                 <div className="md:col-span-2">
                   <label
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${isActive
-                        ? "border-green-500 bg-green-50"
-                        : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-green-500 bg-green-50"
+                      : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                   >
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isActive
-                          ? "bg-green-500 border-green-500"
-                          : "border-slate-300 bg-white"
+                        ? "bg-green-500 border-green-500"
+                        : "border-slate-300 bg-white"
                         }`}
                     >
                       {isActive && (

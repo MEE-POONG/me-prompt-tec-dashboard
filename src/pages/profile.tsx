@@ -346,12 +346,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="flex justify-end mb-2">
-            <span className="flex items-center gap-2 text-[10px] text-slate-300 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              System v0.2.0 Online
-            </span>
-          </div>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
