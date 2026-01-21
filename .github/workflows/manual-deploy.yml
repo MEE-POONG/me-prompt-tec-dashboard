@@ -1,0 +1,78 @@
+name: Manual Deploy to Production (Emergency)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker Tag to Deploy (default: latest)'
+        required: false
+        default: 'latest'
+
+jobs:
+  deploy:
+    name: 🚀 Manual Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script_stop: true
+          command_timeout: 10m
+          script: |
+              set -e
+              
+              # 1. Configuration
+              TARGET_TAG="${{ github.event.inputs.tag }}"
+              if [ -z "$TARGET_TAG" ]; then
+                TARGET_TAG="latest"
+              fi
+              
+              echo "🚀 Starting Emergency Manual Deployment..."
+              echo "🎯 Target Tag: $TARGET_TAG"
+              echo "🕒 Time: $(date)"
+              
+              # 2. Pull Image
+              echo "⬇️ Pulling image: chunwarayut/me-prompt-tec-dashboard:$TARGET_TAG"
+              docker pull chunwarayut/me-prompt-tec-dashboard:$TARGET_TAG
+              
+              # 3. Stop Old Container
+              echo "🛑 Stopping current container..."
+              docker stop me-prompt-tec-dashboard || true
+              docker rm me-prompt-tec-dashboard || true
+              
+              # 4. Start New Container
+              echo "🚀 Starting new container..."
+              docker run --name me-prompt-tec-dashboard \
+                --label io.portainer.accesscontrol.teams=discord \
+                --restart=always -d -p 7077:3000 \
+                -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+                -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+                -e EXT_PUBLIC_SOCKET_URL="${{ secrets.EXT_PUBLIC_SOCKET_URL }}" \
+                -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+                -e NODE_ENV="production" \
+                -e BASE_URL="${{ secrets.BASE_URL }}" \
+                -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
+                -e CLOUDFLARE_KEY="${{ secrets.CLOUDFLARE_KEY }}" \
+                -e CLOUDFLARE_ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+                -e CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+                -e MAIL_USER="${{ secrets.MAIL_USER }}" \
+                -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
+                --memory=512m --memory-swap=512m --cpus=1.5 \
+                --log-opt max-size=10m --log-opt max-file=3 \
+                chunwarayut/me-prompt-tec-dashboard:$TARGET_TAG
+              
+              # 5. Verify
+              echo "⏳ Waiting 10s for startup..."
+              sleep 10
+              
+              echo "🔍 Checking status..."
+              docker ps | grep me-prompt-tec-dashboard
+              
+              echo "📜 Last 20 logs:"
+              docker logs me-prompt-tec-dashboard --tail 20
+              
+              echo "✅ Deployment Complete!"
