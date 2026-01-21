@@ -56,7 +56,7 @@ export default async function handler(
           members: {
             create: req.body.creator?.name ? [{
               name: req.body.creator.name,
-              role: "Admin",
+              role: "Owner",
               avatar: req.body.creator.avatar || "",
               color: "#3B82F6",
               // email: req.body.creator.email // Reverted until schema update works
