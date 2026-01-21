@@ -1163,7 +1163,12 @@ export function MembersManageModal({
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
                         {member.name}
-                        {(member.role === "Admin" || member.role === "Owner") && (
+                        {member.role === "Owner" && (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px] font-extrabold uppercase tracking-wider">
+                            Owner
+                          </span>
+                        )}
+                        {member.role === "Admin" && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase tracking-wider">
                             Admin
                           </span>
