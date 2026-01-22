@@ -73,10 +73,28 @@ export default function SideBar({
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser) as UserData);
-    }
+    const loadUser = () => {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser) as UserData);
+        } catch (e) {
+          console.error("Error parsing user from storage", e);
+        }
+      }
+    };
+
+    loadUser();
+
+    // Listen for storage changes (for multiple tabs)
+    window.addEventListener("storage", loadUser);
+    // Listen for custom event (for same tab updates)
+    window.addEventListener("user-updated", loadUser);
+
+    return () => {
+      window.removeEventListener("storage", loadUser);
+      window.removeEventListener("user-updated", loadUser);
+    };
   }, []);
 
   useEffect(() => {
@@ -251,37 +269,33 @@ export default function SideBar({
                     <button
                       onClick={() => toggle(item.key)}
                       className={`flex items-center justify-between w-full p-3 rounded-2xl transition-all duration-300 font-medium group
-                        ${
-                          isDropdownOpen
-                            ? "bg-white shadow-sm text-violet-700 border border-violet-100"
-                            : "text-slate-600 hover:bg-white/60 hover:text-violet-700"
+                        ${isDropdownOpen
+                          ? "bg-white shadow-sm text-violet-700 border border-violet-100"
+                          : "text-slate-600 hover:bg-white/60 hover:text-violet-700"
                         }`}
                     >
                       <div className="flex items-center space-x-3">
                         <Icon
-                          className={`w-5 h-5 transition-colors ${
-                            isDropdownOpen
+                          className={`w-5 h-5 transition-colors ${isDropdownOpen
                               ? "text-violet-600"
                               : "text-slate-400 group-hover:text-violet-500"
-                          }`}
+                            }`}
                         />
                         <span>{item.label}</span>
                       </div>
                       <ChevronDown
-                        className={`w-4 h-4 transition-transform duration-300 ${
-                          isDropdownOpen
+                        className={`w-4 h-4 transition-transform duration-300 ${isDropdownOpen
                             ? "rotate-180 text-violet-600"
                             : "text-slate-400 group-hover:text-violet-500"
-                        }`}
+                          }`}
                       />
                     </button>
 
                     <div
-                      className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
-                        isDropdownOpen
+                      className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isDropdownOpen
                           ? "grid-rows-[1fr] opacity-100 pt-1"
                           : "grid-rows-[0fr] opacity-0"
-                      }`}
+                        }`}
                     >
                       <div className="overflow-hidden">
                         <ul className="mt-1 ml-4 space-y-1 pl-3 border-l border-violet-200/50">
@@ -323,11 +337,10 @@ export default function SideBar({
           <div className="relative">
             {/* User Card */}
             <div
-              className={`flex items-center gap-3 p-3 rounded-2xl transition-all duration-300 border cursor-pointer ${
-                open
+              className={`flex items-center gap-3 p-3 rounded-2xl transition-all duration-300 border cursor-pointer ${open
                   ? "bg-white border-violet-100 shadow-lg shadow-violet-100/50"
                   : "bg-white/60 border-white/60 hover:bg-white hover:shadow-sm"
-              }`}
+                }`}
               onClick={() => setOpen(!open)}
             >
               {user?.avatar ? (
@@ -350,16 +363,14 @@ export default function SideBar({
                 </p>
               </div>
               <button
-                className={`p-1.5 rounded-xl transition-all ${
-                  open
+                className={`p-1.5 rounded-xl transition-all ${open
                     ? "bg-violet-50 text-violet-600"
                     : "text-slate-400 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <ChevronUp
-                  className={`w-4 h-4 transition-transform duration-300 ${
-                    open ? "rotate-180" : ""
-                  }`}
+                  className={`w-4 h-4 transition-transform duration-300 ${open ? "rotate-180" : ""
+                    }`}
                 />
               </button>
             </div>

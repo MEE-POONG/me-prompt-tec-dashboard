@@ -78,6 +78,7 @@ export default async function handler(
         email: user.email,
         role: user.role,
         position: user.position,
+        avatar: user.avatar,
       },
     });
   } catch (error) {

@@ -116,6 +116,7 @@ export default function ProfilePage() {
         isVerified: data.isVerified,
         avatar: data.avatar
       }));
+      window.dispatchEvent(new Event("user-updated"));
 
       // Update formData and avatarUrl
       const avatarFromApi = data.avatar || "";
@@ -182,6 +183,7 @@ export default function ProfilePage() {
         avatar: avatarUrl,
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("user-updated"));
 
       setSuccessModal({
         open: true,

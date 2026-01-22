@@ -14,12 +14,32 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
 
   // ดึงข้อมูล user จาก localStorage ตอนโหลดหน้าเว็บ
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        setUser(JSON.parse(stored));
+    const loadUser = () => {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch (e) {
+            console.error("Error parsing user data", e);
+          }
+        }
       }
+    };
+
+    loadUser();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", loadUser);
+      window.addEventListener("user-updated", loadUser);
     }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", loadUser);
+        window.removeEventListener("user-updated", loadUser);
+      }
+    };
   }, []);
 
   // ปุ่ม Logout
@@ -40,7 +60,7 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
               className="p-2 rounded-lg transition-all duration-300 hover:scale-110 text-purple-800"
               aria-label="Toggle Sidebar"
             >
-              {isSidebarOpen ? <Menu  className="text-white"/> : <Menu  />}
+              {isSidebarOpen ? <Menu className="text-white" /> : <Menu />}
             </button>
 
             <Link href="/" className="flex items-center space-x-2">

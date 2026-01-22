@@ -54,6 +54,7 @@ export default async function handler(
         phone: true,
         isActive: true,
         isVerified: true,
+        avatar: true,
       }
     });
 
