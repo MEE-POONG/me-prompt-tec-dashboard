@@ -74,7 +74,7 @@ export default function DashboardRightPanel() {
             <div className="text-center text-gray-400 text-xs py-4">กำลังโหลด...</div>
           ) : members.length > 0 ? (
             members.map((person) => (
-              <Link href={`/teammember/edit/${person.id}`} key={person.id}>
+              <Link href={`/editmember/${person.id}`} key={person.id}>
                 <div className="flex items-center gap-3 p-2 hover:bg-blue-50/50 hover:scale-105 duration-300 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-blue-100">
                   <div className="relative w-9 h-9 rounded-full overflow-hidden border border-gray-200 shrink-0">
                     <Image
