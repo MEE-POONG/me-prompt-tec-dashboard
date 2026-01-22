@@ -12,14 +12,11 @@ export default async function handler(
     try {
         console.log('🔄 Starting role fix: First member = Owner, Others = Editor...');
 
-        // Get all boards
-        const boards = await prisma.board.findMany({
-            include: {
-                members: {
-                    orderBy: {
-                        createdAt: 'asc' // เรียงตามเวลาสร้าง (คนแรกสุด)
-                    }
-                }
+        // Get all boards with members
+        const boards = await prisma.projectBoard.findMany({
+            select: {
+                id: true,
+                name: true
             }
         });
 
@@ -30,12 +27,17 @@ export default async function handler(
 
         // Loop through each board
         for (const board of boards) {
-            if (board.members.length === 0) continue;
+            // Get all members of this board
+            const members = await prisma.boardMember.findMany({
+                where: { boardId: board.id }
+            });
+
+            if (members.length === 0) continue;
 
             totalBoards++;
 
-            // First member = Owner
-            const firstMember = board.members[0];
+            // First member = Owner (คนแรกในลิสต์)
+            const firstMember = members[0];
             await prisma.boardMember.update({
                 where: { id: firstMember.id },
                 data: { role: 'Owner' }
@@ -43,7 +45,7 @@ export default async function handler(
             totalOwners++;
 
             // Other members = Editor
-            const otherMembers = board.members.slice(1);
+            const otherMembers = members.slice(1);
             for (const member of otherMembers) {
                 await prisma.boardMember.update({
                     where: { id: member.id },
