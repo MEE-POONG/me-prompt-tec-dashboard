@@ -46,7 +46,6 @@ export default async function handler(
       console.log('✅ Prisma connected successfully');
     } catch (prismaError: any) {
       console.error('❌ Prisma connection error:', prismaError.message);
-      // ไม่ต้อง return ทันที เพราะอาจจะยังอัปโหลดไป Cloudflare ได้ แต่จะ Save ลง DB ไม่ได้
     }
 
     // 1. ตรวจสอบว่ามี Environment Variables หรือไม่
@@ -55,11 +54,6 @@ export default async function handler(
 
     console.log('--- Upload API Request Started ---');
     console.log('Time:', new Date().toISOString());
-    console.log('Environment check:', {
-      hasAccountId: !!accountId,
-      hasApiToken: !!apiToken,
-      accountIdLength: accountId?.length,
-    });
 
     if (!accountId || !apiToken) {
       console.error('❌ Missing Cloudflare credentials');
@@ -69,34 +63,19 @@ export default async function handler(
       });
     }
 
-    // 2. จัดการ Upload Directory สำหรับ Windows และ Linux
-    let uploadDir = process.env.UPLOAD_DIR;
-
-    if (!uploadDir) {
-      // ใน Windows Standalone Mode, os.tmpdir() อาจจะมีปัญหาเรื่อง Permission ในบางครั้ง
-      // เราจะลองใช้โฟลเดอร์ temp ภายในโปรเจกต์แทน
-      uploadDir = path.join(process.cwd(), 'tmp-uploads');
-    }
+    // 2. จัดการ Upload Directory (ใช้ /tmp เป็นมาตรฐานสำหรับ Linux/Docker)
+    let uploadDir = process.env.UPLOAD_DIR || path.join(os.tmpdir(), 'me-prompt-uploads');
 
     console.log('📍 Target upload directory:', uploadDir);
 
     try {
       if (!fs.existsSync(uploadDir)) {
-        console.log('📂 Creating upload directory...');
         fs.mkdirSync(uploadDir, { recursive: true });
         console.log('✅ Upload directory created');
-      } else {
-        // ตรวจสอบว่าเขียนได้จริงไหม (Permission Check)
-        const testFile = path.join(uploadDir, `.write-test-${Date.now()}`);
-        fs.writeFileSync(testFile, 'test');
-        fs.unlinkSync(testFile);
-        console.log('✅ Upload directory is writable');
       }
     } catch (dirError: any) {
-      console.error('❌ Directory access error:', dirError.message);
-      // ถ้าสร้างไม่ได้จริงๆ ให้ถอยกลับไปใช้ os.tmpdir()
+      console.warn('⚠️ Directory access error, falling back to os.tmpdir():', dirError.message);
       uploadDir = os.tmpdir();
-      console.log('⚠️ Falling back to os.tmpdir():', uploadDir);
     }
 
     // 3. ตั้งค่า Formidable
@@ -133,10 +112,8 @@ export default async function handler(
 
     const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
     console.log('📄 File info:', {
-      originalFilename: file.originalFilename,
-      size: file.size,
-      mimetype: file.mimetype,
-      filepath: file.filepath
+      name: file.originalFilename,
+      path: file.filepath
     });
 
     // 5. Metadata จาก form
@@ -147,15 +124,14 @@ export default async function handler(
     try {
       tags = fields.tags ? JSON.parse(String(fields.tags[0])) : [];
     } catch (e) {
-      console.warn('⚠️ Failed to parse tags, using empty array');
+      console.warn('⚠️ Failed to parse tags');
     }
 
-    // 6. อ่านไฟล์เป็น Buffer และส่งไป Cloudflare
+    // 6. อ่านไฟล์และส่งไป Cloudflare (พร้อมระบบ Retry)
     console.log('⏳ Reading file and uploading to Cloudflare...');
     let fileBuffer: Buffer;
     try {
       fileBuffer = fs.readFileSync(file.filepath);
-      console.log(`✅ File read: ${fileBuffer.length} bytes`);
     } catch (readError: any) {
       console.error('❌ File read error:', readError.message);
       return res.status(500).json({
@@ -164,43 +140,50 @@ export default async function handler(
       });
     }
 
-    const formData = new FormData();
-    // แปลง Buffer เป็น Uint8Array เพื่อให้เข้ากับ Blob ใน Next.js/Node runtime
-    const uint8Array = new Uint8Array(fileBuffer);
-    const blob = new Blob([uint8Array], { type: file.mimetype || "image/jpeg" });
-    formData.append("file", blob, file.originalFilename || "image.jpg");
-
     const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
 
-    const cloudflareResponse = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: formData,
-    });
+    // Helper function สำหรับ Cloudflare Upload พร้อม Retry
+    const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000): Promise<Response> => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const formData = new FormData();
+          const uint8Array = new Uint8Array(fileBuffer);
+          const blob = new Blob([uint8Array], { type: file.mimetype || "image/jpeg" });
+          formData.append("file", blob, file.originalFilename || "image.jpg");
 
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiToken}` },
+            body: formData,
+          });
+
+          if (response.ok || i === retries - 1) return response;
+
+          console.warn(`⚠️ Cloudflare upload retry ${i + 1}/${retries} after failure...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } catch (err) {
+          if (i === retries - 1) throw err;
+          console.warn(`⚠️ Cloudflare upload error, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      throw new Error("Failed after all retries");
+    };
+
+    const cloudflareResponse = await uploadToCloudflareWithRetry();
     console.log('☁️ Cloudflare response status:', cloudflareResponse.status);
 
     if (!cloudflareResponse.ok) {
       const errorText = await cloudflareResponse.text();
       console.error("❌ Cloudflare upload error:", errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        return res.status(cloudflareResponse.status).json({
-          error: "Failed to upload to Cloudflare",
-          details: errorData
-        });
-      } catch (e) {
-        return res.status(cloudflareResponse.status).json({
-          error: "Failed to upload to Cloudflare (Non-JSON response)",
-          details: errorText.slice(0, 500)
-        });
-      }
+      return res.status(cloudflareResponse.status).json({
+        error: "Failed to upload to Cloudflare",
+        details: errorText.slice(0, 500)
+      });
     }
 
     const cloudflareData = await cloudflareResponse.json() as CloudflareImageResponse;
-    console.log('✅ Cloudflare upload successful:', cloudflareData.result.id);
+    console.log('✅ Cloudflare upload successful');
 
     // 7. เก็บข้อมูลลงฐานข้อมูล
     console.log('⏳ Saving to database...');
@@ -221,24 +204,19 @@ export default async function handler(
           isActive: true,
         },
       });
-      console.log('✅ Database record created:', imageRecord.id);
     } catch (dbError: any) {
       console.error('❌ Database save error:', dbError.message);
       return res.status(500).json({
         error: "Failed to save image info to database",
-        message: dbError.message,
-        cloudflareId: cloudflareData.result.id // ส่งกลับไปเพื่อให้ user รู้ว่ารูปขึ้นไปแล้วแต่ save ไม่ได้
+        message: dbError.message
       });
     }
 
     // 8. ลบไฟล์ temp
     try {
-      if (fs.existsSync(file.filepath)) {
-        fs.unlinkSync(file.filepath);
-        console.log('🗑️ Temp file deleted');
-      }
+      if (fs.existsSync(file.filepath)) fs.unlinkSync(file.filepath);
     } catch (unlinkError: any) {
-      console.warn('⚠️ Failed to delete temp file:', unlinkError.message);
+      console.warn('⚠️ Temp cleanup error:', unlinkError.message);
     }
 
     console.log('--- Upload API Request Finished Successfully ---');
@@ -253,8 +231,8 @@ export default async function handler(
     return res.status(500).json({
       error: "Internal Server Error",
       message: error.message || "Unknown error",
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 }
+
 

@@ -477,11 +477,18 @@ export default function ProfilePage() {
                                     });
                                   }
                                 } else {
-                                  console.error("Upload failed:", xhr.status);
+                                  let errorMessage = "ไม่สามารถอัปโหลดรูปภาพได้";
+                                  try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    errorMessage = response.message || response.error || `Server error (${xhr.status})`;
+                                  } catch (e) {
+                                    errorMessage = `Server error (${xhr.status})`;
+                                  }
+                                  console.error("Upload failed:", xhr.status, xhr.responseText);
                                   setErrorModal({
                                     open: true,
                                     message: "เกิดข้อผิดพลาด",
-                                    description: "ไม่สามารถอัปโหลดรูปภาพได้",
+                                    description: errorMessage,
                                   });
                                 }
                               });
