@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { uploadImage, deleteImage, CloudflareImageData } from "@/lib/cloudflareImage";
+import { resizeImage } from "@/lib/imageResizer";
 
 interface UseImageUploadOptions {
   relatedType?: string;
@@ -27,8 +28,20 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
         setProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
+      // 🔄 Resize/Compress image on client side before uploading
+      const processedBlob = await resizeImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8
+      });
+
+      // Convert Blob to File to keep metadata if needed by API
+      const processedFile = new File([processedBlob], file.name, {
+        type: file.type,
+      });
+
       const result = await uploadImage({
-        file,
+        file: processedFile,
         relatedType: options.relatedType,
         relatedId: options.relatedId,
         fieldName: options.fieldName,

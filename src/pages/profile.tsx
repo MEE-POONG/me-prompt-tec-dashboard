@@ -16,6 +16,7 @@ import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ImageUpload from "@/components/ImageUpload";
 import { CloudflareImageData } from "@/lib/cloudflareImage";
+import { resizeImage } from "@/lib/imageResizer";
 
 type UserProfile = {
   id: string;
@@ -415,17 +416,6 @@ export default function ProfilePage() {
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            // ตรวจสอบขนาดไฟล์ (จำกัด 2MB)
-                            const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-                            if (file.size > MAX_SIZE) {
-                              setErrorModal({
-                                open: true,
-                                message: "ไฟล์มีขนาดใหญ่เกินไป",
-                                description: "กรุณาเลือกรูปภาพที่มีขนาดไม่เกิน 2MB เพื่อความรวดเร็วในการอัปโหลด",
-                              });
-                              return;
-                            }
-
                             // Show preview immediately
                             const reader = new FileReader();
                             reader.onloadend = () => {
@@ -433,13 +423,20 @@ export default function ProfilePage() {
                             };
                             reader.readAsDataURL(file);
 
-                            // Upload to Cloudflare with progress tracking
-                            const formData = new FormData();
-                            formData.append("file", file);
-
                             try {
                               setIsUploading(true);
                               setUploadProgress(0);
+
+                              // 🔄 Resize image before upload to optimize speed and stability
+                              const processedFile = await resizeImage(file, {
+                                maxWidth: 1000,
+                                maxHeight: 1000,
+                                quality: 0.7
+                              });
+
+                              // Upload to Cloudflare with progress tracking
+                              const formData = new FormData();
+                              formData.append("file", processedFile, file.name);
 
                               // Use XMLHttpRequest for progress tracking
                               const xhr = new XMLHttpRequest();

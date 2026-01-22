@@ -32,7 +32,7 @@ export default function ImageUpload({
   label = "อัพโหลดรูปภาพ",
   description = "คลิกหรือลากไฟล์มาวางที่นี่",
   accept = "image/*",
-  maxSize = 5, // 5MB default
+  maxSize = 20, // 20MB default
   aspectRatio = "video", // default 16:9
   imagefit = "contain", // default contain เพื่อความชัด
   className = "",
@@ -58,9 +58,10 @@ export default function ImageUpload({
   });
 
   const handleFileSelect = async (file: File) => {
-    // ตรวจสอบขนาดไฟล์
-    if (file.size > maxSize * 1024 * 1024) {
-      alert(`ไฟล์มีขนาดใหญ่เกินไป (สูงสุด ${maxSize}MB)`);
+    // ตรวสอบขนาดไฟล์ขั้นต้น (เพิ่มเป็น 20MB เนื่องจากมีการ Resize ช่วย)
+    const MAX_ALLOWED = 20 * 1024 * 1024;
+    if (file.size > MAX_ALLOWED) {
+      alert(`ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 20MB) กรุณาเลือกไฟล์ที่เล็กลง`);
       return;
     }
 
@@ -155,10 +156,10 @@ export default function ImageUpload({
           <div className="relative">
             <div
               className={`relative w-full rounded-lg overflow-hidden bg-slate-100 ${aspectRatio === "square"
-                  ? "aspect-square"
-                  : aspectRatio === "wide"
-                    ? "aspect-21/9"
-                    : "aspect-video"
+                ? "aspect-square"
+                : aspectRatio === "wide"
+                  ? "aspect-21/9"
+                  : "aspect-video"
                 }`}
             >
               <Image
