@@ -1174,9 +1174,6 @@ export function MembersManageModal({
                           </span>
                         )}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        {member.role || "Member"}
-                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
