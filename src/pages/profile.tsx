@@ -415,6 +415,17 @@ export default function ProfilePage() {
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            // ตรวจสอบขนาดไฟล์ (จำกัด 2MB)
+                            const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+                            if (file.size > MAX_SIZE) {
+                              setErrorModal({
+                                open: true,
+                                message: "ไฟล์มีขนาดใหญ่เกินไป",
+                                description: "กรุณาเลือกรูปภาพที่มีขนาดไม่เกิน 2MB เพื่อความรวดเร็วในการอัปโหลด",
+                              });
+                              return;
+                            }
+
                             // Show preview immediately
                             const reader = new FileReader();
                             reader.onloadend = () => {

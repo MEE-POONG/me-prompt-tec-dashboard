@@ -32,7 +32,7 @@ export default function ImageUpload({
   label = "อัพโหลดรูปภาพ",
   description = "คลิกหรือลากไฟล์มาวางที่นี่",
   accept = "image/*",
-  maxSize = 10, // 10MB default
+  maxSize = 5, // 5MB default
   aspectRatio = "video", // default 16:9
   imagefit = "contain", // default contain เพื่อความชัด
   className = "",
@@ -132,15 +132,13 @@ export default function ImageUpload({
         className={`
           relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer
           transition-all duration-200
-          ${
-            isDragging
-              ? "border-violet-500 bg-violet-50"
-              : "border-slate-200 bg-slate-50"
+          ${isDragging
+            ? "border-violet-500 bg-violet-50"
+            : "border-slate-200 bg-slate-50"
           }
-          ${
-            uploading
-              ? "cursor-not-allowed opacity-60"
-              : "hover:border-violet-400 hover:bg-violet-50/50"
+          ${uploading
+            ? "cursor-not-allowed opacity-60"
+            : "hover:border-violet-400 hover:bg-violet-50/50"
           }
         `}
       >
@@ -156,13 +154,12 @@ export default function ImageUpload({
         {preview ? (
           <div className="relative">
             <div
-              className={`relative w-full rounded-lg overflow-hidden bg-slate-100 ${
-                aspectRatio === "square"
+              className={`relative w-full rounded-lg overflow-hidden bg-slate-100 ${aspectRatio === "square"
                   ? "aspect-square"
                   : aspectRatio === "wide"
-                  ? "aspect-21/9"
-                  : "aspect-video"
-              }`}
+                    ? "aspect-21/9"
+                    : "aspect-video"
+                }`}
             >
               <Image
                 src={preview}
