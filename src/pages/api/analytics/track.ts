@@ -36,13 +36,14 @@ export default async function handler(
             null;
 
         // Create page view record
-        await prisma.pageView.create({
+        await prisma.pageviews.create({
             data: {
                 sessionId,
                 page,
                 referrer: referrer || null,
                 userAgent: userAgent || null,
-                ipAddress,
+                ipAddress: ipAddress || "",
+                createdAt: new Date(),
             },
         });
 
