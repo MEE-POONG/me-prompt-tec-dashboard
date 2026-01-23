@@ -19,7 +19,7 @@ export default async function handler(
       }
 
       // 1. บันทึก Activity Log (เหมือนเดิม)
-      const activity = await prisma.boardActivity.create({
+      const activity = await (prisma.boardActivity.create as any)({
         data: {
           boardId,
           user,

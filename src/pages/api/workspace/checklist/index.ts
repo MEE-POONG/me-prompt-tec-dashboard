@@ -15,7 +15,7 @@ export default async function handler(
         return res.status(400).json({ message: "taskId is required" });
       }
 
-      const items = await prisma.checklistItem.findMany({
+      const items = await (prisma.checklistItem.findMany as any)({
         where: { taskId },
         orderBy: { order: "asc" },
       });
@@ -32,12 +32,14 @@ export default async function handler(
           .json({ message: "taskId and text are required" });
       }
 
-      const item = await prisma.checklistItem.create({
+      const item = await (prisma.checklistItem.create as any)({
         data: {
           taskId,
           text,
           isChecked: isChecked || false,
           order: order ?? 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

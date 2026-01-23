@@ -66,9 +66,9 @@ export default async function handler(
           updatedAt: new Date(),
           columns: {
             create: [
-              { title: "To Do", order: 0, color: "bg-slate-50", createdAt: new Date() },
-              { title: "In Progress", order: 1, color: "bg-blue-50", createdAt: new Date() },
-              { title: "Done", order: 2, color: "bg-green-50", createdAt: new Date() },
+              { title: "To Do", order: 0, color: "bg-slate-50", createdAt: new Date(), updatedAt: new Date() },
+              { title: "In Progress", order: 1, color: "bg-blue-50", createdAt: new Date(), updatedAt: new Date() },
+              { title: "Done", order: 2, color: "bg-green-50", createdAt: new Date(), updatedAt: new Date() },
             ],
           },
           members: {
@@ -78,6 +78,8 @@ export default async function handler(
               role: "Owner",
               avatar: creator.avatar || "",
               color: "#3B82F6",
+              createdAt: new Date(),
+              updatedAt: new Date(),
             }] : [],
           }
         },

@@ -43,10 +43,10 @@ export default async function handler(
           ...act,
           user: user
             ? {
-                id: user.id,
-                name: user.name || user.email,
-                avatar: user.avatar,
-              }
+              id: user.id,
+              name: user.name || user.email,
+              avatar: user.avatar,
+            }
             : act.user,
         };
       });
@@ -63,7 +63,7 @@ export default async function handler(
         });
       }
 
-      const activity = await prisma.boardActivity.create({
+      const activity = await (prisma.boardActivity.create as any)({
         data: {
           boardId,
           user,
@@ -71,6 +71,7 @@ export default async function handler(
           target,
           projectId,
           taskId: taskId || undefined,
+          createdAt: new Date(),
         },
       });
 
@@ -86,10 +87,10 @@ export default async function handler(
         ...activity,
         user: dbUser
           ? {
-              id: dbUser.id,
-              name: dbUser.name || user,
-              avatar: dbUser.avatar,
-            }
+            id: dbUser.id,
+            name: dbUser.name || user,
+            avatar: dbUser.avatar,
+          }
           : user,
       };
 

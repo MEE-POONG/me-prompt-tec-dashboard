@@ -106,23 +106,24 @@ export default async function handler(
             .json({ message: "User is already a member of this board" });
         }
 
-        const newMember = await prisma.boardMember.create({
+        const newMember = await (prisma.boardMember.create as any)({
           data: {
             boardId,
-            name: user.name || user.email, // Use Name or Email as display name
+            name: user.name || user.email,
             role: role || "Viewer",
-            avatar: user.avatar || undefined, // Use user avatar if available
-            color: color || "bg-blue-500", // Default color
+            ...(user.avatar && { avatar: user.avatar }),
+            color: color || "bg-blue-500",
           },
         });
 
         // ✅ Log Activity
-        await prisma.boardActivity.create({
+        await (prisma.boardActivity.create as any)({
           data: {
             boardId,
-            user: "You", // TODO: Should get current user name from session/token if possible
+            user: "You",
             action: "invited",
             target: user.email,
+            createdAt: new Date(),
           }
         });
 
@@ -138,23 +139,26 @@ export default async function handler(
           });
       }
 
-      const member = await prisma.boardMember.create({
+      const member = await (prisma.boardMember.create as any)({
         data: {
           boardId,
           name,
           role,
           avatar,
           color,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 
       // ✅ Log Activity
-      await prisma.boardActivity.create({
+      await (prisma.boardActivity.create as any)({
         data: {
           boardId,
           user: "You",
           action: "added member",
           target: name,
+          createdAt: new Date(),
         }
       });
 
@@ -201,12 +205,13 @@ export default async function handler(
         });
 
         // ✅ Log Activity
-        await prisma.boardActivity.create({
+        await (prisma.boardActivity.create as any)({
           data: {
             boardId: updatedMember.boardId,
             user: "You",
             action: "changed role of",
             target: `${updatedMember.name} to ${role}`,
+            createdAt: new Date(),
           }
         });
 
@@ -254,12 +259,13 @@ export default async function handler(
         });
 
         // ✅ Log Activity
-        await prisma.boardActivity.create({
+        await (prisma.boardActivity.create as any)({
           data: {
             boardId: memberToDelete.boardId,
             user: "You",
             action: "removed member",
             target: memberToDelete.name,
+            createdAt: new Date(),
           }
         });
       }
@@ -273,3 +279,4 @@ export default async function handler(
     return res.status(500).json({ message: "Server error" });
   }
 }
+

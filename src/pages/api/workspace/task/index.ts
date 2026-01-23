@@ -128,10 +128,15 @@ export default async function handler(
           attachments: 0,
           comments: 0,
           isArchived: false,
+          createdAt: new Date(),
           updatedAt: new Date(),
           completedAt,
           assignees: assigneeIds?.length > 0 ? {
-            create: assigneeIds.map((uid: string) => ({ userId: uid })),
+            create: assigneeIds.map((uid: string) => ({
+              userId: uid,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })),
           } : undefined,
         },
         include: {

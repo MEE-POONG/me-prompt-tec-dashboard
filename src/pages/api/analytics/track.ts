@@ -36,7 +36,7 @@ export default async function handler(
             null;
 
         // Create page view record
-        await prisma.pageviews.create({
+        await (prisma.pageviews.create as any)({
             data: {
                 sessionId,
                 page,
@@ -44,6 +44,7 @@ export default async function handler(
                 userAgent: userAgent || null,
                 ipAddress: ipAddress || "",
                 createdAt: new Date(),
+                updatedAt: new Date(),
             },
         });
 

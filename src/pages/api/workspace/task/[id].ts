@@ -142,7 +142,11 @@ export default async function handler(
       if (assigneeIds !== undefined) {
         updateData.assignees = {
           deleteMany: {},
-          create: assigneeIds.map((uid: string) => ({ userId: uid })),
+          create: assigneeIds.map((uid: string) => ({
+            userId: uid,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })),
         };
       }
 
