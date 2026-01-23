@@ -13,8 +13,8 @@ import {
   ChevronRight,
   Plus,
   Loader2,
-  Lock, // [เพิ่ม]
-  Globe, // [เพิ่ม]
+  Lock,
+  Globe,
 } from "lucide-react";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
@@ -26,6 +26,7 @@ interface Project {
   description: string;
   color: string;
   createdAt: string;
+  updatedAt?: string;
   visibility?: "PRIVATE" | "PUBLIC";
   members?: any[];
   columns?: {
@@ -91,7 +92,6 @@ export default function WorkList({
 
   useEffect(() => {
     fetchProjects();
-    // Get current user from localStorage
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
@@ -160,7 +160,7 @@ export default function WorkList({
     if (!project.columns) return 0;
     const allTasks = project.columns.flatMap((col) => col.tasks);
     if (allTasks.length === 0) return 0;
-    const completedTasks = allTasks.filter((t) => t.isDone).length;
+    const completedTasks = allTasks.filter((t) => (t as any).isDone).length;
     return Math.round((completedTasks / allTasks.length) * 100);
   };
 
@@ -180,7 +180,10 @@ export default function WorkList({
     });
   };
 
-  const isUserMember = (project: Project) => !!getUserMemberData(project);
+  const isUserMember = (project: Project) => {
+    if (!project.members || project.members.length === 0) return true;
+    return !!getUserMemberData(project);
+  };
 
   const isUserOwner = (project: Project) => {
     const member = getUserMemberData(project);
@@ -188,15 +191,12 @@ export default function WorkList({
   };
 
   const filteredProjects = projects.filter((p) => {
-    // 1. Filter by Category Tab
     if (activeTab === "my") {
       if (!isUserOwner(p)) return false;
     } else if (activeTab === "joined") {
-      // Joined = Member but NOT Owner
       if (!isUserMember(p) || isUserOwner(p)) return false;
     }
 
-    // 3. Filter by Search and Date
     const matchesSearch =
       p.name.toLowerCase().includes(searchItem.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchItem.toLowerCase());
@@ -212,8 +212,7 @@ export default function WorkList({
       setPermissionModal({
         open: true,
         message: "คุณไม่มีสิทธิ์แก้ไขโปรเจกต์นี้",
-        description:
-          "คุณต้องเป็นเจ้าของเพื่อแก้ไขรายละเอียดโปรเจกต์นี้",
+        description: "คุณต้องเป็นเจ้าของเพื่อแก้ไขรายละเอียดโปรเจกต์นี้",
       });
       return;
     }
@@ -258,14 +257,85 @@ export default function WorkList({
     }
   };
 
-  // --- Helper Component ---
+  // --- Helper Components ---
+  const ProjectSkeleton = () => (
+    <div
+      className={`bg-white p-5 rounded-2xl border border-gray-100 shadow-sm animate-pulse ${viewType === "grid" ? "flex flex-col h-[220px]" : "flex flex-row items-center gap-6 h-[100px]"
+        }`}
+    >
+      {viewType === "grid" ? (
+        <>
+          <div className="flex justify-between items-start mb-4">
+            <div className="h-6 bg-gray-200 rounded-md w-3/4"></div>
+            <div className="h-5 bg-gray-100 rounded-full w-16"></div>
+          </div>
+          <div className="h-4 bg-gray-100 rounded w-full mb-2"></div>
+          <div className="h-4 bg-gray-100 rounded w-2/3 mb-6"></div>
+          <div className="h-10 w-10 bg-gray-100 rounded-xl mb-4"></div>
+          <div className="h-1.5 bg-gray-100 rounded-full w-full mt-auto"></div>
+        </>
+      ) : (
+        <>
+          <div className="h-12 w-12 bg-gray-100 rounded-xl shrink-0"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full w-24 ml-auto"></div>
+        </>
+      )}
+    </div>
+  );
+
+  const AvatarStack = ({ members }: { members: any[] }) => {
+    const limit = 3;
+    const displayMembers = (members || []).slice(0, limit);
+    const remaining = (members || []).length - limit;
+
+    return (
+      <div className="flex -space-x-2 overflow-hidden">
+        {displayMembers.map((member, i) => (
+          <div
+            key={i}
+            className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-blue-50 relative"
+            title={member.name}
+          >
+            {member.avatar ? (
+              <img
+                src={member.avatar}
+                alt={member.name}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600">
+                {(member.name || "M").charAt(0)}
+              </div>
+            )}
+          </div>
+        ))}
+        {remaining > 0 && (
+          <div className="flex items-center justify-center h-7 w-7 rounded-full ring-2 ring-white bg-gray-100 text-[10px] font-bold text-gray-600">
+            +{remaining}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const ProjectCard = ({ project }: { project: Project }) => {
     const progress = calculateProgress(project);
     const dateFormatted = new Date(project.createdAt).toLocaleDateString();
 
+    // Check if updated in last 24 hours
+    const isNew = (() => {
+      const lastUpdate = project.updatedAt ? new Date(project.updatedAt) : new Date(project.createdAt);
+      const diff = new Date().getTime() - lastUpdate.getTime();
+      return diff < 24 * 60 * 60 * 1000;
+    })();
+
     return (
       <div
-        className={`relative group block h-full transition-all duration-200 ${activeDropdownId === project.id ? "z-50" : "z-0"
+        className={`relative group block h-full transition-all duration-300 hover:-translate-y-1 ${activeDropdownId === project.id ? "z-50" : "z-0"
           }`}
       >
         <div
@@ -284,81 +354,58 @@ export default function WorkList({
         />
 
         <div
-          className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
+          className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 group-hover:shadow-xl group-hover:border-blue-400/50 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
             ? "flex flex-col"
             : "flex flex-row items-center gap-6"
             }`}
         >
+          {isNew && (
+            <div className="absolute -top-1.5 -right-1.5 z-20 flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-lg shadow-blue-200 animate-in zoom-in duration-300">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-100 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+              </span>
+              NEW
+            </div>
+          )}
+
           <div
-            className={`flex ${viewType === "grid"
-              ? "justify-between items-start mb-4 w-full"
-              : "items-center gap-4 flex-1"
+            className={`flex w-full ${viewType === "grid" ? "justify-between items-start mb-4" : "items-center gap-4 flex-1"
               }`}
           >
-            {/* --- ส่วนแสดงผล Grid View --- */}
             {viewType === "grid" ? (
-              <div className="w-full mb-4">
+              <div className="w-full">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <h3 className="text-lg font-bold text-gray-900 truncate flex-1">
                     {project.name}
                   </h3>
-
-                  {/* แสดงสถานะ Private/Public (แก้ไขแล้ว: ใส่ title ที่ div) */}
                   {project.visibility === "PUBLIC" ? (
-                    <div
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold shrink-0 border border-blue-200"
-                      title="Public Workspace"
-                    >
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold shrink-0 border border-blue-200" title="Public Workspace">
                       <Globe size={12} />
                       <span>Public</span>
                     </div>
                   ) : (
-                    <div
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200"
-                      title="Private Workspace"
-                    >
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200" title="Private Workspace">
                       <Lock size={12} />
                       <span>Private</span>
                     </div>
                   )}
                 </div>
-
                 <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">
                   {project.description}
                 </p>
               </div>
             ) : (
-              // --- ส่วนแสดงผล List View ---
-              <div className="flex items-center gap-3 w-full">
-                <div
-                  className={`p-3 rounded-xl bg-blue-50 text-blue-600 shrink-0`}
-                  style={{
-                    backgroundColor: `${project.color}20`,
-                    color: project.color,
-                  }}
-                >
+              <div className="flex items-center gap-3 w-full min-w-0">
+                <div className="p-3 rounded-xl shrink-0" style={{ backgroundColor: `${project.color}20`, color: project.color }}>
                   <Folder size={28} strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-gray-900 truncate">
-                      {project.name}
-                    </h3>
-
-                    {/* ป้ายสถานะใน List View (แก้ไขแล้ว: ย้าย title ไปใส่ div หุ้ม) */}
-                    {project.visibility === "PUBLIC" ? (
-                      <div title="Public">
-                        <Globe size={14} className="text-blue-500" />
-                      </div>
-                    ) : (
-                      <div title="Private">
-                        <Lock size={14} className="text-gray-400" />
-                      </div>
-                    )}
+                    <h3 className="text-lg font-bold text-gray-900 truncate">{project.name}</h3>
+                    {project.visibility === "PUBLIC" ? <Globe size={14} className="text-blue-500" /> : <Lock size={14} className="text-gray-400" />}
                   </div>
-                  <p className="text-sm text-gray-500 truncate">
-                    {project.description}
-                  </p>
+                  <p className="text-sm text-gray-500 truncate">{project.description}</p>
                 </div>
               </div>
             )}
@@ -370,40 +417,19 @@ export default function WorkList({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setActiveDropdownId(
-                      activeDropdownId === project.id ? null : project.id
-                    );
+                    setActiveDropdownId(activeDropdownId === project.id ? null : project.id);
                   }}
                 >
                   <MoreVertical size={20} />
                 </button>
                 {activeDropdownId === project.id && (
-                  <div
-                    ref={dropdownRef}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50"
-                  >
-                    <button
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleEditClick(project);
-                      }}
-                    >
+                  <div ref={dropdownRef} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right cursor-default z-50">
+                    <button className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEditClick(project); }}>
                       <Folder size={16} className="text-blue-500" />
                       <span>Edit Details</span>
                     </button>
-
                     <div className="h-px bg-gray-100 my-1"></div>
-
-                    <button
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-                      onClick={() => handleDeleteProject(project.id)}
-                    >
+                    <button className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors" onClick={() => handleDeleteProject(project.id)}>
                       <Trash2 size={16} />
                       <span>Delete Project</span>
                     </button>
@@ -413,46 +439,19 @@ export default function WorkList({
             )}
           </div>
 
-          {viewType === "grid" && (
-            <>
-              <div className="flex items-center gap-3 mb-4">
-                <div
-                  className="p-3 rounded-xl bg-blue-50 text-blue-600 max-w-max"
-                  style={{
-                    backgroundColor: `${project.color}20`,
-                    color: project.color,
-                  }}
-                >
-                  <Folder size={28} strokeWidth={1.5} />
-                </div>
+          {viewType === "grid" ? (
+            <div className="flex items-center justify-between mt-auto w-full pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <CalendarIcon size={14} />
+                <span>{dateFormatted}</span>
               </div>
-
-              <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
-                <div
-                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 mt-auto w-full">
-                <div className="flex items-center gap-1.5">
-                  <CalendarIcon size={14} />
-                  <span>Created: {dateFormatted}</span>
-                </div>
-              </div>
-            </>
-          )}
-
-          {viewType === "list" && (
-            <div className="flex items-center gap-8 ml-auto text-xs text-gray-500 whitespace-nowrap">
+              <AvatarStack members={project.members || []} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-6 ml-auto whitespace-nowrap">
+              <AvatarStack members={project.members || []} />
               <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Users size={14} />
-                <span>{project.members?.length || 0} members</span>
+                <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
               </div>
             </div>
           )}
@@ -461,13 +460,22 @@ export default function WorkList({
     );
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-        <Loader2 className="animate-spin mb-2" size={32} />
-        <p>Loading projects...</p>
+      <div className="flex-1 w-full space-y-8">
+        <div className="flex items-center gap-2 bg-gray-100/50 p-1 rounded-xl w-fit">
+          <div className="h-9 w-32 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-9 w-32 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-9 w-32 bg-gray-100 rounded-lg animate-pulse" />
+        </div>
+        <div className={viewType === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "space-y-3"}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <ProjectSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 pb-12 items-start">
@@ -476,20 +484,14 @@ export default function WorkList({
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-2 text-blue-700 text-sm">
               <Filter size={18} />
-              <span>
-                Filtering projects created on <strong>{selectedDate}</strong>
-              </span>
+              <span>Filtering projects created on <strong>{selectedDate}</strong></span>
             </div>
-            <button
-              onClick={() => setSelectedDate(null)}
-              className="text-blue-500 hover:text-blue-700 hover:bg-blue-100 p-1 rounded-full transition-colors"
-            >
+            <button onClick={() => setSelectedDate(null)} className="text-blue-500 hover:text-blue-700 hover:bg-blue-100 p-1 rounded-full transition-colors">
               <X size={18} />
             </button>
           </div>
         )}
 
-        {/* --- Category Tabs --- */}
         <div className="flex items-center gap-2 bg-gray-100/50 p-1 rounded-xl w-fit">
           {[
             { id: "all", label: "All Projects", icon: Folder },
@@ -499,10 +501,7 @@ export default function WorkList({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"}`}
             >
               <tab.icon size={16} />
               {tab.label}
@@ -512,35 +511,20 @@ export default function WorkList({
 
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            {activeTab === "all"
-              ? "All Projects"
-              : activeTab === "my"
-                ? "My Projects"
-                : "Joined Projects"}{" "}
+            {activeTab === "all" ? "All Projects" : activeTab === "my" ? "My Projects" : "Joined Projects"}{" "}
             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
               {filteredProjects.length}
             </span>
           </h2>
 
-          <div
-            className={
-              viewType === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-                : "space-y-3"
-            }
-          >
+          <div className={viewType === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "space-y-3"}>
             {filteredProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
 
             {activeTab !== "joined" && !selectedDate && (
               <Link href="/workspace/add" className="block h-full">
-                <div
-                  className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${viewType === "grid"
-                    ? "flex-col justify-center min-h-[220px]"
-                    : "flex-row gap-4 min-h-[100px]"
-                    }`}
-                >
+                <div className={`border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all group cursor-pointer h-full ${viewType === "grid" ? "flex-col justify-center min-h-[220px]" : "flex-row gap-4 min-h-[100px]"}`}>
                   <div className="rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors w-12 h-12 mb-3">
                     <Plus size={24} className="group-hover:text-blue-600" />
                   </div>
@@ -556,206 +540,80 @@ export default function WorkList({
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-gray-800">
-              {currentCalendarDate.toLocaleString("default", {
-                month: "long",
-                year: "numeric",
-              })}
+              {currentCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
             </h3>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() =>
-                  setCurrentCalendarDate(
-                    new Date(
-                      currentCalendarDate.setMonth(
-                        currentCalendarDate.getMonth() - 1
-                      )
-                    )
-                  )
-                }
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
-              >
+              <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1)))} className="p-1 hover:bg-gray-100 rounded text-gray-600">
                 <ChevronLeft size={16} />
               </button>
-              <button
-                onClick={() =>
-                  setCurrentCalendarDate(
-                    new Date(
-                      currentCalendarDate.setMonth(
-                        currentCalendarDate.getMonth() + 1
-                      )
-                    )
-                  )
-                }
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
-              >
+              <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1)))} className="p-1 hover:bg-gray-100 rounded text-gray-600">
                 <ChevronRight size={16} />
               </button>
             </div>
           </div>
           <div className="grid grid-cols-7 text-center text-xs text-gray-400 font-medium mb-2">
-            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-              <span key={i}>{d}</span>
-            ))}
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i}>{d}</span>)}
           </div>
           <div className="grid grid-cols-7 text-center gap-y-3 text-sm text-gray-700">
-            {[
-              ...Array(
-                new Date(
-                  currentCalendarDate.getFullYear(),
-                  currentCalendarDate.getMonth(),
-                  1
-                ).getDay()
-              ),
-            ].map((_, i) => (
-              <span key={`empty-${i}`} />
-            ))}
-
-            {[
-              ...Array(
-                new Date(
-                  currentCalendarDate.getFullYear(),
-                  currentCalendarDate.getMonth() + 1,
-                  0
-                ).getDate()
-              ),
-            ].map((_, i) => {
+            {[...Array(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1).getDay())].map((_, i) => <span key={`empty-${i}`} />)}
+            {[...Array(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0).getDate())].map((_, i) => {
               const day = i + 1;
-              const dateStr = `${currentCalendarDate.getFullYear()}-${(
-                currentCalendarDate.getMonth() + 1
-              )
-                .toString()
-                .padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+              const dateStr = `${currentCalendarDate.getFullYear()}-${(currentCalendarDate.getMonth() + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
               const isSelected = selectedDate === dateStr;
-              const hasEvent = projects.some(
-                (p) =>
-                  new Date(p.createdAt).toISOString().split("T")[0] === dateStr
-              );
-
+              const hasEvent = projects.some(p => new Date(p.createdAt).toISOString().split("T")[0] === dateStr);
               return (
-                <div
-                  key={day}
-                  className="relative flex justify-center flex-col items-center"
-                >
-                  <button
-                    onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isSelected
-                      ? "bg-blue-600 text-white shadow-lg"
-                      : "hover:bg-gray-100"
-                      } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""
-                      }`}
-                  >
+                <div key={day} className="relative flex justify-center flex-col items-center">
+                  <button onClick={() => setSelectedDate(isSelected ? null : dateStr)} className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isSelected ? "bg-blue-600 text-white shadow-lg" : "hover:bg-gray-100"} ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""}`}>
                     {day}
                   </button>
-                  {hasEvent && !isSelected && (
-                    <div className="mt-0.5 w-1 h-1 bg-blue-500 rounded-full"></div>
-                  )}
+                  {hasEvent && !isSelected && <div className="mt-0.5 w-1 h-1 bg-blue-500 rounded-full"></div>}
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
       {isEditModalOpen && editingProject && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsEditModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-800">Edit Project</h3>
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-              >
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
                 <X size={24} />
               </button>
             </div>
-
             <form onSubmit={handleUpdateSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Project Name
-                </label>
-                <input
-                  name="name"
-                  defaultValue={editingProject.name}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter project name"
-                  required
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Project Name</label>
+                <input name="name" defaultValue={editingProject.name} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="Enter project name" required />
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  defaultValue={editingProject.description}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
-                  placeholder="Project details..."
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                <textarea name="description" defaultValue={editingProject.description} rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none" placeholder="Project details..." />
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Theme Color
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Theme Color</label>
                 <div className="flex gap-3 mt-2">
-                  {["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"].map(
-                    (color) => (
-                      <label key={color} className="relative cursor-pointer">
-                        <input
-                          type="radio"
-                          name="color"
-                          value={color}
-                          defaultChecked={editingProject.color === color}
-                          className="peer sr-only"
-                        />
-                        <div
-                          className="w-8 h-8 rounded-full border-2 border-transparent peer-checked:border-gray-800 peer-checked:scale-110 transition-all"
-                          style={{ backgroundColor: color }}
-                        />
-                      </label>
-                    )
-                  )}
+                  {["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"].map((color) => (
+                    <label key={color} className="relative cursor-pointer">
+                      <input type="radio" name="color" value={color} defaultChecked={editingProject.color === color} className="peer sr-only" />
+                      <div className="w-8 h-8 rounded-full border-2 border-transparent peer-checked:border-gray-800 peer-checked:scale-110 transition-all" style={{ backgroundColor: color }} />
+                    </label>
+                  ))}
                 </div>
               </div>
-
               <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
-                >
-                  Save Changes
-                </button>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">Save Changes</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      <ModalError
-        open={permissionModal.open}
-        message={permissionModal.message}
-        description={permissionModal.description}
-        onClose={() => setPermissionModal({ ...permissionModal, open: false })}
-      />
-
-      <ModalDelete
-        open={deleteModal.open}
-        message={deleteModal.message}
-        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
-        onConfirm={deleteModal.onConfirm}
-      />
+      <ModalError open={permissionModal.open} message={permissionModal.message} description={permissionModal.description} onClose={() => setPermissionModal({ ...permissionModal, open: false })} />
+      <ModalDelete open={deleteModal.open} message={deleteModal.message} onClose={() => setDeleteModal({ ...deleteModal, open: false })} onConfirm={deleteModal.onConfirm} />
     </div>
   );
 }

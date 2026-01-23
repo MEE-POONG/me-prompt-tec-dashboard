@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getAuthToken } from "@/lib/auth/cookies";
 import { verifyToken } from "@/lib/auth/jwt";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -29,34 +34,32 @@ export default async function handler(
     // Helper: Check requester's role
     const getRequesterRole = async () => {
       if (!requesterId) return null;
-      const user = await prisma.user.findUnique({ where: { id: requesterId } });
+      const user = await (prisma.user.findUnique as any)({ where: { id: requesterId } });
       if (!user) return null;
 
-      // Try strict match first
-      const member = await prisma.boardMember.findFirst({
+      const member = await (prisma.boardMember.findFirst as any)({
         where: {
           boardId: id,
-          OR: [{ name: user.name || "" }, { name: user.email }],
+          OR: [{ name: user.name || "" }, { name: user.email || "" }],
         },
       });
 
       if (member) return member.role;
 
-      // Fallback: Loose match
-      const allMembers = await prisma.boardMember.findMany({
+      const allMembers = await (prisma.boardMember.findMany as any)({
         where: { boardId: id },
       });
       const userEmail = (user.email || "").toLowerCase().trim();
       const userName = (user.name || "").toLowerCase().trim();
-      const matched = allMembers.find((m) => {
-        const mName = m.name.toLowerCase().trim();
+      const matched = allMembers.find((m: any) => {
+        const mName = (m.name || "").toLowerCase().trim();
         return mName === userEmail || mName === userName;
       });
       return matched?.role || null;
     };
 
     if (req.method === "GET") {
-      const board = await prisma.projectBoard.findUnique({
+      const board = await (prisma.projectBoard.findUnique as any)({
         where: { id },
         include: {
           columns: {
@@ -65,9 +68,7 @@ export default async function handler(
                 where: { isArchived: false },
                 include: {
                   assignees: {
-                    select: {
-                      id: true,
-                      userId: true,
+                    include: {
                       user: {
                         select: {
                           id: true,
@@ -90,9 +91,6 @@ export default async function handler(
           activities: {
             orderBy: { createdAt: "desc" },
             take: 20,
-            include: {
-              // Optionally include user info if needed for activities
-            },
           },
         },
       });
@@ -112,25 +110,18 @@ export default async function handler(
 
       const { name, description, color, visibility } = req.body;
 
-      const board = await prisma.projectBoard.update({
+      const board = await (prisma.projectBoard.update as any)({
         where: { id },
-        data: { name, description, color, visibility },
+        data: { name, description, color, visibility, updatedAt: new Date() },
         include: {
           columns: {
             include: {
               tasks: {
                 include: {
                   assignees: {
-                    select: {
-                      id: true,
-                      userId: true,
+                    include: {
                       user: {
-                        select: {
-                          id: true,
-                          name: true,
-                          email: true,
-                          avatar: true,
-                        },
+                        select: { id: true, name: true, email: true, avatar: true },
                       },
                     },
                   },
@@ -152,11 +143,11 @@ export default async function handler(
         select: { id: true, name: true, email: true, avatar: true },
       });
 
-      const membersWithAvatars = board.members.map((m) => {
+      const membersWithAvatars = board.members.map((m: any) => {
         const user = users.find(
           (u) =>
-            (u.email && u.email.toLowerCase() === m.name.toLowerCase()) ||
-            (u.name && u.name.trim() === m.name.trim())
+            (u.email && u.email.toLowerCase() === (m.name || "").toLowerCase()) ||
+            (u.name && u.name.trim() === (m.name || "").trim())
         );
         return {
           ...m,
@@ -177,7 +168,7 @@ export default async function handler(
         return res.status(403).json({ message: "Forbidden: Only Admin/Owner can delete board" });
       }
 
-      await prisma.projectBoard.delete({
+      await (prisma.projectBoard.delete as any)({
         where: { id },
       });
 
@@ -185,13 +176,11 @@ export default async function handler(
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
-  } catch (error) {
-    console.error(error);
-    if ((error as any).code === "P2002") {
+  } catch (error: any) {
+    console.error("Board [id] API error:", error);
+    if (error.code === "P2002") {
       return res.status(409).json({ message: "Workspace name already exists" });
     }
-    return res
-      .status(500)
-      .json({ message: `Server error: ${(error as any).message}` });
+    return res.status(500).json({ message: `Server error: ${error.message}` });
   }
 }

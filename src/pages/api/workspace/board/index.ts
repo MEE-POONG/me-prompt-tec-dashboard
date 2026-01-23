@@ -2,13 +2,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
     if (req.method === "GET") {
-      const boards = await prisma.projectBoard.findMany({
+      const boards = await (prisma.projectBoard.findMany as any)({
         include: {
           columns: {
             include: {
@@ -29,37 +34,50 @@ export default async function handler(
         },
         orderBy: { createdAt: "desc" },
       });
-      return res.status(200).json(boards);
+
+      // Patch members email if null and requested as non-nullable
+      const patchedBoards = boards.map((board: any) => ({
+        ...board,
+        members: board.members?.map((m: any) => ({
+          ...m,
+          email: m.email || "" // Ensure it's never null
+        }))
+      }));
+
+      return res.status(200).json(patchedBoards);
     }
 
     if (req.method === "POST") {
-      const { name, description, color, visibility } = req.body;
+      const { name, description, color, visibility, creator } = req.body;
 
       if (!name) {
         return res.status(400).json({ message: "Name is required" });
       }
 
       // Create board with default columns (To Do / In Progress / Done)
-      const board = await prisma.projectBoard.create({
+      // Manually added createdAt and updatedAt to satisfy old client requirements
+      const board = await (prisma.projectBoard.create as any)({
         data: {
           name,
-          description,
+          description: description || "",
           color: color || "#3B82F6",
           visibility: visibility || "PRIVATE",
+          createdAt: new Date(),
+          updatedAt: new Date(),
           columns: {
             create: [
-              { title: "To Do", order: 0, color: "bg-slate-50" },
-              { title: "In Progress", order: 1, color: "bg-blue-50" },
-              { title: "Done", order: 2, color: "bg-green-50" },
+              { title: "To Do", order: 0, color: "bg-slate-50", createdAt: new Date() },
+              { title: "In Progress", order: 1, color: "bg-blue-50", createdAt: new Date() },
+              { title: "Done", order: 2, color: "bg-green-50", createdAt: new Date() },
             ],
           },
           members: {
-            create: req.body.creator?.name ? [{
-              name: req.body.creator.name,
+            create: creator?.name ? [{
+              name: creator.name,
+              email: creator.email || "",
               role: "Owner",
-              avatar: req.body.creator.avatar || "",
+              avatar: creator.avatar || "",
               color: "#3B82F6",
-              // email: req.body.creator.email // Reverted until schema update works
             }] : [],
           }
         },
@@ -74,11 +92,11 @@ export default async function handler(
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
-  } catch (error) {
-    console.error(error);
-    if ((error as any).code === "P2002") {
+  } catch (error: any) {
+    console.error("Board API Error:", error);
+    if (error.code === "P2002") {
       return res.status(409).json({ message: "Workspace name already exists" });
     }
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: `Server error: ${error.message}` });
   }
 }

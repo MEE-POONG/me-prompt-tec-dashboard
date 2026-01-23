@@ -45,29 +45,37 @@ model BoardActivity {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   action    String
   boardId   String   @db.ObjectId
-  createdAt DateTime @db.Date
+  createdAt DateTime @default(now()) @db.Date
   projectId String?  @db.ObjectId
   target    String
   taskId    String?  @db.ObjectId
   user      String
+
+  board   ProjectBoard? @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  project Project?      @relation(fields: [projectId], references: [id])
 }
 
 model BoardColumn {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  boardId   String   @db.ObjectId
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  boardId String @db.ObjectId
+  title   String
+  order     Int
   color     String?
-  createdAt DateTime @db.Date
-  order     BigInt
-  title     String
-  updatedAt DateTime @db.Date
+  createdAt DateTime @default(now()) @db.Date
+
+  board ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks BoardTask[]
+
+  @@unique([boardId, title])
 }
 
 model BoardLabel {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  boardId Json?
-  /// Field referred in an index, but found no data to define the type.
-  name    Json?
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  boardId   String @db.ObjectId
+  name      String
+  color     String
+  bgColor   String?
+  textColor String?
 
   @@unique([boardId, name])
 }
@@ -79,24 +87,43 @@ model BoardMember {
   color   String
   name    String
   role    String
+  email   String?
+
+  board ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
 model BoardTask {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  attachments BigInt
-  checklist   BigInt
-  columnId    String   @db.ObjectId
-  comments    BigInt
-  createdAt   DateTime @db.Date
-  isArchived  Boolean
-  order       BigInt
-  priority    String
-  title       String
-  updatedAt   DateTime @db.Date
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  attachments  Int       @default(0)
+  checklist    Int       @default(0)
+  columnId     String    @db.ObjectId
+  comments     Int       @default(0)
+  createdAt    DateTime  @default(now()) @db.Date
+  isArchived   Boolean   @default(false)
+  order        Int       @default(0)
+  priority     String    @default("Medium")
+  title        String
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Date
+  description  String?
+  tag          String?
+  tagColor     String?
+  dueDate      DateTime? @db.Date
+  startDate    DateTime? @db.Date
+  endDate      DateTime? @db.Date
+  completedAt  DateTime? @db.Date
+
+  column      BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignees   TaskAssignee[] @relation("BoardTaskToAssignee")
+  taskMembers TaskMember[]   @relation("BoardTaskToMember")
+  taskComments TaskComment[] @relation("BoardTaskToComment")
 }
 
 model ChecklistItem {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId    String   @db.ObjectId
+  text      String
+  isChecked Boolean
+  order     Int
 }
 
 model CloudflareImage {
@@ -110,12 +137,10 @@ model CloudflareImage {
   publicUrl    String
   relatedId    String?  @db.ObjectId
   relatedType  String?
-  size         BigInt
-  /// Could not determine type: the field only had null or empty values in the sample set.
+  size         Int
   tags         Json?
   updatedAt    DateTime @db.Date
-  /// Field referred in an index, but found no data to define the type.
-  uploadedBy   Json?
+  uploadedBy   String?
   variants     String[]
 
   @@index([relatedType, relatedId])
@@ -135,16 +160,13 @@ model ContactMessage {
   createdAt    DateTime @db.Date
   date         DateTime @db.Date
   email        String
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  handledById  Json?
+  handledById  String?
   isStarred    Boolean
   message      String
   name         String
   phone        String
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  portfolioUrl Json?
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  resumeUrl    Json?
+  portfolioUrl String?
+  resumeUrl    String?
   source       String
   status       String
   subject      String
@@ -170,6 +192,8 @@ model Intern {
   studentId     String
   university    String
   updatedAt     DateTime      @db.Date
+
+  projectLinks ProjectIntern[]
 }
 
 model InternshipPosition {
@@ -181,6 +205,20 @@ model InternshipPosition {
   updatedAt   DateTime @db.Date
 }
 
+model ProjectBoard {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  color       String
+  createdAt   DateTime @default(now()) @db.Date
+  description String
+  name        String   @unique
+  updatedAt   DateTime @db.Date
+  visibility  String
+
+  columns    BoardColumn[]
+  members    BoardMember[]
+  activities BoardActivity[]
+}
+
 model KanbanColumn {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 }
@@ -190,23 +228,18 @@ model KanbanTask {
 }
 
 model MOU {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  faculty    Json?
-  /// Field referred in an index, but found no data to define the type.
-  signedDate Json?
-  /// Field referred in an index, but found no data to define the type.
-  university Json?
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  faculty    String?
+  signedDate DateTime? @db.Date
+  university String?
 
   @@index([university, faculty, signedDate])
 }
 
 model MediaAsset {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  ownerId   Json?
-  /// Field referred in an index, but found no data to define the type.
-  ownerType Json?
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId   String?
+  ownerType String?
 
   @@index([ownerType, ownerId])
 }
@@ -219,12 +252,13 @@ model Member {
   isActive   Boolean
   name       MemberName
   photo      String
-  /// Could not determine type: the field only had null or empty values in the sample set.
   skills     Json?
   slug       String        @unique
   socials    MemberSocials
   title      String
   updatedAt  DateTime      @db.Date
+
+  projectLinks ProjectMember[]
 }
 
 model NewsletterSubscriber {
@@ -237,11 +271,9 @@ model NewsletterSubscriber {
 }
 
 model Notification {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  boardId   Json?
-  /// Field referred in an index, but found no data to define the type.
-  createdAt Json?
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  boardId   String?
+  createdAt DateTime @db.Date
 
   @@index([boardId])
   @@index([createdAt])
@@ -260,89 +292,75 @@ model Partner {
 }
 
 model PlanBoard {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  ownerId Json?
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId String?
 
   @@index([ownerId])
 }
 
 model Project {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
   color            String
   cover            String
-  createdAt        DateTime @db.Date
+  createdAt        DateTime  @db.Date
   description      String
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  endDate          Json?
+  endDate          DateTime? @db.Date
   featured         Boolean
-  /// Could not determine type: the field only had null or empty values in the sample set.
   gallery          Json?
-  internalProgress BigInt
+  internalProgress Int
   isCustomColor    Boolean
-  /// Could not determine type: the field only had null or empty values in the sample set.
   links            Json?
-  slug             String   @unique
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  startDate        Json?
+  slug             String    @unique
+  startDate        DateTime? @db.Date
   status           String
   summary          String
-  /// Could not determine type: the field only had null or empty values in the sample set.
   tags             Json?
-  /// Could not determine type: the field only had null or empty values in the sample set.
   techStack        Json?
   title            String
-  updatedAt        DateTime @db.Date
+  updatedAt        DateTime  @db.Date
+
+  activities  BoardActivity[]
+  memberLinks ProjectMember[]
+  internLinks ProjectIntern[]
 
   @@index([status])
   @@index([featured])
   @@index([title])
 }
 
-model ProjectBoard {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  color       String
-  createdAt   DateTime @db.Date
-  description String
-  name        String   @unique
-  updatedAt   DateTime @db.Date
-  visibility  String
-}
-
 model ProjectCollaborator {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  projectId Json?
-  /// Field referred in an index, but found no data to define the type.
-  userId    Json?
+  projectId String @db.ObjectId
+  userId    String @db.ObjectId
 
   @@unique([userId, projectId])
 }
 
 model ProjectIntern {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  internId  Json?
-  /// Field referred in an index, but found no data to define the type.
-  projectId Json?
+  internId  String @db.ObjectId
+  projectId String @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  intern  Intern  @relation(fields: [internId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, internId])
 }
 
 model ProjectMember {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  memberId  Json?
-  /// Field referred in an index, but found no data to define the type.
-  projectId Json?
+  memberId  String @db.ObjectId
+  projectId String @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, memberId])
 }
 
 model Subscriber {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  email Json?  @unique
+  email String @unique
 }
 
 model Task {
@@ -351,20 +369,36 @@ model Task {
 
 model TaskAssignee {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  taskId Json?
-  /// Field referred in an index, but found no data to define the type.
-  userId Json?
+  taskId String @db.ObjectId
+  userId String @db.ObjectId
+
+  task BoardTask @relation("BoardTaskToAssignee", fields: [taskId], references: [id], onDelete: Cascade)
+  user User      @relation("UserToAssignee", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
 }
 
 model TaskComment {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId    String   @db.ObjectId
+  userId    String?  @db.ObjectId
+  author    String
+  content   String
+  createdAt DateTime @default(now()) @db.Date
+
+  task BoardTask @relation("BoardTaskToComment", fields: [taskId], references: [id], onDelete: Cascade)
+  user User?      @relation("UserToComment", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TaskMember {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  taskId String @db.ObjectId
+  userId String @db.ObjectId
+
+  task BoardTask @relation("BoardTaskToMember", fields: [taskId], references: [id], onDelete: Cascade)
+  user User      @relation("UserToMember", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
 }
 
 model User {
@@ -385,6 +419,10 @@ model User {
   updatedAt        DateTime  @db.Date
   verifyToken      String?
 
+  taskAssignees TaskAssignee[] @relation("UserToAssignee")
+  taskMembers   TaskMember[]   @relation("UserToMember")
+  taskComments  TaskComment[]  @relation("UserToComment")
+
   @@index([role])
 }
 
@@ -393,8 +431,7 @@ model pageviews {
   createdAt DateTime @db.Date
   ipAddress String
   page      String
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  referrer  Json?
+  referrer  String?
   sessionId String
   userAgent String
 }

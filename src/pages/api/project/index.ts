@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { ProjectStatus } from "@prisma/client";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,7 +34,6 @@ export default async function handler(
   }
 }
 
-// GET /api/project - ดึงรายการ project ทั้งหมด
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const {
     page = "1",
@@ -48,17 +50,9 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const limitNum = parseInt(limit as string);
   const skip = (pageNum - 1) * limitNum;
 
-  // สร้าง filter conditions
   const where: any = {};
-
-  if (status) {
-    where.status = status as ProjectStatus;
-  }
-
-  if (featured !== undefined) {
-    where.featured = featured === "true";
-  }
-
+  if (status) where.status = status;
+  if (featured !== undefined) where.featured = featured === "true";
   if (search) {
     where.OR = [
       { title: { contains: search as string, mode: "insensitive" } },
@@ -66,47 +60,20 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
       { summary: { contains: search as string, mode: "insensitive" } },
     ];
   }
-
   if (tags) {
     const tagArray = (tags as string).split(",");
     where.tags = { hasSome: tagArray };
   }
 
-  // ดึงข้อมูล
   const [projects, total] = await Promise.all([
-    prisma.project.findMany({
+    (prisma.project.findMany as any)({
       where,
       skip,
       take: limitNum,
-      orderBy: {
-        [sortBy as string]: order as "asc" | "desc",
-      },
+      orderBy: { [sortBy as string]: order as "asc" | "desc" },
       include: {
-        memberLinks: {
-          include: {
-            member: {
-              select: {
-                id: true,
-                name: true,
-                title: true,
-                photo: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        internLinks: {
-          include: {
-            intern: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-                portfolioSlug: true,
-              },
-            },
-          },
-        },
+        memberLinks: { include: { member: true } },
+        internLinks: { include: { intern: true } },
       },
     }),
     prisma.project.count({ where }),
@@ -123,113 +90,50 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   });
 }
 
-// POST /api/project - สร้าง project ใหม่
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   const {
-    title,
-    slug,
-    summary,
-    description,
-    status,
-    startDate,
-    endDate,
-    clientName,
-    clientSector,
-    tags,
-    techStack,
-    cover,
-    gallery,
-    links,
-    featured,
-    members,
-    interns,
+    title, slug, summary, description, status,
+    startDate, endDate, clientName, clientSector,
+    tags, techStack, cover, gallery, links, featured,
+    members, interns
   } = req.body;
 
-  // Validation
-  if (!title || !slug) {
-    return res.status(400).json({
-      error: "Missing required fields",
-      required: ["title", "slug"]
-    });
-  }
+  if (!title || !slug) return res.status(400).json({ error: "Missing title or slug" });
 
-  // ตรวจสอบว่า slug ซ้ำหรือไม่
-  const existingProject = await prisma.project.findUnique({
-    where: { slug },
-  });
-
-  if (existingProject) {
-    return res.status(409).json({
-      error: "Project with this slug already exists"
-    });
-  }
-
-  // สร้าง project
-  const project = await prisma.project.create({
+  const project = await (prisma.project.create as any)({
     data: {
-      title,
-      slug,
-      summary,
-      description,
-      status: status || ProjectStatus.in_progress,
+      title, slug, summary, description,
+      status: status || "in_progress",
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
-      clientName,
-      clientSector,
+      clientName, clientSector,
       tags: tags || [],
       techStack: techStack || [],
       cover,
       gallery: gallery || [],
       links: links || [],
       featured: featured || false,
-      // เชื่อม members
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      internalProgress: 0,
+      isCustomColor: false,
+      color: "#3B82F6",
       memberLinks: members?.length ? {
         create: members.map((m: any) => ({
           memberId: m.memberId,
-          role: m.role,
-          note: m.note,
+          role: m.role || "Member",
+          note: m.note || ""
         })),
       } : undefined,
-      // เชื่อม interns
       internLinks: interns?.length ? {
         create: interns.map((i: any) => ({
           internId: i.internId,
-          responsibility: i.responsibility,
-          note: i.note,
+          responsibility: i.responsibility || "",
+          note: i.note || ""
         })),
       } : undefined,
-    },
-    include: {
-      memberLinks: {
-        include: {
-          member: {
-            select: {
-              id: true,
-              name: true,
-              title: true,
-              photo: true,
-              slug: true,
-            },
-          },
-        },
-      },
-      internLinks: {
-        include: {
-          intern: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-              portfolioSlug: true,
-            },
-          },
-        },
-      },
-    },
+    }
   });
 
-  return res.status(201).json({
-    message: "Project created successfully",
-    data: project
-  });
+  return res.status(201).json({ message: "Project created", data: project });
 }

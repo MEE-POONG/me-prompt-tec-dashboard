@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Save,
@@ -30,9 +30,10 @@ import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 import ModalRestore from "@/components/ui/Modals/ModalRestore";
+export { MembersManageModal } from "./MembersManageModal";
 
 // --- Types ---
-// ลบ "difficulty" ออกจาก Type
+// à¸¥à¸š "difficulty" à¸­à¸­à¸à¸ˆà¸²à¸ Type
 type TabType = "settings" | "archived" | "activities";
 
 // --- Member Avatar Component ---
@@ -62,7 +63,7 @@ const MemberAvatar = ({ member, className }: { member: WorkspaceMember; classNam
   );
 };
 
-// --- Component หลัก: Settings Sidebar ---
+// --- Component à¸«à¸¥à¸±à¸: Settings Sidebar ---
 export function WorkspaceSettingsSidebar({
   isOpen,
   onClose,
@@ -78,7 +79,7 @@ export function WorkspaceSettingsSidebar({
   boardId: string;
   isReadOnly?: boolean;
   onUpdate?: () => void;
-  currentUser?: any; // [เพิ่ม] prop รับ value ของ user ปัจจุบัน
+  currentUser?: any; // [à¹€à¸žà¸´à¹ˆà¸¡] prop à¸£à¸±à¸š value à¸‚à¸­à¸‡ user à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™
 }) {
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
@@ -126,7 +127,7 @@ export function WorkspaceSettingsSidebar({
   );
   const isOwner = mb?.role === "Owner";
 
-  // ❌ ลบ State และ Logic ของ Difficulty Level ออกทั้งหมดตรงนี้
+  // âŒ à¸¥à¸š State à¹à¸¥à¸° Logic à¸‚à¸­à¸‡ Difficulty Level à¸­à¸­à¸à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸•à¸£à¸‡à¸™à¸µà¹‰
 
   // Archived Tasks State
   const [archivedTasks, setArchivedTasks] = useState<WorkspaceTask[]>([]);
@@ -172,7 +173,7 @@ export function WorkspaceSettingsSidebar({
   const handleRestoreTask = async (taskId: string | number) => {
     setRestoreModal({
       open: true,
-      message: "ต้องการคืนค่าแท็บพยากรณ์นี้ใช่หรือไม่?",
+      message: "à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¸™à¸µà¹‰à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?",
       onConfirm: async () => {
         try {
           const res = await fetch(`/api/workspace/task/${taskId}`, {
@@ -185,22 +186,22 @@ export function WorkspaceSettingsSidebar({
             setArchivedTasks((prev) => prev.filter((t) => t.id !== taskId));
             setSuccessModal({
               open: true,
-              message: "คืนค่าสำเร็จ!",
-              description: "คืนค่าแท็บพยากรณ์เรียบร้อยแล้ว",
+              message: "à¸„à¸·à¸™à¸„à¹ˆà¸²à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
+              description: "à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
             });
           } else {
             setErrorModal({
               open: true,
-              message: "เกิดข้อผิดพลาด!",
-              description: "ไม่สามารถคืนค่าแท็บพยากรณ์ได้",
+              message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+              description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¹„à¸”à¹‰",
             });
           }
         } catch (error) {
           console.error("Failed to restore task", error);
           setErrorModal({
             open: true,
-            message: "เกิดข้อผิดพลาด!",
-            description: "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์",
+            message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+            description: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œ",
           });
         }
       },
@@ -248,15 +249,15 @@ export function WorkspaceSettingsSidebar({
       setDescription(tempDescription);
       setSuccessModal({
         open: true,
-        message: "บันทึกสำเร็จ!",
-        description: "บันทึกรายละเอียดเรียบร้อยแล้ว",
+        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
+        description: "à¸šà¸±à¸™à¸—à¸¶à¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
       });
     } catch (error) {
       console.error("Failed to update description", error);
       setErrorModal({
         open: true,
-        message: "เกิดข้อผิดพลาด!",
-        description: "ไม่สามารถบันทึกรายละเอียดได้",
+        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¹„à¸”à¹‰",
       });
     }
   };
@@ -267,15 +268,15 @@ export function WorkspaceSettingsSidebar({
       await updateBoard(boardId, { name: projectName });
       setSuccessModal({
         open: true,
-        message: "บันทึกสำเร็จ!",
-        description: "บันทึกชื่อโปรเจกต์เรียบร้อยแล้ว",
+        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
+        description: "à¸šà¸±à¸™à¸—à¸¶à¸à¸Šà¸·à¹ˆà¸­à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
       });
     } catch (error) {
       console.error("Failed to update name", error);
       setErrorModal({
         open: true,
-        message: "เกิดข้อผิดพลาด!",
-        description: "ชื่่อโปรเจกต์นี้อาจมีอยู่แล้ว หรือเกิดข้อผิดพลาดอื่น",
+        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+        description: "à¸Šà¸·à¹ˆà¹ˆà¸­à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¸™à¸µà¹‰à¸­à¸²à¸ˆà¸¡à¸µà¸­à¸¢à¸¹à¹ˆà¹à¸¥à¹‰à¸§ à¸«à¸£à¸·à¸­à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¸­à¸·à¹ˆà¸™",
       });
     }
   };
@@ -287,17 +288,17 @@ export function WorkspaceSettingsSidebar({
       setVisibility(tempVisibility);
       setSuccessModal({
         open: true,
-        message: "บันทึกสำเร็จ!",
-        description: `เปลี่ยนสถานะเป็น ${tempVisibility === "PRIVATE" ? "Private" : "Public"
-          } เรียบร้อยแล้ว`,
+        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
+        description: `à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¹€à¸›à¹‡à¸™ ${tempVisibility === "PRIVATE" ? "Private" : "Public"
+          } à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§`,
       });
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Failed to update visibility", error);
       setErrorModal({
         open: true,
-        message: "เกิดข้อผิดพลาด!",
-        description: "ไม่สามารถเปลี่ยนสถานะได้",
+        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¹„à¸”à¹‰",
       });
     }
   };
@@ -327,8 +328,8 @@ export function WorkspaceSettingsSidebar({
       console.error(error);
       setErrorModal({
         open: true,
-        message: "เกิดข้อผิดพลาด!",
-        description: "ไม่สามารถเปลี่ยนบทบาทได้",
+        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸šà¸—à¸šà¸²à¸—à¹„à¸”à¹‰",
       });
     }
   };
@@ -337,7 +338,7 @@ export function WorkspaceSettingsSidebar({
     const member = members[index];
     setDeleteModal({
       open: true,
-      message: `คุณต้องการลบสมาชิิก ${member.name} ใช่หรือไม่?`,
+      message: `à¸„à¸¸à¸“à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸ ${member.name} à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?`,
       onConfirm: async () => {
         try {
           const res = await fetch(`/api/workspace/member?id=${member.id}`, {
@@ -348,15 +349,15 @@ export function WorkspaceSettingsSidebar({
           setMembers(updatedMembers);
           setSuccessModal({
             open: true,
-            message: "ลบสำเร็จ!",
-            description: "ลบสมาชิิกเรียบร้อยแล้ว",
+            message: "à¸¥à¸šà¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
+            description: "à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
           });
         } catch (error) {
           console.error(error);
           setErrorModal({
             open: true,
-            message: "เกิดข้อผิดพลาด!",
-            description: "ไม่สามารถลบสมาชิิกได้",
+            message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
+            description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸à¹„à¸”à¹‰",
           });
         }
       },
@@ -367,7 +368,7 @@ export function WorkspaceSettingsSidebar({
   const handleLeaveBoard = () => {
     setDeleteModal({
       open: true,
-      message: "คุณต้องการออกจากบอร์ดนี้ใช่หรือไม่?",
+      message: "à¸„à¸¸à¸“à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸­à¸­à¸à¸ˆà¸²à¸à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?",
       onConfirm: () => {
         onClose();
         // Add actual leave logic here
@@ -375,14 +376,14 @@ export function WorkspaceSettingsSidebar({
     });
   };
 
-  // --- ❌ ลบ Handlers (Difficulty) ออกทั้งหมด ---
+  // --- âŒ à¸¥à¸š Handlers (Difficulty) à¸­à¸­à¸à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” ---
 
   // --- Logic for Filtering Lists ---
   const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase())
   );
 
-  // ❌ ลบ filteredDifficulties ออก
+  // âŒ à¸¥à¸š filteredDifficulties à¸­à¸­à¸
 
   if (!isOpen) return null;
 
@@ -450,7 +451,7 @@ export function WorkspaceSettingsSidebar({
             </div>
           </div>
 
-          {/* Tabs - ❌ ลบ "Difficulty Level" ออกจาก Tabs */}
+          {/* Tabs - âŒ à¸¥à¸š "Difficulty Level" à¸­à¸­à¸à¸ˆà¸²à¸ Tabs */}
           <div className="flex items-center gap-6 border-b border-slate-200 mt-6 overflow-x-auto scrollbar-hide">
             {["Settings", "Archived", "Activities"].map(
               (tab) => {
@@ -484,7 +485,7 @@ export function WorkspaceSettingsSidebar({
               <div className="space-y-1.5 ">
                 <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
                   <Edit2 size={12} className="text-slate-400" /> Project Name{" "}
-                  <span className="text-slate-400 text-xs font-normal">ⓘ</span>
+                  <span className="text-slate-400 text-xs font-normal">â“˜</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -524,8 +525,8 @@ export function WorkspaceSettingsSidebar({
                       disabled={isReadOnly}
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="PRIVATE">Private (สมาชิกเท่านั้น)</option>
-                      <option value="PUBLIC">Public (ทุกคนเห็นได้)</option>
+                      <option value="PRIVATE">Private (à¸ªà¸¡à¸²à¸Šà¸´à¸à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™)</option>
+                      <option value="PUBLIC">Public (à¸—à¸¸à¸à¸„à¸™à¹€à¸«à¹‡à¸™à¹„à¸”à¹‰)</option>
                     </select>
                     <ChevronDown
                       size={16}
@@ -534,8 +535,8 @@ export function WorkspaceSettingsSidebar({
                   </div>
                   <p className="text-xs text-slate-500 mb-3">
                     {tempVisibility === "PRIVATE"
-                      ? "เฉพาะสมาชิกที่ได้รับเชิญเท่านั้นที่สามารถเข้าถึงบอร์ดนี้ได้"
-                      : "ทุกคนที่มีลิงก์สามารถเข้าถึงบอร์ดนี้ได้"}
+                      ? "à¹€à¸‰à¸žà¸²à¸°à¸ªà¸¡à¸²à¸Šà¸´à¸à¸—à¸µà¹ˆà¹„à¸”à¹‰à¸£à¸±à¸šà¹€à¸Šà¸´à¸à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™à¸—à¸µà¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹„à¸”à¹‰"
+                      : "à¸—à¸¸à¸à¸„à¸™à¸—à¸µà¹ˆà¸¡à¸µà¸¥à¸´à¸‡à¸à¹Œà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹„à¸”à¹‰"}
                   </p>
 
                   {/* Buttons for Visibility */}
@@ -649,7 +650,7 @@ export function WorkspaceSettingsSidebar({
                             {m.name}
                           </p>
                           <p className="text-xs text-slate-500">
-                            {m.name.includes("ธนภัทร")
+                            {m.name.includes("à¸˜à¸™à¸ à¸±à¸—à¸£")
                               ? "pattanapat92@gmail.com"
                               : m.name.includes("Siwakorn")
                                 ? "siwakorn.pn@rmuti.ac.th"
@@ -728,7 +729,7 @@ export function WorkspaceSettingsSidebar({
             </div>
           )}
 
-          {/* ❌ ส่วนของ TAB 2: DIFFICULTY LEVEL ถูกลบออกไปแล้ว */}
+          {/* âŒ à¸ªà¹ˆà¸§à¸™à¸‚à¸­à¸‡ TAB 2: DIFFICULTY LEVEL à¸–à¸¹à¸à¸¥à¸šà¸­à¸­à¸à¹„à¸›à¹à¸¥à¹‰à¸§ */}
 
           {/* TAB 3: ARCHIVED */}
           {activeTab === "archived" && (
@@ -808,7 +809,7 @@ export function WorkspaceSettingsSidebar({
                           >
                             {task.tag}
                           </span>
-                          <span>•</span>
+                          <span>â€¢</span>
                           <span className="flex items-center gap-1">
                             <CalendarClock size={12} /> {task.date}
                           </span>
@@ -943,301 +944,5 @@ export function WorkspaceSettingsSidebar({
         onConfirm={restoreModal.onConfirm}
       />
     </>
-  );
-}
-
-// --- Invite Member Modal ---
-export function MembersManageModal({
-  isOpen,
-  onClose,
-  members,
-  workspaceId,
-  onMemberAdded,
-  currentUser,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  members: WorkspaceMember[];
-  workspaceId?: string;
-  onMemberAdded?: () => void;
-  currentUser?: any;
-}) {
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("Viewer");
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const [successModal, setSuccessModal] = useState({
-    open: false,
-    message: "",
-    description: "",
-  });
-  const [errorModal, setErrorModal] = useState({
-    open: false,
-    message: "",
-    description: "",
-  });
-
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
-    if (!workspaceId) {
-      setErrorMsg("Workspace ID missing.");
-      return;
-    }
-
-    setLoading(true);
-    setSuccessMsg("");
-    setErrorMsg("");
-
-    try {
-      const res = await fetch("/api/workspace/member", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          boardId: workspaceId,
-          email: inviteEmail.trim(),
-          role: inviteRole,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to invite member");
-      }
-
-      setSuccessMsg("Member invited successfully!");
-      setInviteEmail("");
-      setInviteRole("Viewer"); // Reset role
-      if (onMemberAdded) {
-        onMemberAdded();
-      }
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateRole = async (memberId: string, newRole: string) => {
-    try {
-      const res = await fetch("/api/workspace/member", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: memberId, role: newRole }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update role");
-
-      if (onMemberAdded) onMemberAdded(); // Refresh list
-    } catch (error) {
-      console.error(error);
-      setErrorModal({
-        open: true,
-        message: "เกิดข้อผิดพลาด!",
-        description: "ไม่สามารถเปลี่ยนบทบาทได้",
-      });
-    }
-  };
-
-  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
-
-  const executeRemoveMember = async (memberId: string) => {
-    try {
-      const res = await fetch(`/api/workspace/member?id=${memberId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to remove member");
-
-      if (onMemberAdded) onMemberAdded(); // Refresh list
-      setConfirmRemoveId(null);
-    } catch (error) {
-      console.error(error);
-      setErrorMsg("Failed to remove member");
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-60 flex items-center justify-center backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-xl w-full max-w-[500px] shadow-2xl p-5 m-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-xl text-slate-900">
-            เชิญสมาชิก (Invite member)
-          </h3>
-          <button onClick={onClose}>
-            <X size={20} className="text-slate-400 hover:text-slate-600" />
-          </button>
-        </div>
-        <div className="px-6 py-6 bg-slate-50/50 rounded-lg mb-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <div className="relative flex-1 group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                  <Plus size={18} />
-                </div>
-                <input
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                  placeholder="Invite by email"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                />
-              </div>
-
-              {/* Role Selection */}
-              <div className="relative w-32 shrink-0">
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full appearance-none px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
-                >
-                  <option value="Viewer">Viewer</option>
-                  <option value="Editor">Editor</option>
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-                />
-              </div>
-
-              <button
-                onClick={handleInvite}
-                disabled={loading}
-                className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {loading ? "..." : "เชิญ"}
-              </button>
-            </div>
-            {/* Feedback Messages */}
-            {successMsg && (
-              <div className="flex items-center gap-2 text-sm text-green-600 font-medium animate-in fade-in slide-in-from-top-1">
-                <Check size={16} /> {successMsg}
-              </div>
-            )}
-            {errorMsg && (
-              <div className="flex items-center gap-2 text-sm text-red-600 font-medium animate-in fade-in slide-in-from-top-1">
-                <AlertCircle size={16} /> {errorMsg}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto max-h-[300px] custom-scrollbar">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-            Members ({members.length})
-          </h4>
-          <div className="space-y-1">
-            {members.map((member, index) => {
-              // Calculate logic inside map or outside (better outside but fine here for context)
-              const currentUserMember = members.find(m =>
-                (currentUser && m.userId === currentUser.id) ||
-                (currentUser && m.name === currentUser.name)
-              );
-              const currentUserRole = currentUserMember?.role || "Viewer";
-              const isOwner = currentUserRole === "Owner";
-
-              const isSelf =
-                currentUser &&
-                (member.userId === currentUser.id ||
-                  member.id === currentUser.id);
-              const isBoardOwner = member.role === "Owner";
-
-              // Permission Logic
-              const canDelete = !isSelf && !isBoardOwner && isOwner;
-              const canEdit = !isBoardOwner && isOwner;
-
-              return (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <MemberAvatar member={member} className="w-10 h-10 text-sm" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        {member.name}
-                        {member.role === "Owner" && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px] font-extrabold uppercase tracking-wider">
-                            Owner
-                          </span>
-                        )}
-                        {member.role === "Editor" && (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
-                            Editor
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={member.role || "Viewer"}
-                      onChange={(e) =>
-                        handleUpdateRole(member.id, e.target.value)
-                      }
-                      disabled={!canEdit}
-                      className={`text-xs font-bold text-slate-600 px-2 py-1.5 bg-slate-100 rounded-lg border-none focus:ring-2 focus:ring-blue-500 outline-none ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <option value="Viewer">Viewer</option>
-                      <option value="Editor">Editor</option>
-                      {member.role === "Owner" && <option value="Owner">Owner</option>}
-                    </select>
-                    {canDelete &&
-                      (confirmRemoveId === member.id ? (
-                        <div className="flex items-center gap-1 ml-1 animate-in slide-in-from-right-2 fade-in duration-200">
-                          <span className="text-[10px] font-bold text-red-500 hidden sm:inline">
-                            ยืนยัน?
-                          </span>
-                          <button
-                            onClick={() => executeRemoveMember(member.id)}
-                            className="p-1 px-3 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 shadow-sm transition-all"
-                          >
-                            ลบ
-                          </button>
-                          <button
-                            onClick={() => setConfirmRemoveId(null)}
-                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmRemoveId(member.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          title="Remove member"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <ModalSuccess
-        open={successModal.open}
-        message={successModal.message}
-        description={successModal.description}
-        onClose={() => setSuccessModal({ ...successModal, open: false })}
-      />
-
-      <ModalError
-        open={errorModal.open}
-        message={errorModal.message}
-        description={errorModal.description}
-        onClose={() => setErrorModal({ ...errorModal, open: false })}
-      />
-    </div>
   );
 }

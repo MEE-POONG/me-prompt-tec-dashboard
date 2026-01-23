@@ -1037,6 +1037,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                       <Droppable
                         droppableId={String(col.id)}
                         isDropDisabled={isReadOnly}
+                        type="task"
                       >
                         {(provided, snapshot) => (
                           <div
@@ -1045,18 +1046,21 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                             className={`px-3 pb-3 flex-1 overflow-y-auto space-y-3 min-h-[150px] rounded-b-2xl scrollbar-hide ${snapshot.isDraggingOver ? "bg-blue-50/30" : ""
                               }`}
                           >
-                            {board.filterTasks(col.tasks).map((task, index) => (
-                              <WorkspaceTaskCard
-                                key={task.id}
-                                task={task}
-                                columnId={col.id}
-                                index={index}
-                                onDelete={(cid, tid) =>
-                                  handleDeleteTaskApi(cid, tid)
-                                }
-                                onClick={handleTaskClickWithPermission}
-                              />
-                            ))}
+                            {board.filterTasks(col.tasks).map((task, index) => {
+                              if (!task) return null; // Safety check
+                              return (
+                                <WorkspaceTaskCard
+                                  key={task.id}
+                                  task={task}
+                                  columnId={col.id}
+                                  index={index}
+                                  onDelete={(cid, tid) =>
+                                    handleDeleteTaskApi(cid, tid)
+                                  }
+                                  onClick={handleTaskClickWithPermission}
+                                />
+                              );
+                            })}
                             {provided.placeholder}
                             {board.isAddingTask === col.id ? (
                               <div className="bg-white p-3 rounded-xl shadow-lg border border-blue-200 animate-in fade-in zoom-in-95 duration-200 ring-4 ring-blue-50/50">

@@ -5,6 +5,11 @@ import { publish } from "@/lib/realtime";
 import { getAuthToken } from "@/lib/auth/cookies";
 import { verifyToken } from "@/lib/auth/jwt";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -16,39 +21,35 @@ export default async function handler(
     const requesterId = decoded?.userId;
 
     if (!requesterId) {
-      if (req.method !== "GET") { // Allow public read if board is public (handled locally or via other logic), but strictly block writes
+      if (req.method !== "GET") {
         return res.status(401).json({ message: "Unauthorized: Please login" });
       }
     }
 
-    // Helper: Check if user is member of board and return Role
     const getBoardRole = async (boardId: string) => {
       if (!requesterId) return null;
-
-      const user = await prisma.user.findUnique({ where: { id: requesterId } });
+      const user = await (prisma.user.findUnique as any)({ where: { id: requesterId } });
       if (!user) return null;
 
-      // 1. Try strict match
-      const member = await prisma.boardMember.findFirst({
+      const member = await (prisma.boardMember.findFirst as any)({
         where: {
           boardId,
           OR: [
             { name: user.name || "" },
-            { name: user.email }
+            { name: (user.email || "") }
           ]
         }
       });
       if (member) return member.role;
 
-      // 2. Fallback: Loose match
-      const allMembers = await prisma.boardMember.findMany({
+      const allMembers = await (prisma.boardMember.findMany as any)({
         where: { boardId },
-      }); // Remove select name: true to get full object including role
+      });
 
       const userEmail = (user.email || "").toLowerCase().trim();
       const userName = (user.name || "").toLowerCase().trim();
 
-      const matched = allMembers.find(m => {
+      const matched = allMembers.find((m: any) => {
         const memberName = (m.name || "").toLowerCase().trim();
         return memberName === userEmail || memberName === userName;
       });
@@ -57,48 +58,24 @@ export default async function handler(
     };
 
     if (req.method === "GET") {
-      const { columnId, boardId } = req.query as {
-        columnId?: string;
-        boardId?: string;
-      };
-
+      const { columnId, boardId } = req.query as { columnId?: string; boardId?: string; };
       const where: any = {};
       if (columnId) where.columnId = columnId;
       if (boardId) where.column = { boardId };
+      where.isArchived = req.query.archived === "true";
 
-      // ✅ Default: Hide archived tasks
-      if (req.query.archived === "true") {
-        where.isArchived = true;
-      } else {
-        where.isArchived = false;
-      }
-
-      const tasks = await prisma.boardTask.findMany({
+      const tasks = await (prisma.boardTask.findMany as any)({
         where,
         include: {
           assignees: {
-            select: {
-              id: true,
-              userId: true,
+            include: {
               user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
-                  position: true,
-                },
+                select: { id: true, name: true, email: true, avatar: true, position: true },
               },
             },
           },
           taskMembers: true,
-          column: {
-            select: {
-              id: true,
-              title: true,
-              boardId: true,
-            },
-          },
+          column: { select: { id: true, title: true, boardId: true } },
         },
         orderBy: { order: "asc" },
       });
@@ -108,90 +85,60 @@ export default async function handler(
 
     if (req.method === "POST") {
       const {
-        columnId,
-        title,
-        description,
-        tag,
-        tagColor,
-        priority,
-        order,
-        dueDate,
-        startDate,
-        endDate,
-        checklist,
-        assigneeIds,
-        user, // ✅ รับชื่อ user จาก Frontend
+        columnId, title, description, tag, tagColor, priority,
+        order, dueDate, startDate, endDate, checklist, assigneeIds, user
       } = req.body;
 
       if (!columnId || !title) {
-        return res
-          .status(400)
-          .json({ message: "columnId and title are required" });
+        return res.status(400).json({ message: "columnId and title are required" });
       }
 
-      // --- SECURITY CHECK ---
-      // 1. Get Board ID from Column
-      const column = await prisma.boardColumn.findUnique({
+      const column = await (prisma.boardColumn.findUnique as any)({
         where: { id: columnId },
         select: { boardId: true, title: true }
       });
 
-      if (!column) {
-        return res.status(404).json({ message: "Column not found" });
-      }
+      if (!column) return res.status(404).json({ message: "Column not found" });
 
-      // 2. Check if requester is a member of this board
-      // 2. Check if requester is a member of this board
       const role = await getBoardRole(column.boardId);
-      if (!role) {
+      if (!role && requesterId) { // If requesterId exists but no role found
         return res.status(403).json({ message: "Forbidden: You are not a member of this board" });
       }
       if (role === "Viewer") {
         return res.status(403).json({ message: "Forbidden: Viewer cannot create tasks" });
       }
 
-      // determine if initial column should mark as completed
-      let completedAt: Date | undefined = undefined;
-      try {
-        const t = (column.title || "").toLowerCase();
-        if (t.includes("done") || t.includes("completed")) completedAt = new Date();
-      } catch (e) { /* ignore */ }
+      let completedAt = null;
+      const t = (column.title || "").toLowerCase();
+      if (t.includes("done") || t.includes("completed")) completedAt = new Date();
 
-      const task = await prisma.boardTask.create({
+      const task = await (prisma.boardTask.create as any)({
         data: {
           columnId,
           title,
-          description,
-          tag,
-          tagColor,
+          description: description || "",
+          tag: tag || "",
+          tagColor: tagColor || "",
           priority: priority || "Medium",
           order: order ?? 0,
-          dueDate: dueDate ? new Date(dueDate) : undefined,
-          startDate: startDate ? new Date(startDate) : undefined,
-          endDate: endDate ? new Date(endDate) : undefined,
+          dueDate: dueDate ? new Date(dueDate) : null,
+          startDate: startDate ? new Date(startDate) : null,
+          endDate: endDate ? new Date(endDate) : null,
           checklist: checklist ?? 0,
+          attachments: 0,
+          comments: 0,
+          isArchived: false,
+          updatedAt: new Date(),
           completedAt,
-          ...(assigneeIds &&
-            assigneeIds.length > 0 && {
-            assignees: {
-              create: assigneeIds.map((uid: string) => ({ userId: uid })),
-            },
-          }),
+          assignees: assigneeIds?.length > 0 ? {
+            create: assigneeIds.map((uid: string) => ({ userId: uid })),
+          } : undefined,
         },
-
         include: {
           assignees: {
-            select: {
-              id: true,
-              userId: true,
+            include: {
               user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
-                  position: true,
-                },
+                select: { id: true, name: true, email: true, avatar: true, position: true },
               },
             },
           },
@@ -199,27 +146,22 @@ export default async function handler(
         },
       });
 
-      // ✅ Publish Notification พร้อมชื่อ User
-      try {
-        if (column.boardId) {
-          publish(String(column.boardId), {
-            type: "task:created",
-            payload: task,
-            user: user || "System", // ✅ ใช้ user ที่ส่งมา ถ้าไม่มีใช้ System
-            action: "created task",
-            target: task.title
-          });
-        }
-      } catch (e) {
-        console.error("publish failed", e);
+      if (column.boardId) {
+        publish(String(column.boardId), {
+          type: "task:created",
+          payload: task,
+          user: user || "System",
+          action: "created task",
+          target: task.title
+        });
       }
 
       return res.status(201).json(task);
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    console.error("Task API error:", error);
+    return res.status(500).json({ message: `Server error: ${error.message}` });
   }
 }

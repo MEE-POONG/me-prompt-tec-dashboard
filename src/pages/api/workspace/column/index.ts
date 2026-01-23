@@ -2,6 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -14,15 +19,13 @@ export default async function handler(
         return res.status(400).json({ message: "boardId is required" });
       }
 
-      const columns = await prisma.boardColumn.findMany({
+      const columns = await (prisma.boardColumn.findMany as any)({
         where: { boardId },
         include: {
           tasks: {
             include: {
               assignees: {
-                select: {
-                  id: true,
-                  userId: true,
+                include: {
                   user: {
                     select: {
                       id: true,
@@ -46,45 +49,42 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { boardId, title, order, color, user } = req.body; // ✅ รับ user
+      const { boardId, title, order, color, user } = req.body;
 
       if (!boardId || !title) {
-        return res
-          .status(400)
-          .json({ message: "boardId and title are required" });
+        return res.status(400).json({ message: "boardId and title are required" });
       }
 
-      const column = await prisma.boardColumn.create({
+      const column = await (prisma.boardColumn.create as any)({
         data: {
           boardId,
           title,
           order: order ?? 0,
-          color,
+          color: color || null,
         },
         include: {
           tasks: true,
         },
       });
 
-      // ✅ Publish Notification พร้อม User
-      try { 
-        publish(String(boardId), { 
-            type: "column:created", 
-            payload: column,
-            user: user || "System", // ✅ ใช้ชื่อคนสร้าง
-            action: "created list",
-            target: column.title
-        }); 
-      } catch (e) { 
-        console.error("publish failed", e); 
+      try {
+        publish(String(boardId), {
+          type: "column:created",
+          payload: column,
+          user: user || "System",
+          action: "created list",
+          target: column.title
+        });
+      } catch (e) {
+        console.error("publish failed", e);
       }
 
       return res.status(201).json(column);
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    console.error("Column API error:", error);
+    return res.status(500).json({ message: `Server error: ${error.message}` });
   }
 }

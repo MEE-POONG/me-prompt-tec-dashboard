@@ -22,6 +22,7 @@ export type WorkspaceTask = {
   rawDueDate?: string;
   assignees?: any[];
   memberIds?: string[];
+  checklist?: number;
 };
 
 export type WorkspaceMember = {

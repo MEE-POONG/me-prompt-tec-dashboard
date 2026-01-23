@@ -2,6 +2,11 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtime";
 
+// Helper to handle BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -11,7 +16,8 @@ export default async function handler(
       const { taskId } = req.query;
       if (!taskId || Array.isArray(taskId))
         return res.status(400).json({ error: "taskId required" });
-      const items = await prisma.taskComment.findMany({
+
+      const items = await (prisma.taskComment.findMany as any)({
         where: { taskId: String(taskId) },
         orderBy: { createdAt: "desc" },
       });
@@ -21,20 +27,20 @@ export default async function handler(
         select: { id: true, name: true, email: true, avatar: true },
       });
 
-      const itemsWithAvatars = items.map((item) => {
+      const itemsWithAvatars = items.map((item: any) => {
         const user = users.find(
           (u) =>
-            (u.email && u.email.toLowerCase() === item.author.toLowerCase()) ||
-            (u.name && u.name.trim() === item.author.trim())
+            (u.email && u.email.toLowerCase() === (item.author || "").toLowerCase()) ||
+            (u.name && u.name.trim() === (item.author || "").trim())
         );
         return {
           ...item,
           user: user
             ? {
-                id: user.id,
-                name: user.name || user.email,
-                avatar: user.avatar,
-              }
+              id: user.id,
+              name: user.name || user.email,
+              avatar: user.avatar,
+            }
             : item.author,
         };
       });
@@ -47,11 +53,12 @@ export default async function handler(
       if (!taskId || !content)
         return res.status(400).json({ error: "taskId and content required" });
 
-      const created = await prisma.taskComment.create({
+      const created = await (prisma.taskComment.create as any)({
         data: {
           taskId: String(taskId),
           content,
           author: author || "Anonymous",
+          createdAt: new Date(), // Manually add to ensure compatibility
         },
         // Include เพื่อหา boardId
         include: {
@@ -65,7 +72,7 @@ export default async function handler(
 
       // Increment task comment count
       try {
-        await prisma.boardTask.update({
+        await (prisma.boardTask.update as any)({
           where: { id: String(taskId) },
           data: { comments: { increment: 1 } },
         });
@@ -76,7 +83,7 @@ export default async function handler(
       // map user for publish
       const user = await prisma.user.findFirst({
         where: {
-          OR: [{ email: author }, { name: author }],
+          OR: [{ email: author || "" }, { name: author || "" }],
         },
         select: { id: true, name: true, avatar: true },
       });
@@ -85,10 +92,10 @@ export default async function handler(
         ...created,
         user: user
           ? {
-              id: user.id,
-              name: user.name || author,
-              avatar: user.avatar,
-            }
+            id: user.id,
+            name: user.name || author,
+            avatar: user.avatar,
+          }
           : author,
       };
 
@@ -109,8 +116,8 @@ export default async function handler(
     }
 
     return res.status(405).json({ error: "Method not allowed" });
-  } catch (err) {
+  } catch (err: any) {
     console.error("comment api error", err);
-    return res.status(500).json({ error: "internal" });
+    return res.status(500).json({ error: `Internal Server Error: ${err.message}` });
   }
 }
