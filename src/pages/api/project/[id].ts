@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { ProjectStatus } from "@prisma/client";
-
 
 
 export default async function handler(
@@ -41,7 +39,7 @@ async function handleGet(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const project = await prisma.project.findUnique({
+  const project = await (prisma.project.findUnique as any)({
     where: { id },
     include: {
       memberLinks: {
@@ -138,7 +136,7 @@ async function handlePut(
     ...(slug && { slug }),
     ...(summary !== undefined && { summary }),
     ...(description !== undefined && { description }),
-    ...(status && { status: status as ProjectStatus }),
+    ...(status && { status }),
     ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
     ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
     ...(clientName !== undefined && { clientName }),
@@ -177,7 +175,7 @@ async function handlePut(
     };
   }
 
-  const project = await prisma.project.update({
+  const project = await (prisma.project.update as any)({
     where: { id },
     data: updateData,
     include: {
