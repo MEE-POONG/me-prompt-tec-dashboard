@@ -160,7 +160,7 @@ export default function AddWorkspacePage() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     required
@@ -174,7 +174,7 @@ export default function AddWorkspacePage() {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm resize-none"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm resize-none"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="อธิบายรายละเอียดโดยย่อ..."

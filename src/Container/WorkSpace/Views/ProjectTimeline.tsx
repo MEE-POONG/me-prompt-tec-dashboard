@@ -262,7 +262,7 @@ export default function ProjectTimeline({
               <input
                 autoFocus
                 placeholder="Search tasks..."
-                className="w-full py-2 pr-4 text-sm outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+                className="w-full py-2 pr-4 text-sm outline-none text-slate-800 placeholder:text-slate-500 font-medium"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onBlur={() => !searchQuery && setIsSearchActive(false)}
@@ -471,7 +471,7 @@ export default function ProjectTimeline({
                 <input
                   autoFocus
                   placeholder="What needs to be done?"
-                  className="w-full text-lg font-semibold text-slate-800 border-b-2 border-slate-200 pb-2 focus:border-blue-500 focus:outline-none placeholder:text-slate-300 bg-transparent transition-colors"
+                  className="w-full text-lg font-semibold text-slate-800 border-b-2 border-slate-200 pb-2 focus:border-blue-500 focus:outline-none placeholder:text-slate-500 bg-transparent transition-colors"
                   value={newEventTitle}
                   onChange={(e) => setNewEventTitle(e.target.value)}
                 />

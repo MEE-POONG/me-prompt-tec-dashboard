@@ -1122,7 +1122,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                         <input
                           autoFocus
                           placeholder="List title..."
-                          className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-400 font-bold bg-transparent mb-4 px-1"
+                          className="w-full text-sm outline-none text-slate-800 placeholder:text-slate-500 font-bold bg-transparent mb-4 px-1"
                           value={board.newColumnTitle}
                           onChange={(e) =>
                             board.setNewColumnTitle(e.target.value)
