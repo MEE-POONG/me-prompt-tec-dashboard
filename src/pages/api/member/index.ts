@@ -136,7 +136,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       socials,
       skills: skills || [], // skill เป็น array
       slug,
-      isActive: true
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 
