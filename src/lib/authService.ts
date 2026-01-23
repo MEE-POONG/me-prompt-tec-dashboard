@@ -1,12 +1,11 @@
 // src/lib/authService.ts
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
 import crypto from "crypto";
 
 export async function createUser(data: {
   email: string;
   passwordHash: string;
-  role?: Role;
+  role?: string;
   name?: string;
   phone?: string;
   position?: string;
@@ -18,15 +17,19 @@ export async function createUser(data: {
     data: {
       email: data.email,
       passwordHash: data.passwordHash,
-      role: data.role ?? Role.viewer,
+      role: data.role ?? "viewer",
 
       verifyToken,
       tokenExpire,
       isActive: false,
+      isVerified: false,
 
-      name: data.name,
-      phone: data.phone,
-      position: data.position,
+      name: data.name ?? "",
+      phone: data.phone ?? "",
+      position: data.position ?? "",
+
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 }
