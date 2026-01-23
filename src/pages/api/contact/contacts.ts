@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { name: { contains: search as string, mode: "insensitive" } },
         { email: { contains: search as string, mode: "insensitive" } },
         // แถมค้นหาจากหัวข้อ (Subject) ให้ด้วยครับ
-        { subject: { contains: search as string, mode: "insensitive" } }, 
+        { subject: { contains: search as string, mode: "insensitive" } },
       ];
     }
 
@@ -62,11 +62,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderBy: { createdAt: "desc" },
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
-      include: {
-        handledBy: {
-          select: { name: true }
-        }
-      }
     });
 
     return res.status(200).json({

@@ -32,7 +32,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         date: new Date(),
         resumeUrl: resumeUrl ?? undefined,
         portfolioUrl: portfolioUrl ?? undefined,
-        handledById: handledById ?? undefined
+        handledById: handledById ?? undefined,
+        isStarred: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
 

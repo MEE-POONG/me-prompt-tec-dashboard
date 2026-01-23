@@ -16,11 +16,6 @@ export default async function handler(
     if (req.method === "GET") {
       const message = await prisma.contactMessage.findUnique({
         where: { id },
-        include: {
-          handledBy: {
-            select: { name: true },
-          },
-        },
       });
 
       if (!message) {
@@ -55,18 +50,13 @@ export default async function handler(
       if (resumeUrl !== undefined) updateData.resumeUrl = resumeUrl;
       if (portfolioUrl !== undefined) updateData.portfolioUrl = portfolioUrl;
       if (handledById !== undefined) updateData.handledById = handledById;
-      
+
       // ✅ 2. เพิ่ม logic อัปเดตลง Database
       if (isStarred !== undefined) updateData.isStarred = isStarred;
 
       const updated = await prisma.contactMessage.update({
         where: { id },
         data: updateData,
-        include: {
-          handledBy: {
-            select: { name: true },
-          },
-        },
       });
 
       return res.status(200).json(updated);

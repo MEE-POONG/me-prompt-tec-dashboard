@@ -196,12 +196,14 @@ export default async function handler(
           publicUrl: cloudflareData.result.variants[0],
           variants: cloudflareData.result.variants,
           size: file.size,
-          format: file.mimetype?.split("/")[1] || null,
+          format: file.mimetype?.split("/")[1] || "unknown",
           ...(relatedType && { relatedType }),
           ...(relatedId && { relatedId }),
           ...(fieldName && { fieldName }),
           tags: tags || [],
           isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
     } catch (dbError: any) {
