@@ -108,6 +108,10 @@ async function migrateProjectImages() {
         continue;
       }
 
+      // คำนวณขนาดไฟล์จาก base64
+      const base64Data = project.cover.replace(/^data:image\/\w+;base64,/, "");
+      const bufferSize = Buffer.from(base64Data, "base64").length;
+
       // บันทึกข้อมูลรูปภาพลง CloudflareImage model
       const imageRecord = await prisma.cloudflareImage.create({
         data: {
@@ -120,6 +124,10 @@ async function migrateProjectImages() {
           fieldName: "cover",
           tags: ["migrated", "project", "cover"],
           isActive: true,
+          format: "jpg",
+          size: BigInt(bufferSize),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 
