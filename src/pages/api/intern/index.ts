@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import { CoopType } from "@prisma/client";
 
 
 export default async function handler(
@@ -55,7 +54,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (coopType) {
-    where.coopType = coopType as CoopType;
+    where.coopType = coopType;
   }
 
   if (status) {
@@ -159,39 +158,21 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       faculty: faculty || "คณะบริหารธุรกิจ",
       major: major || "สารสนเทศทางคอมพิวเตอร์",
       studentId,
-      coopType: coopType || CoopType.coop,
+      coopType: coopType || "coop",
       contact: contact || undefined,
       resume: resume || undefined,
       avatar,
       portfolioSlug,
       status: status || "published",
 
-      // บันทึกรุ่น
       gen: gen || "6",
 
-      // เชื่อม projects
-      projectLinks: projects?.length ? {
-        create: projects.map((p: any) => ({
-          projectId: p.projectId,
-          responsibility: p.responsibility,
-          note: p.note,
-        })),
-      } : undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+
+      // Note: projectLinks disabled due to schema incompatibility
     },
-    include: {
-      projectLinks: {
-        include: {
-          project: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              cover: true,
-            },
-          },
-        },
-      },
-    },
+    // Note: include removed due to schema incompatibility
   });
 
   return res.status(201).json({
