@@ -152,7 +152,11 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         position,
         role: role || "viewer",
         isActive: true,
-        isVerified: false, // ← มาจาก branch poom
+        isVerified: false,
+        verifyToken: null,
+        tokenExpire: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
 

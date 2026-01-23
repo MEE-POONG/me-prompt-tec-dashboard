@@ -20,30 +20,20 @@ export default async function handler(
 
       // 1. บันทึก Activity Log (เหมือนเดิม)
       const activity = await prisma.boardActivity.create({
-        data: { boardId, user, action, target, projectId, taskId },
-      });
-
-      // ✅ 2. เพิ่มส่วนนี้: บันทึก Notification ลง DB ด้วย
-      let notifType = "update";
-      const actLower = action.toLowerCase();
-      if (actLower.includes("create")) notifType = "create";
-      else if (actLower.includes("delete")) notifType = "delete";
-      else if (actLower.includes("comment")) notifType = "comment";
-
-      await prisma.notification.create({
         data: {
           boardId,
-          actorName: user,
+          user,
           action,
           target,
-          type: notifType,
-          isRead: false, // ยังไม่อ่าน
-        }
+          projectId,
+          taskId,
+          createdAt: new Date(),
+        },
       });
 
-      // 3. ส่ง Realtime (เหมือนเดิม แต่ไม่ต้องส่ง Notification Object ไปแล้ว ให้ Frontend ดึงเอง หรือส่งไปแค่ trigger)
-      try { 
-          publish(String(boardId), { type: "activity:created", payload: activity }); 
+      // 2. ส่ง Realtime
+      try {
+        publish(String(boardId), { type: "activity:created", payload: activity });
       } catch (e) { console.error(e); }
 
       return res.status(201).json(activity);

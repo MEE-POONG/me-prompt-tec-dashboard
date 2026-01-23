@@ -20,7 +20,7 @@ export default async function handler(
         startDate.setDate(startDate.getDate() - days);
 
         // Get total views in period
-        const totalViews = await prisma.pageView.count({
+        const totalViews = await prisma.pageviews.count({
             where: {
                 createdAt: {
                     gte: startDate,
@@ -30,7 +30,7 @@ export default async function handler(
         });
 
         // Get unique visitors (unique sessionIds)
-        const uniqueVisitors = await prisma.pageView.groupBy({
+        const uniqueVisitors = await prisma.pageviews.groupBy({
             by: ["sessionId"],
             where: {
                 createdAt: {
@@ -41,7 +41,7 @@ export default async function handler(
         });
 
         // Get views by day
-        const viewsByDay = await prisma.pageView.groupBy({
+        const viewsByDay = await prisma.pageviews.groupBy({
             by: ["createdAt"],
             where: {
                 createdAt: {
@@ -65,7 +65,7 @@ export default async function handler(
         }, {});
 
         // Get top pages
-        const topPages = await prisma.pageView.groupBy({
+        const topPages = await prisma.pageviews.groupBy({
             by: ["page"],
             where: {
                 createdAt: {
@@ -88,7 +88,7 @@ export default async function handler(
         const previousStartDate = new Date(startDate);
         previousStartDate.setDate(previousStartDate.getDate() - days);
 
-        const previousViews = await prisma.pageView.count({
+        const previousViews = await prisma.pageviews.count({
             where: {
                 createdAt: {
                     gte: previousStartDate,
