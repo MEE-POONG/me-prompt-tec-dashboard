@@ -125,7 +125,7 @@ async function migrateProjectImages() {
           tags: ["migrated", "project", "cover"],
           isActive: true,
           format: "jpg",
-          size: BigInt(bufferSize),
+          size: bufferSize,
           createdAt: new Date(),
           updatedAt: new Date(),
         },

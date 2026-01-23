@@ -30,8 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           title,
           description,
-          // ✅ ถ้า isOpen ยังขีดแดง แสดงว่าต้องรัน npx prisma generate ก่อนนะครับ
           isOpen: isOpen ?? true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

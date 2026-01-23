@@ -6,7 +6,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   // ✅ ส่วนที่เพิ่ม: ปลดล็อค CORS เพื่อให้หน้าบ้าน (Port 3001) ดึงข้อมูลได้
-  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -62,6 +62,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       logo,
       description,
       status: status || "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 
