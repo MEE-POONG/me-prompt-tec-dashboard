@@ -17,6 +17,7 @@ import {
   Globe, // [เพิ่ม]
 } from "lucide-react";
 import ModalError from "@/components/ui/Modals/ModalError";
+import ModalDelete from "@/components/ui/Modals/ModalsDelete";
 
 // --- Types ---
 interface Project {
@@ -57,6 +58,11 @@ export default function WorkList({
     open: false,
     message: "",
     description: "",
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => { },
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -113,26 +119,41 @@ export default function WorkList({
 
   // --- Handlers ---
   const handleDeleteProject = async (id: string) => {
-    if (!confirm("คุณต้องการลบโปรเจกต์นี้ใช่หรือไม่?")) return;
-
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await fetch(`/api/workspace/board/${id}`, {
-        method: "DELETE",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        setProjects((prev) => prev.filter((p) => p.id !== id));
-      } else {
-        alert("Delete failed");
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setActiveDropdownId(null);
-    }
+    const project = projects.find(p => p.id === id);
+    setDeleteModal({
+      open: true,
+      message: `คุณต้องการลบโปรเจกต์ "${project?.name}" ใช่หรือไม่?`,
+      onConfirm: async () => {
+        try {
+          const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+          const res = await fetch(`/api/workspace/board/${id}`, {
+            method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          if (res.ok) {
+            setProjects((prev) => prev.filter((p) => p.id !== id));
+          } else {
+            setPermissionModal({
+              open: true,
+              message: "ลบโปรเจกต์ไม่สำเร็จ",
+              description: "กรุณาลองใหม่อีกครั้ง"
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setPermissionModal({
+            open: true,
+            message: "เกิดข้อผิดพลาด",
+            description: "ไม่สามารถลบโปรเจกต์ได้"
+          });
+        } finally {
+          setActiveDropdownId(null);
+          setDeleteModal({ open: false, message: "", onConfirm: () => { } });
+        }
+      },
+    });
   };
 
   const calculateProgress = (project: Project) => {
@@ -727,6 +748,13 @@ export default function WorkList({
         message={permissionModal.message}
         description={permissionModal.description}
         onClose={() => setPermissionModal({ ...permissionModal, open: false })}
+      />
+
+      <ModalDelete
+        open={deleteModal.open}
+        message={deleteModal.message}
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
+        onConfirm={deleteModal.onConfirm}
       />
     </div>
   );
