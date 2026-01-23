@@ -134,8 +134,6 @@ export default async function handler(
           assignees: assigneeIds?.length > 0 ? {
             create: assigneeIds.map((uid: string) => ({
               userId: uid,
-              createdAt: new Date(),
-              updatedAt: new Date()
             })),
           } : undefined,
         },

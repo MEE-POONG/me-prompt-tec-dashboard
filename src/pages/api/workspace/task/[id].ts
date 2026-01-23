@@ -144,8 +144,6 @@ export default async function handler(
           deleteMany: {},
           create: assigneeIds.map((uid: string) => ({
             userId: uid,
-            createdAt: new Date(),
-            updatedAt: new Date()
           })),
         };
       }

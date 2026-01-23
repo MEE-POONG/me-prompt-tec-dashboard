@@ -33,7 +33,7 @@ import ModalRestore from "@/components/ui/Modals/ModalRestore";
 export { MembersManageModal } from "./MembersManageModal";
 
 // --- Types ---
-// à¸¥à¸š "difficulty" à¸­à¸­à¸à¸ˆà¸²à¸ Type
+// ลบ "difficulty" ออกจาก Type
 type TabType = "settings" | "archived" | "activities";
 
 // --- Member Avatar Component ---
@@ -63,7 +63,7 @@ const MemberAvatar = ({ member, className }: { member: WorkspaceMember; classNam
   );
 };
 
-// --- Component à¸«à¸¥à¸±à¸: Settings Sidebar ---
+// --- Component หลัก: Settings Sidebar ---
 export function WorkspaceSettingsSidebar({
   isOpen,
   onClose,
@@ -79,7 +79,7 @@ export function WorkspaceSettingsSidebar({
   boardId: string;
   isReadOnly?: boolean;
   onUpdate?: () => void;
-  currentUser?: any; // [à¹€à¸žà¸´à¹ˆà¸¡] prop à¸£à¸±à¸š value à¸‚à¸­à¸‡ user à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™
+  currentUser?: any; // [เพิ่ม] prop รับ value ของ user ปัจจุบัน
 }) {
   // UI States
   const [activeTab, setActiveTab] = useState<TabType>("settings");
@@ -117,7 +117,7 @@ export function WorkspaceSettingsSidebar({
 
   // Member States
   const [memberSearch, setMemberSearch] = useState("");
-  const [members, setMembers] = useState<WorkspaceMember[]>(workspaceInfo.members);
+  const [members, setMembers] = useState<WorkspaceMember[]>(workspaceInfo.members || []);
   const [openMemberDropdownId, setOpenMemberDropdownId] = useState<number | null>(null);
 
   // [RBAC] Determine if current user is Admin
@@ -127,7 +127,7 @@ export function WorkspaceSettingsSidebar({
   );
   const isOwner = mb?.role === "Owner";
 
-  // âŒ à¸¥à¸š State à¹à¸¥à¸° Logic à¸‚à¸­à¸‡ Difficulty Level à¸­à¸­à¸à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸•à¸£à¸‡à¸™à¸µà¹‰
+  // ❌ ลบ State และ Logic ของ Difficulty Level ออกทั้งหมดตรงนี้
 
   // Archived Tasks State
   const [archivedTasks, setArchivedTasks] = useState<WorkspaceTask[]>([]);
@@ -173,7 +173,7 @@ export function WorkspaceSettingsSidebar({
   const handleRestoreTask = async (taskId: string | number) => {
     setRestoreModal({
       open: true,
-      message: "à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¸™à¸µà¹‰à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?",
+      message: "ต้องการคืนค่าแท็บพยากรณ์นี้ใช่หรือไม่?",
       onConfirm: async () => {
         try {
           const res = await fetch(`/api/workspace/task/${taskId}`, {
@@ -186,22 +186,22 @@ export function WorkspaceSettingsSidebar({
             setArchivedTasks((prev) => prev.filter((t) => t.id !== taskId));
             setSuccessModal({
               open: true,
-              message: "à¸„à¸·à¸™à¸„à¹ˆà¸²à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
-              description: "à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+              message: "คืนค่าสำเร็จ!",
+              description: "คืนค่าแท็บพยากรณ์เรียบร้อยแล้ว",
             });
           } else {
             setErrorModal({
               open: true,
-              message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-              description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸„à¸·à¸™à¸„à¹ˆà¸²à¹à¸—à¹‡à¸šà¸žà¸¢à¸²à¸à¸£à¸“à¹Œà¹„à¸”à¹‰",
+              message: "เกิดข้อผิดพลาด!",
+              description: "ไม่สามารถคืนค่าแท็บพยากรณ์ได้",
             });
           }
         } catch (error) {
           console.error("Failed to restore task", error);
           setErrorModal({
             open: true,
-            message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-            description: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œ",
+            message: "เกิดข้อผิดพลาด!",
+            description: "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์",
           });
         }
       },
@@ -215,7 +215,7 @@ export function WorkspaceSettingsSidebar({
   // Initialize Data when modal opens
   useEffect(() => {
     if (isOpen) {
-      setMembers(workspaceInfo.members);
+      setMembers(workspaceInfo.members || []);
       setProjectName(workspaceInfo.name || "");
       setVisibility(workspaceInfo.visibility || "PRIVATE");
       setTempVisibility(workspaceInfo.visibility || "PRIVATE");
@@ -249,15 +249,15 @@ export function WorkspaceSettingsSidebar({
       setDescription(tempDescription);
       setSuccessModal({
         open: true,
-        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
-        description: "à¸šà¸±à¸™à¸—à¸¶à¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+        message: "บันทึกสำเร็จ!",
+        description: "บันทึกรายละเอียดเรียบร้อยแล้ว",
       });
     } catch (error) {
       console.error("Failed to update description", error);
       setErrorModal({
         open: true,
-        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¹„à¸”à¹‰",
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถบันทึกรายละเอียดได้",
       });
     }
   };
@@ -268,15 +268,16 @@ export function WorkspaceSettingsSidebar({
       await updateBoard(boardId, { name: projectName });
       setSuccessModal({
         open: true,
-        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
-        description: "à¸šà¸±à¸™à¸—à¸¶à¸à¸Šà¸·à¹ˆà¸­à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+        message: "บันทึกสำเร็จ!",
+        description: "บันทึกชื่อโปรเจกต์เรียบร้อยแล้ว",
       });
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Failed to update name", error);
       setErrorModal({
         open: true,
-        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-        description: "à¸Šà¸·à¹ˆà¹ˆà¸­à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¸™à¸µà¹‰à¸­à¸²à¸ˆà¸¡à¸µà¸­à¸¢à¸¹à¹ˆà¹à¸¥à¹‰à¸§ à¸«à¸£à¸·à¸­à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¸­à¸·à¹ˆà¸™",
+        message: "เกิดข้อผิดพลาด!",
+        description: "ชื่อโปรเจกต์นี้อาจมีอยู่แล้ว หรือเกิดข้อผิดพลาดอื่น",
       });
     }
   };
@@ -288,17 +289,16 @@ export function WorkspaceSettingsSidebar({
       setVisibility(tempVisibility);
       setSuccessModal({
         open: true,
-        message: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
-        description: `à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¹€à¸›à¹‡à¸™ ${tempVisibility === "PRIVATE" ? "Private" : "Public"
-          } à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§`,
+        message: "บันทึกสำเร็จ!",
+        description: `เปลี่ยนสถานะเป็น ${tempVisibility === "PRIVATE" ? "Private" : "Public"} เรียบร้อยแล้ว`,
       });
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Failed to update visibility", error);
       setErrorModal({
         open: true,
-        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸–à¸²à¸™à¸°à¹„à¸”à¹‰",
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถเปลี่ยนสถานะได้",
       });
     }
   };
@@ -328,8 +328,8 @@ export function WorkspaceSettingsSidebar({
       console.error(error);
       setErrorModal({
         open: true,
-        message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸šà¸—à¸šà¸²à¸—à¹„à¸”à¹‰",
+        message: "เกิดข้อผิดพลาด!",
+        description: "ไม่สามารถเปลี่ยนบทบาทได้",
       });
     }
   };
@@ -338,7 +338,7 @@ export function WorkspaceSettingsSidebar({
     const member = members[index];
     setDeleteModal({
       open: true,
-      message: `à¸„à¸¸à¸“à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸ ${member.name} à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?`,
+      message: `คุณต้องการลบสมาชิก ${member.name} ใช่หรือไม่?`,
       onConfirm: async () => {
         try {
           const res = await fetch(`/api/workspace/member?id=${member.id}`, {
@@ -349,15 +349,15 @@ export function WorkspaceSettingsSidebar({
           setMembers(updatedMembers);
           setSuccessModal({
             open: true,
-            message: "à¸¥à¸šà¸ªà¸³à¹€à¸£à¹‡à¸ˆ!",
-            description: "à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+            message: "ลบสำเร็จ!",
+            description: "ลบสมาชิกเรียบร้อยแล้ว",
           });
         } catch (error) {
           console.error(error);
           setErrorModal({
             open: true,
-            message: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”!",
-            description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸¥à¸šà¸ªà¸¡à¸²à¸Šà¸´à¸´à¸à¹„à¸”à¹‰",
+            message: "เกิดข้อผิดพลาด!",
+            description: "ไม่สามารถลบสมาชิกได้",
           });
         }
       },
@@ -368,7 +368,7 @@ export function WorkspaceSettingsSidebar({
   const handleLeaveBoard = () => {
     setDeleteModal({
       open: true,
-      message: "à¸„à¸¸à¸“à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸­à¸­à¸à¸ˆà¸²à¸à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹ƒà¸Šà¹ˆà¸«à¸£à¸·à¸­à¹„à¸¡à¹ˆ?",
+      message: "คุณต้องการออกจากบอร์ดนี้ใช่หรือไม่?",
       onConfirm: () => {
         onClose();
         // Add actual leave logic here
@@ -376,14 +376,12 @@ export function WorkspaceSettingsSidebar({
     });
   };
 
-  // --- âŒ à¸¥à¸š Handlers (Difficulty) à¸­à¸­à¸à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” ---
+  // --- ❌ ลบ Handlers (Difficulty) ออกทั้งหมด ---
 
   // --- Logic for Filtering Lists ---
-  const filteredMembers = members.filter((m) =>
+  const filteredMembers = (members || []).filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase())
   );
-
-  // âŒ à¸¥à¸š filteredDifficulties à¸­à¸­à¸
 
   if (!isOpen) return null;
 
@@ -451,7 +449,7 @@ export function WorkspaceSettingsSidebar({
             </div>
           </div>
 
-          {/* Tabs - âŒ à¸¥à¸š "Difficulty Level" à¸­à¸­à¸à¸ˆà¸²à¸ Tabs */}
+          {/* Tabs */}
           <div className="flex items-center gap-6 border-b border-slate-200 mt-6 overflow-x-auto scrollbar-hide">
             {["Settings", "Archived", "Activities"].map(
               (tab) => {
@@ -485,7 +483,7 @@ export function WorkspaceSettingsSidebar({
               <div className="space-y-1.5 ">
                 <label className="text-sm font-bold text-slate-700 flex items-center gap-1">
                   <Edit2 size={12} className="text-slate-400" /> Project Name{" "}
-                  <span className="text-slate-400 text-xs font-normal">â“˜</span>
+                  <span className="text-slate-400 text-xs font-normal">ⓘ</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -525,8 +523,8 @@ export function WorkspaceSettingsSidebar({
                       disabled={isReadOnly}
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="PRIVATE">Private (à¸ªà¸¡à¸²à¸Šà¸´à¸à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™)</option>
-                      <option value="PUBLIC">Public (à¸—à¸¸à¸à¸„à¸™à¹€à¸«à¹‡à¸™à¹„à¸”à¹‰)</option>
+                      <option value="PRIVATE">Private (สมาชิกเท่านั้น)</option>
+                      <option value="PUBLIC">Public (ทุกคนเห็นได้)</option>
                     </select>
                     <ChevronDown
                       size={16}
@@ -535,8 +533,8 @@ export function WorkspaceSettingsSidebar({
                   </div>
                   <p className="text-xs text-slate-500 mb-3">
                     {tempVisibility === "PRIVATE"
-                      ? "à¹€à¸‰à¸žà¸²à¸°à¸ªà¸¡à¸²à¸Šà¸´à¸à¸—à¸µà¹ˆà¹„à¸”à¹‰à¸£à¸±à¸šà¹€à¸Šà¸´à¸à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™à¸—à¸µà¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹„à¸”à¹‰"
-                      : "à¸—à¸¸à¸à¸„à¸™à¸—à¸µà¹ˆà¸¡à¸µà¸¥à¸´à¸‡à¸à¹Œà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡à¸šà¸­à¸£à¹Œà¸”à¸™à¸µà¹‰à¹„à¸”à¹‰"}
+                      ? "เฉพาะสมาชิกที่ได้รับเชิญเท่านั้นที่สามารถเข้าถึงบอร์ดนี้ได้"
+                      : "ทุกคนที่มีลิงก์สามารถเข้าถึงบอร์ดนี้ได้"}
                   </p>
 
                   {/* Buttons for Visibility */}
@@ -650,26 +648,21 @@ export function WorkspaceSettingsSidebar({
                             {m.name}
                           </p>
                           <p className="text-xs text-slate-500">
-                            {m.name.includes("à¸˜à¸™à¸ à¸±à¸—à¸£")
-                              ? "pattanapat92@gmail.com"
-                              : m.name.includes("Siwakorn")
-                                ? "siwakorn.pn@rmuti.ac.th"
-                                : "user@email.com"}
+                            {m.email || "user@email.com"}
                           </p>
                         </div>
                       </div>
 
                       {/* Role Dropdown */}
-                      {/* Role Dropdown - Only if Admin/Owner */}
                       {(() => {
                         const currentUserMember = members.find(m =>
                           (currentUser && m.userId === currentUser.id) ||
                           (currentUser && m.name === currentUser.name)
                         );
                         const currentUserRole = currentUserMember?.role || "Viewer";
-                        const isOwner = currentUserRole === "Owner";
-                        const isBoardOwner = m.role === "Owner";
-                        const canEdit = !isBoardOwner && isOwner;
+                        const isUserOwner = currentUserRole === "Owner";
+                        const isTargetOwner = m.role === "Owner";
+                        const canEdit = !isTargetOwner && isUserOwner;
 
                         return (
                           <button
@@ -706,7 +699,10 @@ export function WorkspaceSettingsSidebar({
                             </button>
                           ))}
                           <div className="h-px bg-slate-100 my-1"></div>
-                          <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center justify-between">
+                          <button
+                            onClick={() => handleRemoveMember(i)}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center justify-between"
+                          >
                             Remove
                           </button>
                         </div>
@@ -729,8 +725,6 @@ export function WorkspaceSettingsSidebar({
             </div>
           )}
 
-          {/* âŒ à¸ªà¹ˆà¸§à¸™à¸‚à¸­à¸‡ TAB 2: DIFFICULTY LEVEL à¸–à¸¹à¸à¸¥à¸šà¸­à¸­à¸à¹„à¸›à¹à¸¥à¹‰à¸§ */}
-
           {/* TAB 3: ARCHIVED */}
           {activeTab === "archived" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
@@ -738,9 +732,6 @@ export function WorkspaceSettingsSidebar({
                 <h3 className="text-lg font-medium text-slate-800">
                   Archived tasks
                 </h3>
-                <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-all shadow-sm active:scale-95">
-                  Switch to columns
-                </button>
               </div>
 
               <div className="relative">
@@ -764,13 +755,11 @@ export function WorkspaceSettingsSidebar({
                 ) : archivedTasks.filter((t) =>
                   t.title.toLowerCase().includes(archivedSearch.toLowerCase())
                 ).length === 0 ? (
-                  /* Empty State */
                   <div className="flex flex-col items-center justify-center text-center mt-4 h-full">
                     <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4 relative">
                       <div className="w-16 h-12 bg-blue-600 rounded-md shadow-lg flex items-center justify-center relative z-10 rotate-[-10deg]">
                         <Archive size={24} className="text-white" />
                       </div>
-                      <div className="absolute w-14 h-4 bg-blue-800/20 rounded-full blur-md bottom-4"></div>
                     </div>
                     <h4 className="text-lg font-bold text-slate-800 mb-1">
                       No items
@@ -798,21 +787,9 @@ export function WorkspaceSettingsSidebar({
                           <button
                             onClick={() => handleRestoreTask(task.id)}
                             className="text-slate-400 hover:text-blue-600 p-1 hover:bg-blue-50 rounded transition-colors"
-                            title="Restore"
                           >
                             <History size={16} />
                           </button>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span
-                            className={`px-1.5 py-0.5 rounded border ${task.tagColor}`}
-                          >
-                            {task.tag}
-                          </span>
-                          <span>â€¢</span>
-                          <span className="flex items-center gap-1">
-                            <CalendarClock size={12} /> {task.date}
-                          </span>
                         </div>
                       </div>
                     ))
@@ -820,128 +797,33 @@ export function WorkspaceSettingsSidebar({
               </div>
             </div>
           )}
-
-          {/* TAB 4: ACTIVITIES */}
-          {activeTab === "activities" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-full pb-10">
-              {workspaceInfo.activities &&
-                workspaceInfo.activities.length > 0 ? (
-                (
-                  Object.entries(
-                    (workspaceInfo.activities || []).reduce(
-                      (groups: Record<string, any[]>, activity: any) => {
-                        const date = new Date(activity.createdAt);
-                        const key = isToday(date)
-                          ? "Today"
-                          : isYesterday(date)
-                            ? "Yesterday"
-                            : format(date, "EEEE d MMMM yyyy");
-                        if (!groups[key]) groups[key] = [];
-                        groups[key].push(activity);
-                        return groups;
-                      },
-                      {}
-                    )
-                  ) as [string, any[]][]
-                ).map(([dateLabel, acts]) => (
-                  <div key={dateLabel} className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-800 sticky top-0 bg-slate-50/95 py-2 z-10">
-                      {dateLabel}
-                    </h3>
-                    <div className="space-y-6 pl-2 relative border-l-2 border-slate-200 ml-3">
-                      {acts.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex gap-3 relative -ml-[19px] group"
-                        >
-                          {typeof activity.user === "object" &&
-                            ((activity.user as any).userAvatar ||
-                              (activity.user as any).avatar) ? (
-                            <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
-                              <img
-                                src={
-                                  (activity.user as any).userAvatar ||
-                                  (activity.user as any).avatar
-                                }
-                                alt={(activity.user as any).name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center text-white text-xs font-bold shrink-0 z-10 border-4 border-white shadow-sm ring-1 ring-slate-100">
-                              {(typeof activity.user === "object"
-                                ? (activity.user as any).name
-                                : activity.user || "U"
-                              )
-                                .charAt(0)
-                                .toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex flex-col pt-1">
-                            <div className="text-sm text-slate-800 leading-snug">
-                              <span className="font-bold hover:underline cursor-pointer">
-                                {typeof activity.user === "object"
-                                  ? (activity.user as any).name
-                                  : activity.user}
-                              </span>{" "}
-                              {activity.action}{" "}
-                              {activity.target && (
-                                <span className="font-medium text-slate-600">
-                                  "{activity.target}"
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-slate-400 mt-1 font-medium group-hover:text-slate-500 transition-colors">
-                              {format(
-                                new Date(activity.createdAt),
-                                "MMMM d 'at' HH:mm"
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-10">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <History className="text-slate-400" />
-                  </div>
-                  <p className="text-slate-500 text-sm">No recent activity</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Modals */}
       <ModalSuccess
         open={successModal.open}
         message={successModal.message}
         description={successModal.description}
         onClose={() => setSuccessModal({ ...successModal, open: false })}
       />
-
       <ModalError
         open={errorModal.open}
         message={errorModal.message}
         description={errorModal.description}
         onClose={() => setErrorModal({ ...errorModal, open: false })}
       />
-
       <ModalDelete
         open={deleteModal.open}
         message={deleteModal.message}
-        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
         onConfirm={deleteModal.onConfirm}
+        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
       />
-
       <ModalRestore
         open={restoreModal.open}
         message={restoreModal.message}
-        onClose={() => setRestoreModal({ ...restoreModal, open: false })}
         onConfirm={restoreModal.onConfirm}
+        onClose={() => setRestoreModal({ ...restoreModal, open: false })}
       />
     </>
   );

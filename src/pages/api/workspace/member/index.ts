@@ -146,8 +146,6 @@ export default async function handler(
           role,
           avatar,
           color,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       });
 
