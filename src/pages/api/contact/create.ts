@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/mailer';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -38,6 +39,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updatedAt: new Date(),
       },
     });
+
+    // Send email notification to Admin
+    try {
+      const emailSubject = `New Contact Request: ${subject}`;
+      const emailBody = `
+        <h3>Me-Prompt-Tec: New Contact Message</h3>
+        <p><strong>Name:</strong> ${name || "ไม่ระบุ"}</p>
+        <p><strong>Email:</strong> ${email || "-"}</p>
+        <p><strong>Phone:</strong> ${phone || "-"}</p>
+        <p><strong>Subject:</strong> ${subject}</p>
+        <p><strong>Message:</strong><br/>${message}</p>
+        <p><strong>Source:</strong> ${source}</p>
+        <hr/>
+        <p>Date: ${new Date().toLocaleString()}</p>
+      `;
+
+      await sendEmail({
+        to: process.env.MAIL_USER || "", // Send to Admin
+        subject: emailSubject,
+        html: emailBody,
+      });
+      console.log("Email notification sent to admin");
+    } catch (emailError) {
+      console.error("Failed to send email notification:", emailError);
+      // Create succeeded, so we don't return error
+    }
 
     return res.status(201).json(newMessage);
   } catch (error) {

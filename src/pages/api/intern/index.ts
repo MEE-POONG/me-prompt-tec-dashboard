@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/mailer";
 
 
 export default async function handler(
@@ -174,6 +175,31 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     },
     // Note: include removed due to schema incompatibility
   });
+
+  // Send email notification to Admin
+  try {
+    const emailSubject = `New Intern Application: ${name.first} ${name.last}`;
+    const emailBody = `
+      <h3>Me-Prompt-Tec: New Intern Application</h3>
+      <p><strong>Name:</strong> ${name.first} ${name.last}</p>
+      <p><strong>University:</strong> ${university || "-"}</p>
+      <p><strong>Faculty/Major:</strong> ${faculty || "-"} / ${major || "-"}</p>
+      <p><strong>Portfolio Slug:</strong> ${portfolioSlug}</p>
+      <p><strong>Coop Type:</strong> ${coopType || "-"}</p>
+      <hr/>
+      <p><strong>Link:</strong> <a href="${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/intern/${portfolioSlug}">View Portfolio</a></p>
+      <p>Date: ${new Date().toLocaleString()}</p>
+    `;
+
+    await sendEmail({
+      to: process.env.MAIL_USER || "", // Send to Admin
+      subject: emailSubject,
+      html: emailBody,
+    });
+    console.log("Email notification sent to admin for new intern");
+  } catch (emailError) {
+    console.error("Failed to send email notification:", emailError);
+  }
 
   return res.status(201).json({
     message: "Intern created successfully",
