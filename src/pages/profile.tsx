@@ -158,7 +158,7 @@ export default function ProfilePage() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        avatar: avatarUrl,
+        avatar: formData.avatar,
       };
 
       const res = await fetch(`/api/account/${user.id}`, {
@@ -393,11 +393,11 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={isSaving}
+                    disabled={isSaving || isUploading}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Save size={20} />
-                    <span>{isSaving ? "กำลังบันทึก..." : "บันทึก"}</span>
+                    <span>{isSaving ? "กำลังบันทึก..." : isUploading ? "กำลังอัปโหลด..." : "บันทึก"}</span>
                   </button>
                 </>
               )}
@@ -437,8 +437,8 @@ export default function ProfilePage() {
                               });
 
                               // Upload to Cloudflare with progress tracking
-                              const formData = new FormData();
-                              formData.append("file", processedFile, file.name);
+                              const uploadForm = new FormData();
+                              uploadForm.append("file", processedFile, file.name);
 
                               // Use XMLHttpRequest for progress tracking
                               const xhr = new XMLHttpRequest();
@@ -485,6 +485,7 @@ export default function ProfilePage() {
                                       message: "เกิดข้อผิดพลาด",
                                       description: "ไม่พบ URL ของรูปภาพ",
                                     });
+                                    setAvatarUrl(formData.avatar || "");
                                   }
                                 } else {
                                   let errorMessage = "ไม่สามารถอัปโหลดรูปภาพได้";
@@ -500,6 +501,7 @@ export default function ProfilePage() {
                                     message: "เกิดข้อผิดพลาด",
                                     description: errorMessage,
                                   });
+                                  setAvatarUrl(formData.avatar || "");
                                 }
                               });
 
@@ -507,6 +509,8 @@ export default function ProfilePage() {
                               xhr.addEventListener("error", () => {
                                 setIsUploading(false);
                                 setUploadProgress(0);
+                                // Revert preview on error
+                                setAvatarUrl(formData.avatar || "");
                                 console.error("Upload error");
                                 setErrorModal({
                                   open: true,
@@ -521,10 +525,12 @@ export default function ProfilePage() {
                               if (token) {
                                 xhr.setRequestHeader("Authorization", `Bearer ${token}`);
                               }
-                              xhr.send(formData);
+                              xhr.send(uploadForm);
                             } catch (error) {
                               setIsUploading(false);
                               setUploadProgress(0);
+                              // Revert preview on error
+                              setAvatarUrl(formData.avatar || "");
                               console.error("Upload error:", error);
                               setErrorModal({
                                 open: true,
