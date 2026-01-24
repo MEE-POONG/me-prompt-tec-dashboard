@@ -191,3 +191,25 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ===== Global placeholder style ===== */
+::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* ===== React Day Picker Calendar Weekday Headers ===== */
+.rdp-head_cell {
+  color: #334155 !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+.rdp-head_row {
+  opacity: 1 !important;
+}
+
+.rdp-weekday {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}

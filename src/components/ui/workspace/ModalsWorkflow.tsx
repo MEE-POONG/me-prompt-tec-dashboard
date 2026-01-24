@@ -87,7 +87,8 @@ const customStyles = `
   .rdp-day_range_start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
   .rdp-day_range_end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .rdp-caption_label { color: #1e293b; font-weight: 800; font-size: 1rem; }
-  .rdp-head_cell { color: #0f172a !important; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+  .rdp-head_cell { color: #334155 !important; font-weight: 700 !important; text-transform: uppercase; font-size: 0.75rem; opacity: 1 !important; }
+  .rdp-weeknumber, .rdp-head_row { opacity: 1 !important; }
 `;
 
 // --- 2. Types ---
@@ -1172,6 +1173,17 @@ export default function ModalsWorkflow({
     const trimmedText = text.trim();
     if (!trimmedText || !taskId) return;
 
+    // ✅ Fix: Check if taskId is a valid MongoDB ObjectId (not a temp task)
+    const isValidTaskId = /^[a-fA-F0-9]{24}$/.test(String(taskId));
+    if (!isValidTaskId) {
+      setErrorModal({
+        open: true,
+        message: "ไม่สามารถเพิ่ม Checklist ได้",
+        description: "กรุณาบันทึก Task ก่อนที่จะเพิ่ม Checklist Item",
+      });
+      return;
+    }
+
     const tempId = `temp-${Date.now()}`;
 
     // Add temp item with trimmed text
@@ -1244,7 +1256,9 @@ export default function ModalsWorkflow({
     try {
       if (itemId.startsWith("temp-")) {
         const tempText = currentItem?.text;
-        if (taskId && tempText !== undefined) {
+        // ✅ Fix: Check if taskId is a valid MongoDB ObjectId
+        const isValidTaskId = taskId && /^[a-fA-F0-9]{24}$/.test(String(taskId));
+        if (isValidTaskId && tempText !== undefined) {
           const created = await createChecklistItem({
             taskId: String(taskId),
             text: tempText,
@@ -2557,8 +2571,8 @@ export default function ModalsWorkflow({
                       >
                         <div className="space-y-1">
                           <input
-                            className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2"
-                            placeholder="Search members..."
+                            className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm mb-2 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                            placeholder="ค้นหาสมาชิก..."
                           />
                           {membersList.map((m) => (
                             <button

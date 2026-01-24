@@ -38,8 +38,6 @@ export default async function handler(
           text,
           isChecked: isChecked || false,
           order: order ?? 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       });
 

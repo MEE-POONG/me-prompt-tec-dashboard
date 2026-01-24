@@ -169,7 +169,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   );
 
   const mapApiTaskToWorkspaceTask = useCallback(
-    (task: any, currentLabels: any[] = []) => {
+    (task: any, currentLabels: any[] = [], columnTitle?: string) => {
       let dateLabel = "No date";
       try {
         const start = task.startDate
@@ -204,7 +204,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         tag: task.tag || "General",
         tagColor: getLabelColors(task.tag, task.tagColor, currentLabels),
         priority: task.priority || "Medium",
-        status: task.column?.title || "To Do",
+        status: columnTitle || task.column?.title || "To Do",
         rawDueDate: task.dueDate,
         assignees: task.assignees,
         memberIds: task.assignees?.map((a: any) => a.userId || a.user?.id),
@@ -255,7 +255,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
           title: col.title,
           color: col.color || "bg-gray-500",
           tasks: (col.tasks || []).map((t: any) =>
-            mapApiTaskToWorkspaceTask(t, currentLabels)
+            mapApiTaskToWorkspaceTask(t, currentLabels, col.title)
           ),
         })) || [];
 
@@ -499,7 +499,8 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         taskId: created.id,
       });
 
-      const mapped = mapApiTaskToWorkspaceTask(created, labels);
+      const colTitle = board.columns.find((c) => c.id === columnId)?.title || "To Do";
+      const mapped = mapApiTaskToWorkspaceTask(created, labels, colTitle);
       board.setColumns((prev) =>
         prev.map((c) =>
           c.id === columnId
@@ -595,7 +596,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         id: created.id,
         title: created.title,
         tasks: (created.tasks || []).map((t: any) =>
-          mapApiTaskToWorkspaceTask(t, labels)
+          mapApiTaskToWorkspaceTask(t, labels, created.title)
         ),
         color: created.color,
       };
@@ -962,7 +963,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
               <input
                 type="text"
                 placeholder="Filter tasks..."
-                className="w-full pl-9 pr-4 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-gray-50 font-medium"
+                className="w-full pl-9 pr-4 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-white font-medium text-slate-800 placeholder:text-slate-600"
                 value={board.searchQuery}
                 onChange={(e) => board.setSearchQuery(e.target.value)}
               />
