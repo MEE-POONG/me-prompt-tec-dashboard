@@ -152,7 +152,25 @@ export default function ProfilePage() {
     try {
       setIsSaving(true);
       const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userStr = localStorage.getItem("user");
+
+      console.log("Saving profile - Token exists:", !!token);
+      console.log("Saving profile - User string:", userStr);
+
+      if (!token || !userStr) {
+        throw new Error("ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่");
+      }
+
+      const user = JSON.parse(userStr);
+      if (!user.id) {
+        throw new Error("ข้อมูลผู้ใช้ไม่ถูกต้อง (Missing ID)");
+      }
+
+      // Safety Check: Prevent saving if avatar is Base64 (too large)
+      if (formData.avatar && formData.avatar.startsWith("data:image")) {
+        console.error("CRITICAL: Attempted to save Base64 image data.");
+        throw new Error("ข้อมูลรูปภาพไม่ถูกต้อง (Base64) กรุณาอัปโหลดใหม่");
+      }
 
       const updateData: any = {
         name: formData.name,
@@ -161,7 +179,9 @@ export default function ProfilePage() {
         avatar: formData.avatar,
       };
 
-      const res = await fetch(`/api/account/${user.id}`, {
+      console.log("Payload being sent:", updateData);
+
+      const res = await fetch(`/api/account/${String(user.id)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -171,8 +191,9 @@ export default function ProfilePage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to update profile");
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Server API Error:", res.status, errorData);
+        throw new Error(errorData.error || `Server error (${res.status})`);
       }
 
       // Update localStorage with new user data
@@ -180,7 +201,7 @@ export default function ProfilePage() {
         ...user,
         name: formData.name,
         email: formData.email,
-        avatar: avatarUrl,
+        avatar: formData.avatar, // Use the verified proper URL
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       window.dispatchEvent(new Event("user-updated"));
