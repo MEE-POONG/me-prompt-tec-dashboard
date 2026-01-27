@@ -155,6 +155,8 @@ export default async function handler(
             method: "POST",
             headers: { Authorization: `Bearer ${apiToken}` },
             body: formData,
+            // @ts-ignore - Required for Node.js fetch with body
+            duplex: "half",
           });
 
           if (response.ok || i === retries - 1) return response;
@@ -233,6 +235,7 @@ export default async function handler(
     return res.status(500).json({
       error: "Internal Server Error",
       message: error.message || "Unknown error",
+      cause: error.cause ? String(error.cause) : undefined // Add cause for debugging
     });
   }
 }
