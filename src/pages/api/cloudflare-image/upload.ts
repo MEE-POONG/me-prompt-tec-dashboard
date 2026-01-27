@@ -53,7 +53,12 @@ export default async function handler(
     const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
     console.log('--- Upload API Request Started ---');
-    console.log('Time:', new Date().toISOString());
+    console.log('Environment Check:', {
+      hasAccountId: !!accountId,
+      hasApiToken: !!apiToken,
+      accountIdLength: accountId?.length || 0,
+      nodeVersion: process.version
+    });
 
     if (!accountId || !apiToken) {
       console.error('❌ Missing Cloudflare credentials');
@@ -132,6 +137,11 @@ export default async function handler(
     let fileBuffer: Buffer;
     try {
       fileBuffer = fs.readFileSync(file.filepath);
+      console.log('📄 File Buffer Info:', {
+        size: fileBuffer.length,
+        mime: file.mimetype,
+        filename: file.originalFilename
+      });
     } catch (readError: any) {
       console.error('❌ File read error:', readError.message);
       return res.status(500).json({
