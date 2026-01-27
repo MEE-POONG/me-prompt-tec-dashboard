@@ -141,6 +141,7 @@ export default async function handler(
     }
 
     const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
+    console.log(`☁️ Uploading to: ${uploadUrl}`);
 
     // Helper function สำหรับ Cloudflare Upload พร้อม Retry
     const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000): Promise<Response> => {
@@ -150,6 +151,8 @@ export default async function handler(
           const uint8Array = new Uint8Array(fileBuffer);
           const blob = new Blob([uint8Array], { type: file.mimetype || "image/jpeg" });
           formData.append("file", blob, file.originalFilename || "image.jpg");
+
+          console.log(`🔄 Attempt ${i + 1}/${retries}: Sending fetch request...`);
 
           const response = await fetch(uploadUrl, {
             method: "POST",
@@ -161,18 +164,42 @@ export default async function handler(
 
           if (response.ok || i === retries - 1) return response;
 
-          console.warn(`⚠️ Cloudflare upload retry ${i + 1}/${retries} after failure...`);
+          console.warn(`⚠️ Cloudflare upload retry ${i + 1}/${retries} after failure. Status: ${response.status}`);
           await new Promise(resolve => setTimeout(resolve, delay));
-        } catch (err) {
-          if (i === retries - 1) throw err;
-          console.warn(`⚠️ Cloudflare upload error, retrying...`);
+        } catch (err: any) {
+          console.error(`❌ Cloudflare fetch error (Attempt ${i + 1}/${retries}):`, {
+            message: err.message,
+            cause: err.cause,
+            code: err.code,
+            stack: err.stack
+          });
+
+          if (i === retries - 1) {
+            // Throw enhanced error for final catch block
+            const enhancedError: any = new Error(`Cloudflare fetch failed: ${err.message}`);
+            enhancedError.cause = err.cause;
+            enhancedError.code = err.code;
+            throw enhancedError;
+          }
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
       throw new Error("Failed after all retries");
     };
 
-    const cloudflareResponse = await uploadToCloudflareWithRetry();
+    let cloudflareResponse;
+    try {
+      cloudflareResponse = await uploadToCloudflareWithRetry();
+    } catch (uploadErr: any) {
+      console.error("🔥 Final Upload Error:", uploadErr);
+      return res.status(500).json({
+        error: "Critical Upload Failure",
+        message: uploadErr.message,
+        cause: uploadErr.cause ? String(uploadErr.cause) : undefined,
+        code: uploadErr.code,
+        details: "Network/Fetch error connecting to Cloudflare"
+      });
+    }
     console.log('☁️ Cloudflare response status:', cloudflareResponse.status);
 
     if (!cloudflareResponse.ok) {
