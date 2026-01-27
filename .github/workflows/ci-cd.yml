@@ -103,6 +103,7 @@ jobs:
             
             echo "🚀 Starting new container..."
             docker run --name me-prompt-tec-dashboard \
+              --network kong_kong-net \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d -p 7077:3000 \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
