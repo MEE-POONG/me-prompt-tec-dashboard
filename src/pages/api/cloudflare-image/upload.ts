@@ -4,6 +4,8 @@ import formidable from "formidable";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import fetch from "node-fetch";
+import FormDataNode from "form-data";
 
 // ปิด body parser ของ Next.js เพื่อใช้ formidable
 export const config = {
@@ -153,12 +155,13 @@ export default async function handler(
     const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
     console.log(`☁️ Target Cloudflare URL: ${uploadUrl}`);
 
-    // Pre-flight connectivity test
+    // Pre-flight connectivity test (using node-fetch)
     console.log('🔌 Testing connectivity to Cloudflare...');
     try {
       const testRes = await fetch('https://api.cloudflare.com/', {
         method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        // @ts-ignore - node-fetch supports timeout option
+        timeout: 5000,
       });
       console.log('✅ Cloudflare connectivity OK. Status:', testRes.status);
     } catch (testErr: any) {
@@ -176,23 +179,30 @@ export default async function handler(
       });
     }
 
-    // Helper function สำหรับ Cloudflare Upload พร้อม Retry
-    const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000): Promise<Response> => {
+    // Helper function สำหรับ Cloudflare Upload พร้อม Retry (using node-fetch + form-data)
+    const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000) => {
       for (let i = 0; i < retries; i++) {
         try {
-          const formData = new FormData();
-          const uint8Array = new Uint8Array(fileBuffer);
-          const blob = new Blob([uint8Array], { type: file.mimetype || "image/jpeg" });
-          formData.append("file", blob, file.originalFilename || "image.jpg");
+          // ใช้ form-data package แทน Native FormData
+          const uploadForm = new FormDataNode();
 
-          console.log(`🔄 Attempt ${i + 1}/${retries}: Sending fetch request...`);
+          // ใช้ Stream แทน Buffer เพื่อประหยัด Memory
+          uploadForm.append("file", fs.createReadStream(file.filepath), {
+            filename: file.originalFilename || "image.jpg",
+            contentType: file.mimetype || "image/jpeg",
+          });
+
+          console.log(`🔄 Attempt ${i + 1}/${retries}: Sending upload request via node-fetch...`);
 
           const response = await fetch(uploadUrl, {
             method: "POST",
-            headers: { Authorization: `Bearer ${apiToken}` },
-            body: formData,
-            // @ts-ignore - Required for Node.js fetch with body
-            duplex: "half",
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              ...uploadForm.getHeaders(), // ให้ form-data สร้าง Content-Type + boundary ให้
+            },
+            body: uploadForm,
+            // @ts-ignore - node-fetch supports timeout option
+            timeout: 30000, // 30 second timeout
           });
 
           if (response.ok || i === retries - 1) return response;
@@ -204,7 +214,7 @@ export default async function handler(
             message: err.message,
             cause: err.cause,
             code: err.code,
-            stack: err.stack
+            type: err.type,
           });
 
           if (i === retries - 1) {
