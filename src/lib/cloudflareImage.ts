@@ -87,21 +87,30 @@ export async function uploadImageLegacy(
 }
 
 /**
- * อัพโหลดรูปภาพไปยัง Cloudflare Images โดยตรง (Direct Upload)
+ * อัพโหลดรูปภาพไปยัง Cloudflare Images โดยตรง (via Cloudflare Worker)
  * Browser จะอัปโหลดตรงไปที่ Cloudflare โดยไม่ผ่าน Server
  */
 export async function uploadImage(
   options: UploadImageOptions
 ): Promise<CloudflareImageData> {
+  // ใช้ Cloudflare Worker URL (ถ้ามี) หรือ fallback ไปที่ Server API
+  const workerUrl = process.env.NEXT_PUBLIC_CF_WORKER_URL || "";
+  const useWorker = workerUrl.length > 0;
+
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // ขั้นตอนที่ 1: ขอ Direct Upload URL จาก Server
-  console.log("🔑 Requesting Direct Upload URL...");
-  const directUploadResponse = await fetch("/api/cloudflare-image/direct-upload", {
+  // ขั้นตอนที่ 1: ขอ Direct Upload URL
+  console.log(`🔑 Requesting Direct Upload URL via ${useWorker ? "Worker" : "Server"}...`);
+
+  const getUploadUrlEndpoint = useWorker
+    ? `${workerUrl}/get-upload-url`
+    : "/api/cloudflare-image/direct-upload";
+
+  const directUploadResponse = await fetch(getUploadUrlEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && !useWorker ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       relatedType: options.relatedType,
@@ -138,13 +147,18 @@ export async function uploadImage(
 
   console.log("✅ Uploaded to Cloudflare successfully");
 
-  // ขั้นตอนที่ 3: Confirm upload กับ Server
-  console.log("✔️ Confirming upload with server...");
-  const confirmResponse = await fetch("/api/cloudflare-image/confirm-upload", {
+  // ขั้นตอนที่ 3: Confirm upload
+  console.log("✔️ Confirming upload...");
+
+  const confirmEndpoint = useWorker
+    ? `${workerUrl}/confirm-upload`
+    : "/api/cloudflare-image/confirm-upload";
+
+  const confirmResponse = await fetch(confirmEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && !useWorker ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       recordId: directUploadData.recordId,
