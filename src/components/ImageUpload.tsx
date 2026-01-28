@@ -222,9 +222,11 @@ export default function ImageUpload({
       </div>
 
       {error && (
-        <p className="text-sm text-red-500 mt-2">
-          เกิดข้อผิดพลาด: {error.message}
-        </p>
+        <div className="text-sm text-red-500 mt-2 bg-red-50 p-3 rounded-lg border border-red-200">
+          <p className="font-bold">เกิดข้อผิดพลาด:</p>
+          <p>{error.message}</p>
+          {(error as any).hint && <p className="text-xs mt-1 text-slate-500">{(error as any).hint}</p>}
+        </div>
       )}
     </div>
   );

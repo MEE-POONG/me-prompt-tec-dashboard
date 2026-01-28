@@ -151,7 +151,30 @@ export default async function handler(
     }
 
     const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
-    console.log(`☁️ Uploading to: ${uploadUrl}`);
+    console.log(`☁️ Target Cloudflare URL: ${uploadUrl}`);
+
+    // Pre-flight connectivity test
+    console.log('🔌 Testing connectivity to Cloudflare...');
+    try {
+      const testRes = await fetch('https://api.cloudflare.com/', {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      console.log('✅ Cloudflare connectivity OK. Status:', testRes.status);
+    } catch (testErr: any) {
+      console.error('❌ Cloudflare connectivity test FAILED:', {
+        message: testErr.message,
+        cause: testErr.cause ? String(testErr.cause) : undefined,
+        code: testErr.code,
+      });
+      return res.status(503).json({
+        error: "Cannot connect to Cloudflare",
+        message: `Network error: ${testErr.message}`,
+        cause: testErr.cause ? String(testErr.cause) : undefined,
+        code: testErr.code,
+        hint: "Check if the server has internet access and DNS is working. Try 'ping api.cloudflare.com' from the server."
+      });
+    }
 
     // Helper function สำหรับ Cloudflare Upload พร้อม Retry
     const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000): Promise<Response> => {
