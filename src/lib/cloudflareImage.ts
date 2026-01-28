@@ -28,9 +28,10 @@ export interface CloudflareImageData {
 }
 
 /**
- * อัพโหลดรูปภาพไปยัง Cloudflare Images
+ * อัพโหลดรูปภาพไปยัง Cloudflare Images (Legacy - ผ่าน Server)
+ * @deprecated ใช้ directUploadImage แทนเพื่อประสิทธิภาพที่ดีกว่า
  */
-export async function uploadImage(
+export async function uploadImageLegacy(
   options: UploadImageOptions
 ): Promise<CloudflareImageData> {
   const formData = new FormData();
@@ -68,7 +69,6 @@ export async function uploadImage(
       const errorData = await response.json();
       errorMsg = errorData.message || errorData.error || errorMsg;
     } catch (e) {
-      // If response is not JSON (e.g. HTML error page)
       const text = await response.text();
       console.error("Non-JSON error response from upload API:", text);
       errorMsg = `Server error (${response.status}): ${text.slice(0, 200)}...`;
@@ -84,6 +84,85 @@ export async function uploadImage(
     console.error("Non-JSON success response from upload API:", text);
     throw new Error(`Unexpected non-JSON response from server: ${text.slice(0, 100)}`);
   }
+}
+
+/**
+ * อัพโหลดรูปภาพไปยัง Cloudflare Images โดยตรง (Direct Upload)
+ * Browser จะอัปโหลดตรงไปที่ Cloudflare โดยไม่ผ่าน Server
+ */
+export async function uploadImage(
+  options: UploadImageOptions
+): Promise<CloudflareImageData> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // ขั้นตอนที่ 1: ขอ Direct Upload URL จาก Server
+  console.log("🔑 Requesting Direct Upload URL...");
+  const directUploadResponse = await fetch("/api/cloudflare-image/direct-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      relatedType: options.relatedType,
+      relatedId: options.relatedId,
+      fieldName: options.fieldName,
+      tags: options.tags,
+    }),
+  });
+
+  if (!directUploadResponse.ok) {
+    const errorData = await directUploadResponse.json().catch(() => ({}));
+    console.error("❌ Failed to get Direct Upload URL:", errorData);
+    throw new Error(errorData.message || errorData.error || "Failed to get upload URL");
+  }
+
+  const { data: directUploadData } = await directUploadResponse.json();
+  console.log("✅ Got Direct Upload URL:", directUploadData.imageId);
+
+  // ขั้นตอนที่ 2: อัปโหลดรูปตรงไปที่ Cloudflare
+  console.log("📤 Uploading directly to Cloudflare...");
+  const uploadFormData = new FormData();
+  uploadFormData.append("file", options.file);
+
+  const cloudflareUploadResponse = await fetch(directUploadData.uploadURL, {
+    method: "POST",
+    body: uploadFormData,
+  });
+
+  if (!cloudflareUploadResponse.ok) {
+    const errorText = await cloudflareUploadResponse.text();
+    console.error("❌ Cloudflare upload failed:", errorText);
+    throw new Error(`Cloudflare upload failed: ${errorText.slice(0, 200)}`);
+  }
+
+  console.log("✅ Uploaded to Cloudflare successfully");
+
+  // ขั้นตอนที่ 3: Confirm upload กับ Server
+  console.log("✔️ Confirming upload with server...");
+  const confirmResponse = await fetch("/api/cloudflare-image/confirm-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      recordId: directUploadData.recordId,
+      cloudflareId: directUploadData.imageId,
+      filename: options.file.name,
+    }),
+  });
+
+  if (!confirmResponse.ok) {
+    const errorData = await confirmResponse.json().catch(() => ({}));
+    console.error("❌ Failed to confirm upload:", errorData);
+    throw new Error(errorData.message || "Failed to confirm upload");
+  }
+
+  const { data: imageData } = await confirmResponse.json();
+  console.log("✅ Upload confirmed:", imageData.publicUrl);
+
+  return imageData;
 }
 
 /**
