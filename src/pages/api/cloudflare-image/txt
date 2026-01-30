@@ -1,0 +1,331 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * API สำหรับขอ Direct Upload URL จาก Cloudflare
+ * Client จะใช้ URL นี้ในการอัปโหลดรูปตรงไปที่ Cloudflare
+ */
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse
+) {
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    try {
+        const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+        const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+        if (!accountId || !apiToken) {
+            return res.status(500).json({
+                error: "Cloudflare credentials not configured",
+            });
+        }
+
+        // ดึง metadata จาก request body
+        const { relatedType, relatedId, fieldName, tags } = req.body;
+
+        console.log("🔑 Requesting Direct Upload URL from Cloudflare...");
+
+        // ขอ Direct Upload URL จาก Cloudflare
+        const cfResponse = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v2/direct_upload`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    requireSignedURLs: false,
+                    metadata: {
+                        relatedType: relatedType || "",
+                        relatedId: relatedId || "",
+                        fieldName: fieldName || "",
+                    },
+                }),
+                // @ts-ignore
+                timeout: 30000,
+            }
+        );
+
+        if (!cfResponse.ok) {
+            const errorText = await cfResponse.text();
+            console.error("❌ Cloudflare API error:", errorText);
+            return res.status(cfResponse.status).json({
+                error: "Failed to get upload URL from Cloudflare",
+                details: errorText,
+            });
+        }
+
+        const cfData = (await cfResponse.json()) as {
+            success: boolean;
+            result: {
+                id: string;
+                uploadURL: string;
+            };
+            errors: any[];
+        };
+
+        if (!cfData.success) {
+            console.error("❌ Cloudflare API returned error:", cfData.errors);
+            return res.status(500).json({
+                error: "Cloudflare API error",
+                details: cfData.errors,
+            });
+        }
+
+        console.log("✅ Got Direct Upload URL:", cfData.result.id);
+
+        // บันทึกข้อมูลเบื้องต้นลง Database (status: pending)
+        const now = new Date();
+        const imageRecord = await prisma.cloudflareImage.create({
+            data: {
+                cloudflareId: cfData.result.id,
+                filename: "pending",
+                publicUrl: "",
+                variants: [],
+                size: 0,
+                format: "pending",
+                relatedType: relatedType || null,
+                relatedId: relatedId || null,
+                fieldName: fieldName || null,
+                tags: tags || [],
+                isActive: false, // จะเปลี่ยนเป็น true หลัง upload สำเร็จ
+                createdAt: now,
+                updatedAt: now,
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                uploadURL: cfData.result.uploadURL,
+                imageId: cfData.result.id,
+                recordId: imageRecord.id,
+            },
+        });
+    } catch (error: any) {
+        console.error("❌ Direct Upload API error:", error);
+        return res.status(500).json({
+            error: "Internal server error",
+            message: error.message,
+            code: error.code,
+        });
+    }
+}
+
+
+import type { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
+import formidable from "formidable";
+import fs from "fs";
+import os from "os";
+import path from "path";
+
+// ปิด body parser ของ Next.js เพื่อใช้ formidable
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+interface CloudflareImageResponse {
+  result: {
+    id: string;
+    filename: string;
+    uploaded: string;
+    requireSignedURLs: boolean;
+    variants: string[];
+  };
+  success: boolean;
+  errors: any[];
+  messages: any[];
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Allow", ["POST", "OPTIONS"]);
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST", "OPTIONS"]);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+  }
+
+  try {
+    // 0. ตรวจสอบการเชื่อมต่อ Database ล่วงหน้า
+    try {
+      await prisma.$connect();
+      console.log('✅ Prisma connected successfully');
+    } catch (prismaError: any) {
+      console.error('❌ Prisma connection error:', prismaError.message);
+    }
+
+    // 1. ตรวจสอบ Environment Variables
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+    console.log('--- Upload API Request Started ---');
+    console.log('Environment Check:', {
+      hasAccountId: !!accountId,
+      hasApiToken: !!apiToken,
+      nodeVersion: process.version
+    });
+
+    if (!accountId || !apiToken) {
+      return res.status(500).json({
+        error: "Cloudflare credentials not configured",
+        message: "Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in .env"
+      });
+    }
+
+    // 2. จัดการ Upload Directory
+    let uploadDir = process.env.UPLOAD_DIR || path.join(os.tmpdir(), 'me-prompt-uploads');
+
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+    } catch (dirError: any) {
+      console.warn('⚠️ Directory access error:', dirError.message);
+      uploadDir = os.tmpdir();
+    }
+
+    // 3. ตั้งค่า Formidable
+    const form = formidable({
+      multiples: false,
+      uploadDir: uploadDir,
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+    });
+
+    let fields: formidable.Fields;
+    let files: formidable.Files;
+
+    try {
+      const [parsedFields, parsedFiles] = await form.parse(req);
+      fields = parsedFields;
+      files = parsedFiles;
+    } catch (parseError: any) {
+      return res.status(400).json({
+        error: "Failed to parse upload form",
+        message: parseError.message
+      });
+    }
+
+    // 4. ดึงข้อมูลไฟล์
+    const fileArray = files.file;
+    if (!fileArray || (Array.isArray(fileArray) && fileArray.length === 0)) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+    console.log('📄 File info:', { name: file.originalFilename, path: file.filepath });
+
+    // 5. Metadata
+    const relatedType = fields.relatedType ? String(fields.relatedType[0]) : null;
+    const relatedId = fields.relatedId ? String(fields.relatedId[0]) : null;
+    const fieldName = fields.fieldName ? String(fields.fieldName[0]) : null;
+    let tags: string[] = [];
+    try {
+      tags = fields.tags ? JSON.parse(String(fields.tags[0])) : [];
+    } catch (e) {
+      /* ignore */
+    }
+
+    // 6. Upload to Cloudflare (Using Native FormData)
+    const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
+    console.log(`☁️ Uploading to: ${uploadUrl}`);
+
+    const uploadToCloudflareWithRetry = async (retries = 2, delay = 1000) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const fileBuffer = fs.readFileSync(file.filepath);
+          const blob = new Blob([fileBuffer], { type: file.mimetype || 'application/octet-stream' });
+
+          const formData = new FormData();
+          formData.append("file", blob, file.originalFilename || "image.jpg");
+
+          console.log(`🔄 Attempt ${i + 1}/${retries}: Sending request...`);
+
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+            },
+            body: formData,
+            // @ts-ignore - native fetch supports signal, but custom timeout needs AbortController or wrapper
+            signal: AbortSignal.timeout(30000)
+          });
+
+          if (response.ok || i === retries - 1) return response;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } catch (err: any) {
+          console.error(`❌ Cloudflare fetch error (Attempt ${i + 1}/${retries}):`, err.message);
+          if (i === retries - 1) throw err;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      throw new Error("Failed after all retries");
+    };
+
+    let cloudflareResponse: Response;
+    try {
+      cloudflareResponse = await uploadToCloudflareWithRetry();
+    } catch (uploadErr: any) {
+      return res.status(500).json({ error: "Upload Failure", message: uploadErr.message });
+    }
+
+    if (!cloudflareResponse.ok) {
+      const errorText = await cloudflareResponse.text();
+      console.error("❌ Cloudflare error:", errorText);
+      return res.status(cloudflareResponse.status).json({ error: "Failed to upload to Cloudflare", details: errorText });
+    }
+
+    const cloudflareData = await cloudflareResponse.json() as CloudflareImageResponse;
+    console.log('✅ Cloudflare upload successful');
+
+    // 7. Save DB
+    const imageRecord = await prisma.cloudflareImage.create({
+      data: {
+        cloudflareId: cloudflareData.result.id,
+        filename: file.originalFilename || "unknown",
+        publicUrl: cloudflareData.result.variants[0],
+        variants: cloudflareData.result.variants,
+        size: file.size,
+        format: file.mimetype?.split("/")[1] || "unknown",
+        ...(relatedType && { relatedType }),
+        ...(relatedId && { relatedId }),
+        ...(fieldName && { fieldName }),
+        tags: tags || [],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 8. Cleanup
+    try {
+      if (fs.existsSync(file.filepath)) fs.unlinkSync(file.filepath);
+    } catch (e) { /* ignore */ }
+
+    return res.status(201).json({
+      success: true,
+      message: "Image uploaded successfully",
+      data: imageRecord,
+    });
+
+  } catch (error: any) {
+    console.error("❌ UNCAUGHT Error:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: error.message
+    });
+  }
+}
