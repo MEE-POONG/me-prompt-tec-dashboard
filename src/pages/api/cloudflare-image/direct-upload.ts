@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import fetch from "node-fetch";
+
 
 /**
  * API สำหรับขอ Direct Upload URL จาก Cloudflare
