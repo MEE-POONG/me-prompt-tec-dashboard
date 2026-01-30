@@ -86,8 +86,8 @@ export const SidebarCalendar: React.FC<SidebarCalendarProps> = ({
                                 <button
                                     onClick={() => onSelectDate(isSelected ? null : dateStr)}
                                     className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isSelected
-                                            ? "bg-blue-600 text-white shadow-lg"
-                                            : "hover:bg-gray-100"
+                                        ? "bg-blue-600 text-white shadow-lg"
+                                        : "hover:bg-gray-100"
                                         } ${hasEvent && !isSelected ? "font-bold text-blue-600" : ""}`}
                                 >
                                     {day}
