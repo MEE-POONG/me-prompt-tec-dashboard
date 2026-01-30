@@ -60,3 +60,25 @@ export type WorkspaceInfo = {
 export interface WorkspaceBoardProps {
   workspaceId: string;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  createdAt: string;
+  updatedAt?: string;
+  visibility?: "PRIVATE" | "PUBLIC";
+  members?: any[];
+  columns?: {
+    tasks: { isDone: boolean }[];
+  }[];
+}
+
+export interface WorkListProps {
+  viewType?: "grid" | "list";
+  searchItem?: string;
+}
+
+
+

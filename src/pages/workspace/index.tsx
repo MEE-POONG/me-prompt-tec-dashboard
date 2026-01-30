@@ -34,21 +34,19 @@ export default function Workspace() {
             <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
               <button
                 onClick={() => setViewType("grid")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewType === "grid"
+                className={`p-2 rounded-lg transition-all duration-200 ${viewType === "grid"
                     ? "bg-white text-blue-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
-                }`}
+                  }`}
               >
                 <LayoutGrid size={20} />
               </button>
               <button
                 onClick={() => setViewType("list")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewType === "list"
+                className={`p-2 rounded-lg transition-all duration-200 ${viewType === "list"
                     ? "bg-white text-blue-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
-                }`}
+                  }`}
               >
                 <List size={20} />
               </button>
@@ -64,7 +62,7 @@ export default function Workspace() {
             </Link>
           </div>
         </div>
-        
+
         {/* Pass state to WorkList component */}
         <WorkList viewType={viewType} searchItem={searchItem} />
       </div>
