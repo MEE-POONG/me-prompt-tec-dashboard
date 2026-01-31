@@ -56,9 +56,9 @@ model BoardActivity {
 }
 
 model BoardColumn {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  boardId String @db.ObjectId
-  title   String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  boardId   String   @db.ObjectId
+  title     String
   order     Int
   color     String?
   createdAt DateTime @default(now()) @db.Date
@@ -70,8 +70,8 @@ model BoardColumn {
 }
 
 model BoardLabel {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  boardId   String @db.ObjectId
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  boardId   String  @db.ObjectId
   name      String
   color     String
   bgColor   String?
@@ -81,9 +81,9 @@ model BoardLabel {
 }
 
 model BoardMember {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
   avatar  String
-  boardId String @db.ObjectId
+  boardId String  @db.ObjectId
   color   String
   name    String
   role    String
@@ -93,34 +93,34 @@ model BoardMember {
 }
 
 model BoardTask {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  attachments  Int       @default(0)
-  checklist    Int       @default(0)
-  columnId     String    @db.ObjectId
-  comments     Int       @default(0)
-  createdAt    DateTime  @default(now()) @db.Date
-  isArchived   Boolean   @default(false)
-  order        Int       @default(0)
-  priority     String    @default("Medium")
-  title        String
-  updatedAt    DateTime  @default(now()) @updatedAt @db.Date
-  description  String?
-  tag          String?
-  tagColor     String?
-  dueDate      DateTime? @db.Date
-  startDate    DateTime? @db.Date
-  endDate      DateTime? @db.Date
-  completedAt  DateTime? @db.Date
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  attachments Int       @default(0)
+  checklist   Int       @default(0)
+  columnId    String    @db.ObjectId
+  comments    Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Date
+  isArchived  Boolean   @default(false)
+  order       Int       @default(0)
+  priority    String    @default("Medium")
+  title       String
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Date
+  description String?
+  tag         String?
+  tagColor    String?
+  dueDate     DateTime? @db.Date
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  completedAt DateTime? @db.Date
 
-  column      BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  assignees   TaskAssignee[] @relation("BoardTaskToAssignee")
-  taskMembers TaskMember[]   @relation("BoardTaskToMember")
-  taskComments TaskComment[] @relation("BoardTaskToComment")
+  column       BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignees    TaskAssignee[] @relation("BoardTaskToAssignee")
+  taskMembers  TaskMember[]   @relation("BoardTaskToMember")
+  taskComments TaskComment[]  @relation("BoardTaskToComment")
 }
 
 model ChecklistItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  taskId    String   @db.ObjectId
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  taskId    String  @db.ObjectId
   text      String
   isChecked Boolean
   order     Int
@@ -228,7 +228,7 @@ model KanbanTask {
 }
 
 model MOU {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
   faculty    String?
   signedDate DateTime? @db.Date
   university String?
@@ -319,6 +319,10 @@ model Project {
   title            String
   updatedAt        DateTime  @db.Date
 
+  // Add missing fields
+  clientName   String?
+  clientSector String?
+
   activities  BoardActivity[]
   memberLinks ProjectMember[]
   internLinks ProjectIntern[]
@@ -387,7 +391,7 @@ model TaskComment {
   createdAt DateTime @default(now()) @db.Date
 
   task BoardTask @relation("BoardTaskToComment", fields: [taskId], references: [id], onDelete: Cascade)
-  user User?      @relation("UserToComment", fields: [userId], references: [id], onDelete: Cascade)
+  user User?     @relation("UserToComment", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TaskMember {
