@@ -1,0 +1,17 @@
+
+** ขั้นตอนตรวจสอบการแก้ไข **
+
+1. ผมได้ทำการแก้ไข `src/pages/api/cloudflare-image/upload.ts` ให้มีความทนทานมากขึ้น:
+   - เพิ่ม Logs เพื่อให้ตรวจสอบได้ว่าไฟล์ถูกส่งมาถึง Server หรือไม่
+   - ใช้ `duplex: 'half'` ในการ fetch ไปยัง Cloudflare เพื่อป้องกันปัญหาใน Node.js บางเวอร์ชัน
+   - ดักจับ Error จาก Cloudflare และแสดงผลออกมาให้ชัดเจน
+
+2. ผมได้อัปเดตโค้ดหน้า `src/pages/project_create.tsx` ของคุณอีกครั้งเพื่อให้แน่ใจว่า:
+   - การ import `ImageUpload` และ `CloudflareImageData` ถูกต้อง
+   - การจัดการ State ของ `imageUrl` และ `imageData` เชื่อมต่อกันอย่างสมบูรณ์
+
+3. หากคุณลองอัปโหลดแล้วยังพบปัญหา "เพิ่มรูปไม่ได้":
+   - ให้เปิด **Console** (F12) ดูว่ามี Error สีแดงอะไรขึ้นหรือไม่
+   - ดูที่ **Terminal** ของ Server ว่ามี Log ขึ้นว่า `[UploadAPI] File received...` หรือไม่ เพื่อดูว่าไฟล์ถูกส่งไปถึง Server หรือยัง
+
+ถ้ายังติดปัญหาเดิม แจ้ง Error Message ที่เห็นใน Console Network Tab หรือใน Terminal มาได้เลยครับ

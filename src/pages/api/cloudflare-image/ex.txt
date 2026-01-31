@@ -1,312 +1,61 @@
-ตัวอย่างการใช้งานของที่ใช้ได้
-"use client";
+[Example Usage: Frontend Code]
 
-import DetailHeader from "@/containers/Admin/DetailHeader";
-import { Card, CardTitle } from "@/components/ui/Card";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import ImageIndex from "@/components/ui/Image";
-import { ImageList } from "@prisma/client";
-import axios from "axios";
-import { Alert, AlertStatus } from "@/components/ui/Alert";
-import { Input } from "@/components/ui/Input";
-import { InputFile } from "@/components/ui/InputFile";
+// 1. Upload File
+const handleUpload = async (file: File) => {
+  // Step 1: Upload to Cloudflare (via /api/cloudflare-image/upload)
+  const formData = new FormData();
+  formData.append("file", file);
 
-const initialFormData: Partial<ImageList> = {
-    nameFile: "",
-    imageUrl: "",
-    modalName: "ImageList",
+  const uploadRes = await fetch("/api/cloudflare-image/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const uploadResult = await uploadRes.json();
+  if (!uploadResult.success) throw new Error(uploadResult.error);
+
+  const cfData = uploadResult.data; // contains id, variants, etc.
+
+  // Step 2: Save Metadata to Database (via /api/cloudflare-image)
+  const dbPayload = {
+    cloudflareId: cfData.id,
+    filename: cfData.filename,
+    publicUrl: cfData.variants[0],
+    variants: cfData.variants,
+    size: file.size, // optional if you want to pass from client, or server returns it if available
+    format: file.type,
+    modalName: "ProductImage", // custom field map example
+    // ... any other fields for DB
+  };
+
+  const saveRes = await fetch("/api/cloudflare-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dbPayload),
+  });
+
+  const saveResult = await saveRes.json();
+  if (!saveResult.success) throw new Error(saveResult.error);
+
+  console.log("Image Saved:", saveResult.data);
 };
 
-export default function ImageCreatePage() {
-    const router = useRouter();
-    const [formData, setFormData] = useState<Partial<ImageList>>(initialFormData);
-    const [file, setFile] = useState<File | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [alertState, setAlertState] = useState<{ status: AlertStatus; message: string } | null>(null);
 
-    const handleBack = () => {
-        router.push("/admin/image-library");
-    };
+// 2. List Images
+const fetchImages = async () => {
+  const res = await fetch("/api/cloudflare-image");
+  const data = await res.json();
+  console.log("Images:", data);
+};
 
-    const handleReset = () => {
-        setFormData(initialFormData);
-        setFile(null);
-        setAlertState(null);
-    };
 
-    const handleChange = (field: keyof ImageList, value: any) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const selectedFile = e.target.files[0];
-            setFile(selectedFile);
-            setFormData((prev) => ({
-                ...prev,
-                nameFile: selectedFile.name,
-                imageUrl: URL.createObjectURL(selectedFile) // Preview
-            }));
-        }
-    };
-
-    const handleSave = async () => {
-        let uploadedImageId: string | null = null;
-        try {
-            setIsSubmitting(true);
-            setAlertState(null);
-
-            if (!file) {
-                // If no file selected, and no existing imageUrl (though creating new usually implies file), 
-                // or if they paste a URL (but InputFile is file-based).
-                // The form seems to require a file for "Upload Image".
-                // But let's check formData.imageUrl if it's external?
-                // The UI logic: "File Name * เพิ่มไฟล์ก่อน"
-                if (!formData.imageUrl && !file) {
-                    setAlertState({ status: "error", message: "Please select an image file." });
-                    return;
-                }
-            }
-
-            // Should valid other fields
-            if (!formData.nameFile || !formData.modalName) {
-                setAlertState({ status: "error", message: "File Name and Module Name are required." });
-                return;
-            }
-
-            // 1. Upload to Cloudflare if file exists
-            if (file) {
-                const uploadData = new FormData();
-                uploadData.append("file", file);
-
-                const uploadResponse = await axios.post("/api/upload", uploadData);
-                if (!uploadResponse.data.success) {
-                    throw new Error(uploadResponse.data.error || "File upload failed");
-                }
-                uploadedImageId = uploadResponse.data.imageUrl; // usage of ID
-            } else {
-                // If manual URL entered (unlikely with current UI but possible)
-                if (formData.imageUrl && !formData.imageUrl.startsWith("blob:")) {
-                    uploadedImageId = formData.imageUrl;
-                }
-            }
-
-            if (!uploadedImageId) {
-                throw new Error("No image data to save");
-            }
-
-            // 2. Save to Database
-            const payload = {
-                ...formData,
-                imageUrl: uploadedImageId,
-                createdAt: new Date(),
-                createdBy: "System",
-                updatedAt: new Date(),
-                updatedBy: "System",
-                deleteBy: "",
-            };
-
-            await axios.post("/api/db/image-list", payload);
-
-            setAlertState({
-                status: "success",
-                message: "Image added successfully!"
-            });
-
-            setTimeout(() => {
-                router.push("/admin/image-library");
-            }, 1000);
-
-        } catch (error) {
-            console.error("Error creating image", error);
-
-            // ROLLBACK: If we uploaded an image but DB failed, delete it
-            if (uploadedImageId && file) {
-                try {
-                    console.warn("Rolling back image upload...", uploadedImageId);
-                    await axios.post("/api/upload/delete", { imageId: uploadedImageId });
-                    console.warn("Rollback successful.");
-                } catch (deleteError) {
-                    console.error("Rollback failed:", deleteError);
-                }
-            }
-
-            setAlertState({
-                status: "error",
-                message: `Failed to create image: ${axios.isAxiosError(error) ? error.response?.data?.error || error.message : "Unknown error"}`
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <div>
-            <DetailHeader
-                returnUrl="/admin/image-library"
-                returnLabel="Back to List"
-                title="Add New Image"
-                description="Register a new image asset."
-                hasMode="add"
-                onEdit={() => { }}
-                onSave={handleSave}
-                onCancel={handleBack}
-                onReset={handleReset}
-            />
-
-            {alertState && (
-                <div className="mb-6">
-                    <Alert
-                        status={alertState.status}
-                        message={alertState.message}
-                        onClose={() => setAlertState(null)}
-                        autoClose={true}
-                        duration={5000}
-                    />
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-1">
-                    <CardTitle>Image Preview</CardTitle>
-                    <div className="flex flex-col items-center mt-4 gap-4">
-                        <ImageIndex
-                            imageValue={formData.imageUrl || null}
-                            widthValue="200"
-                            heightValue="200"
-                            size="wlg"
-                        />
-                        <div className="w-full">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Upload Image <span className="text-red-500">*</span>
-                            </label>
-                            <InputFile
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                required
-                            />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="lg:col-span-2">
-                    <CardTitle>File Details</CardTitle>
-                    <div className="space-y-4 mt-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                File Name <span className="text-red-500">* เพิ่มไฟล์ก่อน</span>
-                            </label>
-                            <Input
-                                value={formData.nameFile || ""}
-                                onChange={(e) => handleChange("nameFile", e.target.value)}
-                                required
-                                disabled={formData.nameFile === ""}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Module/Modal Name <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                value={formData.modalName || ""}
-                                onChange={(e) => handleChange("modalName", e.target.value)}
-                                placeholder="e.g. Products, Users, etc."
-                                required
-                            />
-                        </div>
-                    </div>
-                </Card>
-            </div>
-        </div>
-    );
-}
-
-/api/image/upload.ts
-
-import { NextResponse } from "next/server";
-import axios from "axios";
-
-export async function POST(request: Request) {
-    try {
-        const formData = await request.formData();
-        const file = formData.get("file");
-
-        if (!file || !(file instanceof File)) {
-            return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-        }
-
-        const cloudflareFormData = new FormData();
-        cloudflareFormData.append("file", file);
-
-        const cloudflareResponse = await axios.post(
-            `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/images/v1`,
-            cloudflareFormData,
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                },
-            }
-        );
-
-        const result = cloudflareResponse.data.result;
-
-        return NextResponse.json({
-            success: true,
-            imageUrl: result.id, // Cloudflare uses ID as the reference usually
-            variants: result.variants, // Optional: return variants if needed
-        });
-
-    } catch (error: any) {
-        console.error("Upload error:", error);
-        let message = "Upload failed";
-        if (axios.isAxiosError(error)) {
-            message = error.response?.data?.errors?.[0]?.message || error.message;
-        } else if (error instanceof Error) {
-            message = error.message;
-        }
-        return NextResponse.json({ error: message, success: false }, { status: 500 });
-    }
-}
-
-/api/image/delete.ts
-
-import { NextResponse } from "next/server";
-import axios from "axios";
-
-export async function POST(request: Request) {
-    try {
-        const { imageId } = await request.json();
-
-        if (!imageId) {
-            return NextResponse.json({ error: "imageId is required" }, { status: 400 });
-        }
-
-        try {
-            await axios.delete(
-                `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/images/v1/${imageId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                    },
-                }
-            );
-        } catch (error: any) {
-            // If 404, valid it's already gone
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
-                return NextResponse.json({ success: true, message: "Image not found, considered deleted" });
-            }
-            throw error;
-        }
-
-        return NextResponse.json({ success: true });
-
-    } catch (error: any) {
-        console.error("Delete error:", error);
-        let message = "Delete failed";
-        if (axios.isAxiosError(error)) {
-            message = error.response?.data?.errors?.[0]?.message || error.message;
-        }
-        return NextResponse.json({ error: message, success: false }, { status: 500 });
-    }
-}
+// 3. Delete Image (by DB ID)
+const handleDelete = async (dbId: string) => {
+  const res = await fetch(`/api/cloudflare-image/${dbId}`, {
+    method: "DELETE",
+  });
+  const result = await res.json();
+  if (result.success) {
+     console.log("Deleted successfully");
+  }
+};

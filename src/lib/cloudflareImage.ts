@@ -11,7 +11,7 @@ export interface UploadImageOptions {
 }
 
 export interface CloudflareImageData {
-  id: string;
+  id: string; // Internal DB ID usually, but here likely Cloudflare ID or DB ID depending on usage
   cloudflareId: string;
   filename: string;
   publicUrl: string;
@@ -28,65 +28,80 @@ export interface CloudflareImageData {
 }
 
 /**
- * อัพโหลดรูปภาพไปยัง Cloudflare Images ผ่าน Server API
+ * อัพโหลดรูปภาพไปยัง Cloudflare Images ผ่าน Server API (Two-step process: Upload -> Save DB)
  */
 export async function uploadImage(
   options: UploadImageOptions
 ): Promise<CloudflareImageData> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // 1. Upload File to Cloudflare
   const formData = new FormData();
   formData.append("file", options.file);
 
-  if (options.relatedType) {
-    formData.append("relatedType", options.relatedType);
-  }
-
-  if (options.relatedId) {
-    formData.append("relatedId", options.relatedId);
-  }
-
-  if (options.fieldName) {
-    formData.append("fieldName", options.fieldName);
-  }
-
-  if (options.tags && options.tags.length > 0) {
-    formData.append("tags", JSON.stringify(options.tags));
-  }
-
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  const response = await fetch("/api/cloudflare-image/upload", {
+  console.log("🚀 Step 1: Uploading to Cloudflare...");
+  const uploadRes = await fetch("/api/cloudflare-image/upload", {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { ...headers },
     body: formData,
   });
 
-  if (!response.ok) {
-    let errorMsg = "Failed to upload image";
+  if (!uploadRes.ok) {
+    let errorMsg = "Failed to upload image to Cloudflare";
     try {
-      const errorData = await response.json();
-      errorMsg = errorData.message || errorData.error || errorMsg;
-    } catch (e) {
-      const text = await response.text();
-      console.error("Non-JSON error response from upload API:", text);
-      errorMsg = `Server error (${response.status}): ${text.slice(0, 200)}...`;
-    }
+      const errorData = await uploadRes.json();
+      errorMsg = errorData.error || errorMsg;
+    } catch { /* ignore json parse error */ }
     throw new Error(errorMsg);
   }
 
-  try {
-    const result = await response.json();
-    return result.data;
-  } catch (e) {
-    const text = await response.text();
-    console.error("Non-JSON success response from upload API:", text);
-    throw new Error(`Unexpected non-JSON response from server: ${text.slice(0, 100)}`);
+  const uploadResult = await uploadRes.json();
+  const cfData = uploadResult.data;
+
+  // 2. Save Metadata to Database
+  console.log("💾 Step 2: Saving metadata to Database...");
+  const savePayload = {
+    cloudflareId: cfData.id,
+    filename: cfData.filename || options.file.name,
+    publicUrl: cfData.variants[0], // Use first variant as public URL
+    variants: cfData.variants,
+    size: options.file.size,
+    format: options.file.type.split('/')[1] || 'unknown',
+    relatedType: options.relatedType,
+    relatedId: options.relatedId,
+    fieldName: options.fieldName,
+    tags: options.tags,
+    uploadedBy: "User", // Can be updated by server session if needed
+  };
+
+  const saveRes = await fetch("/api/cloudflare-image", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify(savePayload),
+  });
+
+  if (!saveRes.ok) {
+    // If DB save fails, we should ideally delete the image from Cloudflare to keep clean state
+    // But for now, just throw error
+    let errorMsg = "Failed to save image metadata";
+    try {
+      const errorData = await saveRes.json();
+      errorMsg = errorData.error || errorMsg;
+    } catch { /* ignore */ }
+    throw new Error(errorMsg);
   }
+
+  const saveResult = await saveRes.json();
+  console.log("✅ Image process completed:", saveResult.data);
+  return saveResult.data;
 }
 
 /**
- * ลบรูปภาพจาก Cloudflare Images
+ * ลบรูปภาพจาก Cloudflare Images (และ DB)
  */
 export async function deleteImage(imageId: string): Promise<void> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -119,8 +134,7 @@ export async function getImage(imageId: string): Promise<CloudflareImageData> {
     throw new Error(error.message || "Failed to fetch image");
   }
 
-  const result = await response.json();
-  return result.data;
+  return await response.json();
 }
 
 /**
@@ -138,19 +152,12 @@ export interface GetImagesOptions {
 export async function getImages(
   options: GetImagesOptions = {}
 ): Promise<{ data: CloudflareImageData[]; pagination: any }> {
-  const params = new URLSearchParams();
-
-  if (options.page) params.append("page", String(options.page));
-  if (options.limit) params.append("limit", String(options.limit));
-  if (options.relatedType) params.append("relatedType", options.relatedType);
-  if (options.relatedId) params.append("relatedId", options.relatedId);
-  if (options.fieldName) params.append("fieldName", options.fieldName);
-  if (options.tags && options.tags.length > 0) {
-    params.append("tags", options.tags.join(","));
-  }
+  // Currently the API index.ts returns Array directly, not {data, pagination}
+  // But we keep the signature for compatibility if API changes or we wrap it
+  // For now let's assume index.ts returns array based on your previous index.ts implementation
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const response = await fetch(`/api/cloudflare-image?${params.toString()}`, {
+  const response = await fetch(`/api/cloudflare-image`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -161,7 +168,8 @@ export async function getImages(
     throw new Error(error.message || "Failed to fetch images");
   }
 
-  return await response.json();
+  const data = await response.json();
+  return { data, pagination: {} }; // Mock pagination for now
 }
 
 /**

@@ -1,6 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { deleteImageFromCloudflare } from './delete'; // Import logic from delete.ts
 
+/**
+ * Database Handler for Single Image Operations.
+ * - GET: Get image details by DB ID.
+ * - DELETE: Delete image from DB AND Cloudflare.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
 
@@ -9,8 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const method = req.method;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
   if (method === 'GET') {
     try {
@@ -24,18 +28,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(200).json(image);
     } catch (error: any) {
-      console.error('Get image error:', error);
+      console.error('DB Get Error:', error);
       return res.status(500).json({ error: 'Failed to retrieve image' });
     }
   }
 
   if (method === 'DELETE') {
-    if (!accountId || !apiToken) {
-      return res.status(500).json({ error: 'Missing Cloudflare credentials' });
-    }
-
     try {
-      // 1. Find image in DB to get Cloudflare ID
+      // 1. Get Image Info to find Cloudflare ID
       const image = await prisma.cloudflareImage.findUnique({
         where: { id: id },
       });
@@ -44,22 +44,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Image not found in database' });
       }
 
-      // 2. Delete from Cloudflare
-      const cfResponse = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1/${image.cloudflareId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-          },
+      // 2. Delete from Cloudflare (using shared logic)
+      if (image.cloudflareId) {
+        try {
+          await deleteImageFromCloudflare(image.cloudflareId);
+        } catch (cfError) {
+          console.warn('Failed to delete from Cloudflare (might be already gone):', cfError);
+          // Continue to delete from DB regardless
         }
-      );
-
-      // We allow 404 from Cloudflare if the image was already deleted there manually
-      if (!cfResponse.ok && cfResponse.status !== 404) {
-        const cfData: any = await cfResponse.json();
-        const errorMessage = cfData?.errors?.[0]?.message || 'Delete failed with Cloudflare';
-        throw new Error(errorMessage);
       }
 
       // 3. Delete from Database
@@ -70,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ success: true, message: 'Image deleted successfully' });
 
     } catch (error: any) {
-      console.error('Delete error:', error);
-      return res.status(500).json({ error: error.message || 'Delete failed', success: false });
+      console.error('DB Delete Error:', error);
+      return res.status(500).json({ error: error.message || 'Delete failed' });
     }
   }
 

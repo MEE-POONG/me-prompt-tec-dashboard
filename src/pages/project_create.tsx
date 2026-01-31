@@ -5,14 +5,12 @@ import { useRouter } from "next/router";
 import {
   X,
   Plus,
-  Link as LinkIcon,
   Type,
   FileText,
   Loader2,
   Briefcase,
   Building2,
   Tag,
-  Globe,
   ArrowLeft,
   CheckCircle2,
 } from "lucide-react";
@@ -82,7 +80,7 @@ export default function ProjectCreate() {
     }
   };
 
-  // --- Handlers (เหมือนเดิม) ---
+  // --- Handlers ---
   const handleAddTag = (e?: React.MouseEvent | React.KeyboardEvent) => {
     if (e) e.preventDefault();
     if (currentTag.trim() !== "" && !tags.includes(currentTag.trim())) {
@@ -183,7 +181,6 @@ export default function ProjectCreate() {
   return (
     <Layouts>
       <div className="min-h-screen bg-[#f8f9fc] py-8 px-4 relative overflow-hidden font-sans text-slate-800">
-        {/* --- 🌟 Background Aurora (Theme ม่วง/น้ำเงิน) --- */}
         <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none">
           <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-purple-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse"></div>
           <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[120px] mix-blend-multiply"></div>
@@ -191,7 +188,6 @@ export default function ProjectCreate() {
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10">
-          {/* Header */}
           <div className="mb-8">
             <Link
               href="/project"
@@ -214,7 +210,6 @@ export default function ProjectCreate() {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl text-red-600 flex items-center gap-3 shadow-sm">
               <X size={20} />
@@ -226,16 +221,13 @@ export default function ProjectCreate() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* === Card 1: ข้อมูลหลัก & รูปปก === */}
             <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden p-8 md:p-10">
               <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
                 <Type size={20} className="text-violet-500" /> ข้อมูลทั่วไป
               </h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* Left: Inputs */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Title */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       ชื่อโปรเจกต์ <span className="text-red-500">*</span>
@@ -249,7 +241,6 @@ export default function ProjectCreate() {
                       required
                     />
                   </div>
-                  {/* Slug */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       Slug (URL-friendly){" "}
@@ -267,7 +258,6 @@ export default function ProjectCreate() {
                       />
                     </div>
                   </div>
-                  {/* Summary */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       สรุปสั้นๆ
@@ -282,7 +272,6 @@ export default function ProjectCreate() {
                   </div>
                 </div>
 
-                {/* Right: Image Upload */}
                 <div className="lg:col-span-1">
                   <ImageUpload
                     value={imageUrl}
@@ -300,7 +289,6 @@ export default function ProjectCreate() {
               </div>
             </div>
 
-            {/* === Card 2: รายละเอียด & ลูกค้า === */}
             <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden p-8 md:p-10">
               <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
                 <FileText size={20} className="text-violet-500" />{" "}
@@ -308,7 +296,6 @@ export default function ProjectCreate() {
               </h2>
 
               <div className="space-y-6">
-                {/* Description */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     รายละเอียดเต็ม
@@ -323,7 +310,6 @@ export default function ProjectCreate() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Client Name */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       ชื่อลูกค้า
@@ -341,7 +327,6 @@ export default function ProjectCreate() {
                       />
                     </div>
                   </div>
-                  {/* Client Sector */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       ประเภทธุรกิจ
@@ -361,7 +346,6 @@ export default function ProjectCreate() {
                   </div>
                 </div>
 
-                {/* Status & Featured */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
@@ -381,8 +365,8 @@ export default function ProjectCreate() {
                     <label className="flex items-center gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-violet-50 hover:border-violet-200 transition-all group">
                       <div
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${featured
-                            ? "bg-violet-500 border-violet-500"
-                            : "border-slate-300 bg-white"
+                          ? "bg-violet-500 border-violet-500"
+                          : "border-slate-300 bg-white"
                           }`}
                       >
                         {featured && (
@@ -404,14 +388,12 @@ export default function ProjectCreate() {
               </div>
             </div>
 
-            {/* === Card 3: Tags & Tech Stack & Links === */}
             <div className="bg-white/80 backdrop-blur-xl rounded-4xl shadow-xl border border-white/60 overflow-hidden p-8 md:p-10">
               <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
                 <Tag size={20} className="text-violet-500" /> Tags & เทคโนโลยี
               </h2>
 
               <div className="space-y-8">
-                {/* Tags */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     Tags
@@ -457,7 +439,6 @@ export default function ProjectCreate() {
                   </div>
                 </div>
 
-                {/* Tech Stack */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     Tech Stack
@@ -503,7 +484,6 @@ export default function ProjectCreate() {
                   </div>
                 </div>
 
-                {/* Links */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     ลิงก์ที่เกี่ยวข้อง
@@ -577,7 +557,6 @@ export default function ProjectCreate() {
               </div>
             </div>
 
-            {/* Footer Buttons */}
             <div className="flex justify-end gap-3 pt-4 pb-12">
               <Link href="/project">
                 <button
@@ -603,7 +582,6 @@ export default function ProjectCreate() {
           </form>
         </div>
 
-        {/* Success Modal */}
         <ModalSuccess
           open={showSuccessModal}
           href="/project"
