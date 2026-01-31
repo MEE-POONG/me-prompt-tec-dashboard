@@ -34,7 +34,7 @@ export async function uploadImage(
   options: UploadImageOptions
 ): Promise<CloudflareImageData> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   // 1. Upload File to Cloudflare
   const formData = new FormData();
@@ -43,7 +43,7 @@ export async function uploadImage(
   console.log("🚀 Step 1: Uploading to Cloudflare...");
   const uploadRes = await fetch("/api/cloudflare-image/upload", {
     method: "POST",
-    headers: { ...headers },
+    headers: headers as HeadersInit,
     body: formData,
   });
 
@@ -79,7 +79,7 @@ export async function uploadImage(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(savePayload),
   });
