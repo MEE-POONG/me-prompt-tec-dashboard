@@ -1,6 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
-import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, Check, XCircle } from "lucide-react";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { CloudflareImageData, fileToBase64 } from "@/lib/cloudflareImage";
 
@@ -40,14 +40,16 @@ export default function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
   const [isDragging, setIsDragging] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const { upload, uploading, progress, error } = useImageUpload({
+  const { upload, cancel, uploading, isSuccess, isCancelled, progress, error, reset } = useImageUpload({
     relatedType,
     relatedId,
     fieldName,
     tags,
     onSuccess: (imageData) => {
       setPreview(imageData.publicUrl);
+      setPendingFile(null);
       if (onChange) {
         onChange(imageData.publicUrl, imageData);
       }
@@ -55,26 +57,58 @@ export default function ImageUpload({
         onImageDataChange(imageData);
       }
     },
+    onCancel: () => {
+      // Restore previous preview or clear
+      setPreview(value || null);
+      setPendingFile(null);
+    },
   });
 
+  // Update preview when value prop changes
+  useEffect(() => {
+    if (!uploading && !isSuccess) {
+      setPreview(value || null);
+    }
+  }, [value, uploading, isSuccess]);
+
   const handleFileSelect = async (file: File) => {
-    // ตรวสอบขนาดไฟล์ขั้นต้น (เพิ่มเป็น 20MB เนื่องจากมีการ Resize ช่วย)
-    const MAX_ALLOWED = 20 * 1024 * 1024;
+    // ตรวสอบขนาดไฟล์ขั้นต้น
+    const MAX_ALLOWED = maxSize * 1024 * 1024;
     if (file.size > MAX_ALLOWED) {
-      alert(`ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 20MB) กรุณาเลือกไฟล์ที่เล็กลง`);
+      alert(`ไฟล์มีขนาดใหญ่เกินไป (สูงสุด ${maxSize}MB) กรุณาเลือกไฟล์ที่เล็กลง`);
       return;
     }
+
+    // Store file for retry
+    setPendingFile(file);
 
     // แสดง preview
     const base64 = await fileToBase64(file);
     setPreview(base64);
 
     // อัพโหลดไปยัง Cloudflare
-    await upload(file);
+    try {
+      await upload(file);
+    } catch {
+      // Error is handled by hook
+    }
+  };
+
+  const handleRetry = async () => {
+    if (pendingFile) {
+      reset();
+      try {
+        await upload(pendingFile);
+      } catch {
+        // Error is handled by hook
+      }
+    }
   };
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!uploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +120,9 @@ export default function ImageUpload({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!uploading) {
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -98,14 +134,18 @@ export default function ImageUpload({
     e.preventDefault();
     setIsDragging(false);
 
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleFileSelect(file);
+    if (!uploading) {
+      const file = e.dataTransfer.files?.[0];
+      if (file && file.type.startsWith("image/")) {
+        handleFileSelect(file);
+      }
     }
   };
 
   const handleRemove = () => {
+    reset();
     setPreview(null);
+    setPendingFile(null);
     if (onChange) {
       onChange("");
     }
@@ -117,6 +157,11 @@ export default function ImageUpload({
     }
   };
 
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    cancel();
+  };
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
@@ -126,7 +171,7 @@ export default function ImageUpload({
       )}
 
       <div
-        onClick={!uploading ? handleClick : undefined}
+        onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -135,10 +180,14 @@ export default function ImageUpload({
           transition-all duration-200
           ${isDragging
             ? "border-violet-500 bg-violet-50"
-            : "border-slate-200 bg-slate-50"
+            : isSuccess
+              ? "border-green-500 bg-green-50"
+              : error
+                ? "border-red-400 bg-red-50"
+                : "border-slate-200 bg-slate-50"
           }
           ${uploading
-            ? "cursor-not-allowed opacity-60"
+            ? "cursor-not-allowed"
             : "hover:border-violet-400 hover:bg-violet-50/50"
           }
         `}
@@ -173,7 +222,8 @@ export default function ImageUpload({
               />
             </div>
 
-            {!uploading && (
+            {/* Remove button - show when not uploading and not in success state */}
+            {!uploading && !isSuccess && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -186,6 +236,17 @@ export default function ImageUpload({
               </button>
             )}
 
+            {/* Success Overlay with Animation */}
+            {isSuccess && (
+              <div className="absolute inset-0 bg-green-500/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg animate-fadeIn">
+                <div className="bg-white rounded-full p-3 shadow-lg animate-successBounce">
+                  <Check className="w-10 h-10 text-green-500" strokeWidth={3} />
+                </div>
+                <p className="text-white font-bold mt-3 text-lg">อัพโหลดสำเร็จ!</p>
+              </div>
+            )}
+
+            {/* Uploading Overlay */}
             {uploading && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg">
                 <div className="text-white text-center w-4/5">
@@ -208,6 +269,15 @@ export default function ImageUpload({
                   <p className="text-lg font-bold mt-2 tabular-nums">
                     {progress}%
                   </p>
+                  {/* Cancel Button */}
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                  >
+                    <XCircle size={16} />
+                    ยกเลิก
+                  </button>
                 </div>
               </div>
             )}
@@ -240,6 +310,30 @@ export default function ImageUpload({
                     progress < 100 ? "กำลังอัพโหลดไปยังเซิร์ฟเวอร์..." :
                       "เสร็จสิ้น!"}
                 </p>
+                {/* Cancel Button */}
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="mt-4 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                >
+                  <XCircle size={16} />
+                  ยกเลิก
+                </button>
+              </div>
+            ) : isSuccess ? (
+              <div className="text-center animate-fadeIn">
+                <div className="bg-green-100 rounded-full p-4 inline-block mb-3 animate-successBounce">
+                  <Check className="w-12 h-12 text-green-500" strokeWidth={3} />
+                </div>
+                <p className="text-lg font-bold text-green-600">อัพโหลดสำเร็จ!</p>
+              </div>
+            ) : isCancelled ? (
+              <div className="text-center">
+                <div className="bg-amber-100 rounded-full p-4 inline-block mb-3">
+                  <XCircle className="w-12 h-12 text-amber-500" />
+                </div>
+                <p className="text-lg font-bold text-amber-600 mb-2">ยกเลิกการอัพโหลด</p>
+                <p className="text-sm text-slate-500">คลิกเพื่อเลือกไฟล์ใหม่</p>
               </div>
             ) : (
               <>
@@ -256,11 +350,24 @@ export default function ImageUpload({
         )}
       </div>
 
-      {error && (
+      {/* Error Message with Retry */}
+      {error && !isCancelled && (
         <div className="text-sm text-red-500 mt-2 bg-red-50 p-3 rounded-lg border border-red-200">
-          <p className="font-bold">เกิดข้อผิดพลาด:</p>
-          <p>{error.message}</p>
-          {(error as any).hint && <p className="text-xs mt-1 text-slate-500">{(error as any).hint}</p>}
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-bold">เกิดข้อผิดพลาด:</p>
+              <p>{error.message}</p>
+            </div>
+            {pendingFile && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium"
+              >
+                ลองใหม่
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
