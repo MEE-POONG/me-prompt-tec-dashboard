@@ -187,11 +187,26 @@ export default function ImageUpload({
             )}
 
             {uploading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-                <div className="text-white text-center">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm font-medium">
-                    กำลังอัพโหลด... {progress}%
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg">
+                <div className="text-white text-center w-4/5">
+                  <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3" />
+                  <p className="text-sm font-medium mb-3">
+                    กำลังอัพโหลด...
+                  </p>
+                  {/* Progress Bar Container */}
+                  <div className="relative w-full h-3 bg-white/20 rounded-full overflow-hidden shadow-inner">
+                    {/* Animated Progress Bar */}
+                    <div
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${progress}%` }}
+                    >
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                    </div>
+                  </div>
+                  {/* Progress Text */}
+                  <p className="text-lg font-bold mt-2 tabular-nums">
+                    {progress}%
                   </p>
                 </div>
               </div>
@@ -200,12 +215,32 @@ export default function ImageUpload({
         ) : (
           <div className="py-8">
             {uploading ? (
-              <>
-                <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-3" />
-                <p className="text-sm text-slate-600 font-medium">
-                  กำลังอัพโหลด... {progress}%
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-4" />
+                <p className="text-sm text-slate-600 font-medium mb-3">
+                  กำลังอัพโหลด...
                 </p>
-              </>
+                {/* Progress Bar Container */}
+                <div className="relative w-3/4 mx-auto h-4 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                  {/* Animated Progress Bar */}
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  >
+                    {/* Shimmer effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                  </div>
+                </div>
+                {/* Progress Text */}
+                <p className="text-xl font-bold text-violet-600 mt-3 tabular-nums">
+                  {progress}%
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {progress < 10 ? "กำลังบีบอัดรูปภาพ..." :
+                    progress < 100 ? "กำลังอัพโหลดไปยังเซิร์ฟเวอร์..." :
+                      "เสร็จสิ้น!"}
+                </p>
+              </div>
             ) : (
               <>
                 <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { uploadImage, deleteImage, CloudflareImageData } from "@/lib/cloudflareImage";
+import { useState, useCallback } from "react";
+import { CloudflareImageData, deleteImage } from "@/lib/cloudflareImage";
 import { resizeImage } from "@/lib/imageResizer";
 
 interface UseImageUploadOptions {
@@ -9,6 +9,79 @@ interface UseImageUploadOptions {
   tags?: string[];
   onSuccess?: (image: CloudflareImageData) => void;
   onError?: (error: Error) => void;
+  onProgress?: (progress: number) => void;
+}
+
+/**
+ * Upload file using XMLHttpRequest for real progress tracking
+ */
+async function uploadWithProgress(
+  file: File,
+  options: {
+    relatedType?: string;
+    relatedId?: string;
+    fieldName?: string;
+    tags?: string[];
+  },
+  onProgress: (progress: number) => void
+): Promise<CloudflareImageData> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+
+    formData.append("file", file);
+    if (options.relatedType) formData.append("relatedType", options.relatedType);
+    if (options.relatedId) formData.append("relatedId", options.relatedId);
+    if (options.fieldName) formData.append("fieldName", options.fieldName);
+    if (options.tags) formData.append("tags", JSON.stringify(options.tags));
+
+    // Track upload progress
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        onProgress(percentComplete);
+      }
+    });
+
+    xhr.addEventListener("load", async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (response.data) {
+            resolve(response.data);
+          } else {
+            reject(new Error(response.error || "Upload failed"));
+          }
+        } catch {
+          reject(new Error("Failed to parse server response"));
+        }
+      } else {
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          reject(new Error(errorResponse.error || `Upload failed with status ${xhr.status}`));
+        } catch {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error: request to https://api.cloudflare.com/ failed, reason:"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload cancelled"));
+    });
+
+    // Add token if available
+    const token = localStorage.getItem("token");
+
+    xhr.open("POST", "/api/cloudflare-image/upload");
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+    xhr.send(formData);
+  });
 }
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
@@ -17,18 +90,22 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
   const [error, setError] = useState<Error | null>(null);
   const [uploadedImage, setUploadedImage] = useState<CloudflareImageData | null>(null);
 
+  const handleProgress = useCallback((value: number) => {
+    setProgress(value);
+    if (options.onProgress) {
+      options.onProgress(value);
+    }
+  }, [options]);
+
   const upload = async (file: File) => {
     try {
       setUploading(true);
       setProgress(0);
       setError(null);
 
-      // Simulate progress (Cloudflare API doesn't provide progress)
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90));
-      }, 200);
-
       // 🔄 Resize/Compress image on client side before uploading
+      handleProgress(5); // Show initial progress for resizing
+
       const processedBlob = await resizeImage(file, {
         maxWidth: 1200,
         maxHeight: 1200,
@@ -40,16 +117,25 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
         type: file.type,
       });
 
-      const result = await uploadImage({
-        file: processedFile,
-        relatedType: options.relatedType,
-        relatedId: options.relatedId,
-        fieldName: options.fieldName,
-        tags: options.tags,
-      });
+      handleProgress(10); // Resizing complete
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      // Upload with real progress tracking
+      const result = await uploadWithProgress(
+        processedFile,
+        {
+          relatedType: options.relatedType,
+          relatedId: options.relatedId,
+          fieldName: options.fieldName,
+          tags: options.tags,
+        },
+        (uploadProgress) => {
+          // Scale progress from 10-100 (10% for resize, 90% for upload)
+          const scaledProgress = 10 + Math.round(uploadProgress * 0.9);
+          handleProgress(scaledProgress);
+        }
+      );
+
+      handleProgress(100);
       setUploadedImage(result);
 
       if (options.onSuccess) {
