@@ -111,8 +111,9 @@ export default async function handler(
             boardId,
             name: user.name || user.email,
             role: role || "Viewer",
-            ...(user.avatar && { avatar: user.avatar }),
+            avatar: user.avatar || "",
             color: color || "bg-blue-500",
+            email: user.email,
           },
         });
 
