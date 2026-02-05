@@ -106,12 +106,13 @@ export default async function handler(
             .json({ message: "User is already a member of this board" });
         }
 
+        const avatarValue = user.avatar ?? "";
         const newMember = await (prisma.boardMember.create as any)({
           data: {
             boardId,
             name: user.name || user.email,
             role: role || "Viewer",
-            avatar: user.avatar || "",
+            avatar: avatarValue,
             color: color || "bg-blue-500",
             email: user.email,
           },
