@@ -62,7 +62,7 @@ export default function WorkspaceBoardColumn({
   }, [isCreating]);
 
   return (
-    <div className="flex flex-col h-full max-h-full bg-slate-100 rounded-2xl border border-slate-200/60 shadow-sm">
+    <div className="flex flex-col h-full max-h-full w-80 shrink-0 bg-slate-100 rounded-2xl border border-slate-200/60 shadow-sm">
 
       {/* Header */}
       <div className="p-4 pb-2 flex justify-between items-center group">
