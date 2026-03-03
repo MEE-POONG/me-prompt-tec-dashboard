@@ -16,7 +16,7 @@ export interface JWTPayload {
 export function signToken(payload: JWTPayload): string {
   // เพิ่ม as string เพื่อยืนยันกับ TypeScript ว่าค่านี้เป็น string แน่นอน
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN as any, 
+    expiresIn: JWT_EXPIRES_IN as any,
   });
 }
 
@@ -28,8 +28,12 @@ export function verifyToken(token: string): JWTPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return decoded;
-  } catch (error) {
-    console.error("JWT verification failed:", error);
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      console.warn("JWT verification failed: Token expired");
+    } else {
+      console.error("JWT verification failed:", error.message || error);
+    }
     return null;
   }
 }
@@ -44,5 +48,5 @@ export function decodeToken(token: string): JWTPayload | null {
   } catch (error) {
     return null;
   }
-  
+
 }
