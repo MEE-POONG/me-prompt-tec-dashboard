@@ -72,15 +72,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`[UploadAPI] Sending to Cloudflare: ${cfUrl}`);
 
     // Upload to Cloudflare
-    const response = await fetch(cfUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: cloudflareFormData,
-      // @ts-ignore - Required for large files in some node versions with fetch
-      duplex: 'half',
-    });
+    let response: Response;
+    try {
+      response = await fetch(cfUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        body: cloudflareFormData,
+        // @ts-ignore - Required for large files in some node versions with fetch
+        duplex: 'half',
+      });
+    } catch (networkErr: any) {
+      console.error('[UploadAPI] Network error connecting to Cloudflare:', networkErr);
+      return res.status(502).json({ error: `ไม่สามารถเชื่อมต่อ Cloudflare ได้: ${networkErr.message || 'Network error'}` });
+    }
 
     const responseText = await response.text();
     let data;

@@ -195,7 +195,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         {currentView === "board" && (
           <div className="h-full overflow-x-auto overflow-y-hidden p-6 custom-scrollbar">
             <DragDropContext onDragEnd={handleDragEndWrapper}>
-              <div className="flex h-full gap-6 items-start">
+              <div className="flex h-full gap-6 items-stretch">
                 {(board.columns || []).map((column) => (
                   <WorkspaceBoardColumn
                     key={column.id}
