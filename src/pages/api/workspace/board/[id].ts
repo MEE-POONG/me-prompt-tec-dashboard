@@ -21,7 +21,10 @@ export default async function handler(
 
   try {
     // --- AUTHENTICATION CHECK ---
-    const token = getAuthToken(req.headers.cookie || "");
+    const cookieToken = getAuthToken(req.headers.cookie || "");
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = cookieToken || bearerToken;
     const decoded = token ? verifyToken(token) : null;
     const requesterId = decoded?.userId;
 
@@ -36,6 +39,9 @@ export default async function handler(
       if (!requesterId) return null;
       const user = await (prisma.user.findUnique as any)({ where: { id: requesterId } });
       if (!user) return null;
+
+      // System-level admin bypass
+      if (user.role === "admin" || user.role === "superadmin") return "Owner";
 
       const member = await (prisma.boardMember.findFirst as any)({
         where: {

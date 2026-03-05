@@ -80,8 +80,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
             <div
                 className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 group-hover:shadow-xl group-hover:border-blue-400/50 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
-                        ? "flex flex-col"
-                        : "flex flex-row items-center gap-6"
+                    ? "flex flex-col"
+                    : "flex flex-row items-center gap-6"
                     }`}
             >
                 {isNew && (
@@ -96,8 +96,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
                 <div
                     className={`flex w-full ${viewType === "grid"
-                            ? "justify-between items-start mb-4"
-                            : "items-center gap-4 flex-1"
+                        ? "justify-between items-start mb-4"
+                        : "items-center gap-4 flex-1"
                         }`}
                 >
                     {viewType === "grid" ? (

@@ -206,13 +206,15 @@ model InternshipPosition {
 }
 
 model ProjectBoard {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   color       String
-  createdAt   DateTime @default(now()) @db.Date
+  createdAt   DateTime  @default(now()) @db.Date
   description String
-  name        String   @unique
-  updatedAt   DateTime @db.Date
+  name        String    @unique
+  updatedAt   DateTime  @db.Date
   visibility  String
+  deletedAt   DateTime? @db.Date
+  deletedBy   String?
 
   columns    BoardColumn[]
   members    BoardMember[]

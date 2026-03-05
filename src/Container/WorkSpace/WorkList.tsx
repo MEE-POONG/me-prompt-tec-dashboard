@@ -111,7 +111,7 @@ export default function WorkList({
 
   const isUserOwner = (project: Project) => {
     const member = getUserMemberData(project);
-    return member?.role === "Owner";
+    return member?.role === "Owner" || member?.role === "Admin";
   };
 
   // --- Filter Logic ---
