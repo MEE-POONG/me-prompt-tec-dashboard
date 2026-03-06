@@ -419,6 +419,42 @@ export const useWorkspaceLogic = (
         }
     };
 
+    const handleArchiveTaskApi = async (
+        columnId: string | number,
+        taskId: string | number
+    ) => {
+        const taskTitle =
+            board.columns
+                .find((c: any) => c.id === columnId)
+                ?.tasks?.find((t: any) => t.id === taskId)?.title || "task";
+
+        const prev = board.columns;
+        board.setColumns(
+            board.columns.map((c: any) =>
+                c.id === columnId
+                    ? { ...c, tasks: (c.tasks || []).filter((t: any) => t.id !== taskId) }
+                    : c
+            )
+        );
+        try {
+            await updateTask(String(taskId), {
+                isArchived: true,
+                user: getCurrentUserName(currentUser),
+            });
+            await createActivity({
+                boardId: String(workspaceId),
+                user: getCurrentUserName(currentUser),
+                action: "archived task",
+                target: taskTitle,
+                projectId: String(workspaceId),
+            });
+            if (socket) socket.emit("board-updated", workspaceId);
+        } catch (err: any) {
+            board.setColumns(prev); // Revert UI
+            throw err;
+        }
+    };
+
     const handleMoveTaskApi = async (draggableId: string, destination: any) => {
         try {
             const isTemp =
@@ -426,15 +462,21 @@ export const useWorkspaceLogic = (
                 !/^[a-fA-F0-9]{24}$/.test(String(draggableId));
             if (isTemp) return;
 
+            const destColumn = board.columns.find((c: any) => String(c.id) === String(destination.droppableId));
+            const destTitle = (destColumn?.title || "").toLowerCase();
+            const isDoneCol = destTitle === "done" || destTitle === "เสร็จสิ้น" || destTitle === "finished";
+
             await updateTask(String(draggableId), {
                 columnId: String(destination.droppableId),
                 order: destination.index,
+                status: isDoneCol ? "Done" : "In Progress",
                 user: getCurrentUserName(currentUser),
             });
+
             await createActivity({
                 boardId: String(workspaceId),
                 user: getCurrentUserName(currentUser),
-                action: "moved task",
+                action: isDoneCol ? "marked task as completed (moved to done)" : "moved task",
                 target: "task",
                 projectId: String(workspaceId),
                 taskId: String(draggableId),
@@ -579,6 +621,7 @@ export const useWorkspaceLogic = (
         handleAddTaskApi,
         handleAddColumnApi,
         handleDeleteTaskApi,
+        handleArchiveTaskApi,
         handleMoveTaskApi,
         handleRenameColumnSaveApi,
         handleDeleteColumnApi,

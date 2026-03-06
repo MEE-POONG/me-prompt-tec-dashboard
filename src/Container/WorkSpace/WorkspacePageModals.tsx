@@ -134,6 +134,10 @@ export function WorkspaceSettingsSidebar({
   const [isLoadingArchived, setIsLoadingArchived] = useState(false);
   const [archivedSearch, setArchivedSearch] = useState("");
 
+  // Activities State
+  const [activities, setActivities] = useState<any[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
   const fetchArchivedTasks = async () => {
     if (!boardId) return;
     setIsLoadingArchived(true);
@@ -164,9 +168,29 @@ export function WorkspaceSettingsSidebar({
     }
   };
 
+  const fetchActivities = async () => {
+    if (!boardId) return;
+    setIsLoadingActivities(true);
+    try {
+      const res = await fetch(`/api/workspace/activity?boardId=${boardId}&limit=50`);
+      if (res.ok) {
+        const data = await res.json();
+        setActivities(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch activities", error);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
   useEffect(() => {
-    if (activeTab === "archived" && isOpen) {
-      fetchArchivedTasks();
+    if (isOpen) {
+      if (activeTab === "archived") {
+        fetchArchivedTasks();
+      } else if (activeTab === "activities") {
+        fetchActivities();
+      }
     }
   }, [activeTab, isOpen, boardId]);
 
@@ -189,6 +213,7 @@ export function WorkspaceSettingsSidebar({
               message: "คืนค่าสำเร็จ!",
               description: "คืนค่าแท็บพยากรณ์เรียบร้อยแล้ว",
             });
+            if (onUpdate) onUpdate();
           } else {
             setErrorModal({
               open: true,
@@ -489,12 +514,16 @@ export function WorkspaceSettingsSidebar({
                   <input
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
+                    readOnly={isReadOnly}
+                    className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors ${isReadOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
                   />
                   <button
                     onClick={handleSaveName}
-                    disabled={isReadOnly}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isReadOnly || projectName === workspaceInfo.name}
+                    className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${isReadOnly || projectName === workspaceInfo.name
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow"
+                      }`}
                   >
                     Save
                   </button>
@@ -552,9 +581,9 @@ export function WorkspaceSettingsSidebar({
                     <button
                       onClick={handleSaveVisibility}
                       disabled={isReadOnly || tempVisibility === visibility}
-                      className={`px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all ${isReadOnly || tempVisibility === visibility
-                        ? "opacity-50 cursor-not-allowed"
-                        : "active:scale-95"
+                      className={`px-4 py-1.5 rounded text-sm font-medium transition-all ${isReadOnly || tempVisibility === visibility
+                        ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow"
                         }`}
                     >
                       Save
@@ -573,19 +602,24 @@ export function WorkspaceSettingsSidebar({
                     value={tempDescription}
                     onChange={(e) => setTempDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-colors resize-none mb-3"
+                    readOnly={isReadOnly}
+                    className={`w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-colors resize-none mb-3 ${isReadOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={handleCancelDescription}
-                      className="px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                      disabled={tempDescription === description}
+                      className={`px-4 py-1.5 bg-white border border-slate-200 rounded text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${tempDescription === description ? 'opacity-50 cursor-default' : 'active:scale-95'}`}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveDescription}
-                      disabled={isReadOnly}
-                      className="px-4 py-1.5 bg-gray-200 border border-gray-300 rounded text-sm font-medium text-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isReadOnly || tempDescription === description}
+                      className={`px-4 py-1.5 rounded text-sm font-medium transition-all ${isReadOnly || tempDescription === description
+                        ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow"
+                        }`}
                     >
                       Save
                     </button>
@@ -793,6 +827,58 @@ export function WorkspaceSettingsSidebar({
                         </div>
                       </div>
                     ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ACTIVITIES */}
+          {activeTab === "activities" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-slate-800 flex items-center gap-2">
+                  <History size={18} className="text-slate-400" />
+                  Activities
+                </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
+                {isLoadingActivities ? (
+                  <div className="text-center py-10 text-slate-400 text-sm">
+                    Loading activities...
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center mt-10">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                      <History size={32} className="text-slate-300" />
+                    </div>
+                    <h4 className="text-base font-bold text-slate-700">No activity yet</h4>
+                    <p className="text-xs text-slate-500 max-w-[200px] mt-1">
+                      Activities will appear here as you and your team work on the board.
+                    </p>
+                  </div>
+                ) : (
+                  activities.map((act) => {
+                    const userName = typeof act.user === 'object' ? (act.user?.name || "Unknown") : (act.user || "Unknown");
+                    return (
+                      <div key={act.id} className="flex gap-3 items-start group">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0 mt-0.5">
+                          {userName.substring(0, 1).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm text-slate-700">
+                            <span className="font-bold text-slate-900">{userName}</span>{" "}
+                            <span className="text-slate-500">{act.action}</span>{" "}
+                            <span className="font-medium text-slate-800">{act.target}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <CalendarClock size={10} />
+                            {format(new Date(act.createdAt), "MMM d, HH:mm")}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

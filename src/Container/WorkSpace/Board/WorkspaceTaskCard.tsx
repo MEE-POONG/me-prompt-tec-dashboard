@@ -7,7 +7,8 @@ import {
   CalendarClock,
   CheckCircle2,
   ListTodo, // [Icon Checklist]
-  AlertCircle // [Icon Warning]
+  AlertCircle, // [Icon Warning]
+  History
 } from "lucide-react";
 import { WorkspaceTask } from "@/types/workspace";
 
@@ -15,16 +16,20 @@ interface Props {
   task: WorkspaceTask;
   index: number;
   columnId: string | number;
+  columnTitle?: string;
   onClick: (task: WorkspaceTask) => void;
   onDelete: (colId: string | number, taskId: string | number) => void;
+  onArchive: (colId: string | number, taskId: string | number) => void;
   onQuickJoin?: (taskId: string | number) => void;
 }
 
 export default function WorkspaceTaskCard({
   task,
   columnId,
+  columnTitle,
   index,
   onDelete,
+  onArchive,
   onClick,
   onQuickJoin,
 }: Props) {
@@ -71,6 +76,12 @@ export default function WorkspaceTaskCard({
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
+  // 4. Done Logic (Highlight if status is done OR in Done column)
+  const isDone = task.status === 'Done' ||
+    columnTitle?.trim().toLowerCase() === 'done' ||
+    columnTitle?.trim() === 'เสร็จสิ้น' ||
+    columnTitle?.trim() === 'Finished';
+
   return (
     <Draggable key={task.id} draggableId={String(task.id)} index={index}>
       {(provided, snapshot) => (
@@ -91,11 +102,13 @@ export default function WorkspaceTaskCard({
                     group relative p-4 rounded-xl border transition-colors duration-200 outline-none
                     ${snapshot.isDragging
                 ? "shadow-xl ring-2 ring-blue-500/20 bg-white rotate-1 cursor-grabbing z-50"
-                : isAccepted
-                  ? "bg-white border-blue-100 shadow-sm hover:border-blue-300"
-                  : "bg-white border-transparent shadow-sm hover:border-blue-200"
+                : isDone
+                  ? "border-emerald-400/50 ring-4 ring-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-white"
+                  : isAccepted
+                    ? "bg-white border-blue-100 shadow-sm hover:border-blue-300"
+                    : "bg-white border-transparent shadow-sm hover:border-blue-200"
               }
-                    ${!snapshot.isDragging && (isAccepted ? "hover:shadow-lg" : "hover:shadow-md hover:-translate-y-0.5")}
+                    ${!snapshot.isDragging && (isDone ? "hover:shadow-emerald-200/50" : (isAccepted ? "hover:shadow-lg" : "hover:shadow-md hover:-translate-y-0.5"))}
                     ${isOverdue ? "border-l-4 border-l-red-500" : ""} 
                 `}
           >
@@ -131,6 +144,13 @@ export default function WorkspaceTaskCard({
                       onClick={() => { setIsMenuOpen(false); onClick(task); }}
                     >
                       <span>View Details</span>
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+                      onClick={() => { setIsMenuOpen(false); onArchive(columnId, task.id); }}
+                    >
+                      <History size={12} />
+                      <span>Archive</span>
                     </button>
                     <button
                       className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -224,7 +244,7 @@ export default function WorkspaceTaskCard({
                     ${isOverdue ? "text-red-500 bg-red-50 px-1.5 py-0.5 rounded" :
                       isNearDue ? "text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded" : "text-slate-400"}`
                   }>
-                    {isOverdue ? <AlertCircle size={12} /> : <CalendarClock size={12} />}
+                    {isOverdue ? <AlertCircle size={12} /> : (isDone ? <CheckCircle2 size={12} className="text-emerald-500" /> : <CalendarClock size={12} />)}
                     {task.date}
                   </div>
                 )}

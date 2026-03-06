@@ -435,6 +435,7 @@ export default function ModalsWorkflow({
       setSelectedTagIds([]);
       setEditingCommentId(null);
       setCommentFiles([]); // Reset files
+      setIsCompleted(task.status === "Done" || task.status === "Completed");
       try {
         setLoadingTask(true);
 
@@ -452,12 +453,14 @@ export default function ModalsWorkflow({
         setDesc(data.description || "");
         setChecklistCount(data.checklist || 0);
 
-        // [NEW] Check Status
-        if (data.status === "Done" || data.status === "Completed") {
-          setIsCompleted(true);
-        } else {
-          setIsCompleted(false);
-        }
+        // [NEW] Check Status (Initialized from prop, then updated from API)
+        const isDone = (s: string, c?: string) => {
+          const status = (s || "").toLowerCase();
+          const col = (c || "").toLowerCase();
+          return status === "done" || status === "completed" || col === "done" || col === "เสร็จสิ้น";
+        };
+
+        setIsCompleted(isDone(data.status, data.column?.title));
 
         const currentMembers = membersList; // Use current state
         const assignedIds = (data.assignees || [])
@@ -640,7 +643,18 @@ export default function ModalsWorkflow({
 
         const data = JSON.parse(ev.data);
         const { type, payload } = data;
-        if (!type) return;
+        if (!type || !payload) return;
+
+        // ✅ Handle Real-time Status Update
+        if (type === "task:updated") {
+          if (payload.id === taskId) {
+            if (payload.status === "Done" || payload.status === "Completed") {
+              setIsCompleted(true);
+            } else if (payload.status === "In Progress" || payload.status === "To Do") {
+              setIsCompleted(false);
+            }
+          }
+        }
 
         if (type === "checklist:created") {
           const item = payload;
@@ -820,7 +834,7 @@ export default function ModalsWorkflow({
         top,
         left,
         minWidth: width,
-        zIndex: 9999,
+        zIndex: 20000,
       });
     } else {
       setDropdownStyle(null);
@@ -842,7 +856,7 @@ export default function ModalsWorkflow({
         top,
         left,
         minWidth: width,
-        zIndex: 9999,
+        zIndex: 20000,
       });
     };
     window.addEventListener("resize", reposition);
@@ -854,10 +868,11 @@ export default function ModalsWorkflow({
   }, [moreOpen]);
 
   const logActivity = (action: string) => {
+    const userName = currentUser?.name || "You";
     setActivities((prev) => [
       {
         id: Date.now().toString(),
-        user: "You",
+        user: userName,
         action,
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -869,7 +884,7 @@ export default function ModalsWorkflow({
     if (boardId)
       createActivity({
         boardId,
-        user: "You",
+        user: userName,
         action,
         target: title,
         projectId: boardId,
@@ -889,7 +904,7 @@ export default function ModalsWorkflow({
           await updateTask(String(taskId), { isArchived: true });
           await createActivity({
             boardId: String(boardId),
-            user: "You",
+            user: currentUser?.name || "You",
             action: "archived",
             target: title,
             projectId: String(boardId),
@@ -929,7 +944,7 @@ export default function ModalsWorkflow({
           await deleteTask(String(taskId));
           await createActivity({
             boardId: String(boardId),
-            user: "You",
+            user: currentUser?.name || "You",
             action: "deleted",
             target: title,
             projectId: String(boardId),
@@ -1706,17 +1721,34 @@ export default function ModalsWorkflow({
 
   // [NEW] Toggle Complete
   const handleToggleComplete = async () => {
-    if (!taskId) return;
+    if (!taskId || !boardId) return;
 
     const newStatus = !isCompleted;
     setIsCompleted(newStatus); // Optimistic
 
     try {
-      // อัปเดต status เป็น 'Done' หรือ 'In Progress'
-      // และอาจจะย้าย column ด้วย ถ้า Backend รองรับ (หรือทำ Logic ใน Backend)
-      await updateTask(String(taskId), {
+      const payload: any = {
         status: newStatus ? "Done" : "In Progress"
-      } as any); // ✅ Cast as any to bypass TS error
+      };
+
+      // ✅ if marking as done, try to find "Done" column and move the task there
+      if (newStatus) {
+        try {
+          const columns: any[] = await getColumns(boardId);
+          const doneCol = columns.find(c =>
+            c.title.toLowerCase() === "done" ||
+            c.title.toLowerCase() === "finished" ||
+            c.title.toLowerCase() === "เสร็จสิ้น"
+          );
+          if (doneCol) {
+            payload.columnId = doneCol.id;
+          }
+        } catch (e) {
+          console.error("Failed to fetch columns for auto-move", e);
+        }
+      }
+
+      await updateTask(String(taskId), payload);
 
       logActivity(newStatus ? "marked task as completed" : "reopened task");
 
@@ -1772,8 +1804,26 @@ export default function ModalsWorkflow({
         checklist: checklistCount,
         status: isCompleted ? "Done" : "In Progress" // Ensure status is saved
       };
+
+      // ✅ Auto-move if marked as done and not already in a done column
+      if (isCompleted && boardId) {
+        try {
+          const columns: any[] = await getColumns(boardId);
+          const doneCol = columns.find(c =>
+            c.title.toLowerCase() === "done" ||
+            c.title.toLowerCase() === "finished" ||
+            c.title.toLowerCase() === "เสร็จสิ้น"
+          );
+          if (doneCol) {
+            payload.columnId = doneCol.id;
+          }
+        } catch (e) {
+          console.error("Failed to fetch columns during save-all move", e);
+        }
+      }
+
       await updateTask(String(taskId), payload);
-      logActivity("saved card");
+      // logActivity("saved card"); // Removed to reduce clutter as per user request
 
       // ✅ Correct Modal State
       const currentUserId = currentUser?.id || currentUser?._id;
@@ -1869,6 +1919,23 @@ export default function ModalsWorkflow({
                 </button>
               )}
 
+              {/* --- 2. ปุ่มเสร็จสิ้น (Done Toggle) --- */}
+              {!isReadOnly && (
+                <button
+                  onClick={handleToggleComplete}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 border ${isCompleted
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-emerald-200"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200"
+                    }`}
+                >
+                  <CheckCircle2
+                    size={16}
+                    className={isCompleted ? "text-white" : "text-slate-400"}
+                  />
+                  {isCompleted ? "เสร็จสิ้นแล้ว" : "เสร็จสิ้น"}
+                </button>
+              )}
+
 
 
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
@@ -1939,13 +2006,81 @@ export default function ModalsWorkflow({
                 onClick={handleSaveAll}
                 disabled={isSaving || isReadOnly}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isSaving ? "bg-blue-500" : "bg-blue-600 hover:bg-blue-700"
-                  } text-white transition-all disabled:opacity-60`}
+                  } text-white transition-all disabled:opacity-60 shadow-sm`}
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>
 
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={toggleMore}
+                  className={`p-2 rounded-lg transition-colors ${moreOpen ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                >
+                  <MoreHorizontal size={20} />
+                </button>
+
+                {moreOpen && dropdownStyle && portalNodeRef.current && createPortal(
+                  <div
+                    ref={dropdownRef}
+                    style={dropdownStyle}
+                    className="bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] border border-slate-200 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                  >
+                    <button
+                      onClick={async () => {
+                        setMoreOpen(false);
+                        if (!taskId) return;
+                        setDeleteModal({
+                          open: true,
+                          message: "คุณต้องการย้ายงานนี้ไปที่หน้า Archive ใช่หรือไม่?",
+                          onConfirm: async () => {
+                            try {
+                              await updateTask(String(taskId), { isArchived: true });
+                              logActivity("archived task");
+                              onClose();
+                              onTaskUpdated?.();
+                            } catch (err) {
+                              console.error("Archive failed", err);
+                            }
+                          }
+                        });
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      <Archive size={16} className="text-slate-400" />
+                      <span className="font-medium">Archive</span>
+                    </button>
+                    <div className="h-px bg-slate-100 my-1"></div>
+                    <button
+                      onClick={() => {
+                        setMoreOpen(false);
+                        if (!taskId) return;
+                        setDeleteModal({
+                          open: true,
+                          message: "คุณต้องการลบงานนี้อย่างถาวรใช่หรือไม่? ข้อมูลทั้งหมดจะหายไปและไม่สามารถกู้คืนได้",
+                          onConfirm: async () => {
+                            try {
+                              await deleteTask(String(taskId));
+                              onClose();
+                              onTaskUpdated?.();
+                            } catch (err) {
+                              console.error("Delete failed", err);
+                            }
+                          },
+                        });
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={16} className="text-red-400" />
+                      <span className="font-semibold">Delete Task</span>
+                    </button>
+                  </div>,
+                  portalNodeRef.current
+                )}
+              </div>
+
               <button
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
                 onClick={onClose}
               >
                 <X size={20} />

@@ -15,6 +15,7 @@ import WorkspaceHeader from "./WorkspaceHeader";
 import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
 import ModalError from "@/components/ui/Modals/ModalError";
 import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import ModalArchive from "@/components/ui/Modals/ModalArchive";
 
 // Modals
 import {
@@ -26,7 +27,7 @@ import {
 import ProjectDashboard from "./Views/ProjectDashboard";
 import ProjectTimeline from "./Views/ProjectTimeline";
 import ProjectReport from "./Views/ProjectReport";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Layout, Calendar, LayoutDashboard, FileText } from "lucide-react";
 
 export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   // Hooks
@@ -45,6 +46,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
   const [successModal, setSuccessModal] = useState({ open: false, message: "", description: "" });
   const [errorModal, setErrorModal] = useState({ open: false, message: "", description: "" });
   const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    message: "",
+    onConfirm: () => { }
+  });
+  const [archiveModal, setArchiveModal] = useState({
     open: false,
     message: "",
     onConfirm: () => { }
@@ -103,6 +109,23 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         } catch (error: any) {
           setDeleteModal(prev => ({ ...prev, open: false }));
           setErrorModal({ open: true, message: "Delete Failed", description: error.message });
+        }
+      }
+    });
+  };
+
+  const confirmArchiveTask = (colId: string | number, taskId: string | number) => {
+    const taskTitle = board.columns.find(c => c.id === colId)?.tasks?.find(t => t.id === taskId)?.title || "task";
+    setArchiveModal({
+      open: true,
+      message: `ต้องการเก็บงาน "${taskTitle}" เข้าคลัง (Archive) ใช่หรือไม่?`,
+      onConfirm: async () => {
+        try {
+          await logic.handleArchiveTaskApi(colId, taskId);
+          setArchiveModal(prev => ({ ...prev, open: false }));
+        } catch (error: any) {
+          setArchiveModal(prev => ({ ...prev, open: false }));
+          setErrorModal({ open: true, message: "Archive Failed", description: error.message });
         }
       }
     });
@@ -189,6 +212,28 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         onMarkAsRead={(id) => logic.setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))}
         onMarkAllAsRead={() => logic.setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))}
       />
+      <br />
+      {/* View Tabs */}
+      <div className="px-6 border-b border-gray-100 flex items-center gap-8 bg-white shrink-0">
+        {[
+          { id: "board", label: "Board", icon: Layout },
+          { id: "timeline", label: "Timeline", icon: Calendar },
+          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "report", label: "Report", icon: FileText },
+        ].map((view) => (
+          <button
+            key={view.id}
+            onClick={() => setCurrentView(view.id as any)}
+            className={`flex items-center gap-2 py-3 px-1 border-b-2 transition-all text-sm font-medium ${currentView === view.id
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"
+              }`}
+          >
+            <view.icon size={16} />
+            {view.label}
+          </button>
+        ))}
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden relative">
@@ -215,7 +260,11 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                     onClearColumn={confirmClearColumn}
 
                     isAdding={board.isAddingTask === column.id}
-                    onAddTask={onAddTask}
+                    newTaskTitle={board.newTaskTitle}
+                    setNewTaskTitle={board.setNewTaskTitle}
+                    onAddTask={() => board.setIsAddingTask(column.id)}
+                    onSaveTask={onAddTask}
+                    onCancelAdding={() => board.setIsAddingTask(null)}
                     onCreateTask={async (id, title) => {
                       board.setNewTaskTitle(title);
                       await onAddTask(id);
@@ -238,8 +287,10 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                               task={task}
                               index={index}
                               columnId={column.id}
+                              columnTitle={column.title}
                               onClick={board.handleOpenTaskModal}
                               onDelete={confirmDeleteTask}
+                              onArchive={confirmArchiveTask}
                             />
                           ))}
                           {provided.placeholder}
@@ -258,7 +309,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
                           autoFocus
                           type="text"
                           placeholder="Enter list title..."
-                          className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 text-sm"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 text-sm text-slate-900"
                           value={board.newColumnTitle}
                           onChange={(e) => board.setNewColumnTitle(e.target.value)}
                           onKeyDown={(e) => {
@@ -338,6 +389,7 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         onClose={() => board.setIsSettingsOpen(false)}
         workspaceInfo={logic.workspaceInfo}
         boardId={workspaceId}
+        onUpdate={logic.fetchBoard}
       />
 
       <MembersManageModal
@@ -366,6 +418,12 @@ export default function WorkspaceBoard({ workspaceId }: WorkspaceBoardProps) {
         message={deleteModal.message}
         onClose={() => setDeleteModal({ ...deleteModal, open: false })}
         onConfirm={deleteModal.onConfirm}
+      />
+      <ModalArchive
+        open={archiveModal.open}
+        message={archiveModal.message}
+        onClose={() => setArchiveModal({ ...archiveModal, open: false })}
+        onConfirm={archiveModal.onConfirm}
       />
     </div>
   );

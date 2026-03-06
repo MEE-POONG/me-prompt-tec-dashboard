@@ -52,7 +52,10 @@ export const updateBoard = async (
   }
 ) => {
   const res = await fetch(`/api/workspace/board/${id}`, getFetchOptions("PUT", data));
-  if (!res.ok) throw new Error("Failed to update board");
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.message || "Failed to update board");
+  }
   return res.json();
 };
 
@@ -163,6 +166,7 @@ export const updateTask = async (
     startDate?: string | null;
     endDate?: string | null;
     columnId?: string;
+    status?: string;
     comments?: number;
     attachments?: number;
     checklist?: number;

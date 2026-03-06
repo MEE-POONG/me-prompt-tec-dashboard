@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { WorkspaceColumn } from "@/types/workspace";
-import { Plus, MoreHorizontal, Edit2, Eraser, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Edit2, Eraser, Trash2, X } from "lucide-react";
 
 interface Props {
   column: WorkspaceColumn;
@@ -17,6 +17,10 @@ interface Props {
   activeMenuId: string | number | null;
   onMenuToggle: (id: string | number | null) => void;
   isAdding?: boolean;
+  newTaskTitle?: string;
+  setNewTaskTitle?: (val: string) => void;
+  onSaveTask?: (id: string | number) => void;
+  onCancelAdding?: () => void;
   isReadOnly?: boolean;
 }
 
@@ -35,6 +39,10 @@ export default function WorkspaceBoardColumn({
   activeMenuId,
   onMenuToggle,
   isAdding,
+  newTaskTitle,
+  setNewTaskTitle,
+  onSaveTask,
+  onCancelAdding,
   isReadOnly,
 }: Props) {
 
@@ -66,7 +74,7 @@ export default function WorkspaceBoardColumn({
 
       {/* Header */}
       <div className="p-4 pb-2 flex justify-between items-center group">
-        <div className="flex items-center gap-3 flex-1 overflow-hidden">
+        <div className={`flex items-center gap-2 flex-1 ${!isCreating ? "overflow-hidden" : ""}`}>
           <div className={`w-2.5 h-2.5 rounded-full ${column.color || 'bg-slate-400'} shadow-sm`}></div>
 
           {editingId === column.id ? (
@@ -79,63 +87,62 @@ export default function WorkspaceBoardColumn({
               onKeyDown={(e) => e.key === "Enter" && onSaveTitle(column.id)}
               disabled={isReadOnly}
             />
-          ) : (
-            <div className="flex items-center gap-2 w-full">
-              <h3 className="font-bold text-slate-700 text-[15px] tracking-wide truncate">
-                {column.title}
-              </h3>
-
-              {/* Inline create task input (header plus) */}
-              {!isReadOnly && isCreating ? (
-                <div className="flex items-center gap-2 ml-2">
-                  <input
-                    ref={el => { inputRef.current = el }}
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (newTitle.trim()) {
-                          if (typeof onCreateTask === "function") await onCreateTask(column.id, newTitle.trim());
-                          setNewTitle("");
-                          setIsCreating(false);
-                        }
-                      }
-                      if (e.key === "Escape") {
-                        setNewTitle("");
-                        setIsCreating(false);
-                      }
-                    }}
-                    placeholder="Add task..."
-                    className="text-sm px-2 py-1 rounded border border-slate-300 outline-none text-slate-800 placeholder:text-slate-500 bg-white shadow-sm w-32 focus:w-48 transition-all"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!newTitle.trim()) return;
+          ) : isCreating ? (
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-200">
+              <input
+                ref={(el) => { inputRef.current = el; }}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (newTitle.trim()) {
                       if (typeof onCreateTask === "function") await onCreateTask(column.id, newTitle.trim());
                       setNewTitle("");
                       setIsCreating(false);
-                    }}
-                    className="text-xs px-2 py-1 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-sm"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => { setNewTitle(""); setIsCreating(false); }}
-                    className="text-xs px-2 py-1 rounded bg-slate-200 text-slate-600 font-bold hover:bg-slate-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : null}
+                    }
+                  }
+                  if (e.key === "Escape") {
+                    setNewTitle("");
+                    setIsCreating(false);
+                  }
+                }}
+                placeholder="Task title..."
+                className="flex-1 text-xs px-2 py-1.5 rounded-lg border border-blue-200 outline-none text-slate-800 placeholder:text-slate-400 bg-white shadow-inner focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all min-w-[100px]"
+              />
+              <button
+                onClick={async () => {
+                  if (!newTitle.trim()) return;
+                  if (typeof onCreateTask === "function") await onCreateTask(column.id, newTitle.trim());
+                  setNewTitle("");
+                  setIsCreating(false);
+                }}
+                className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors"
+                title="Add Task"
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                onClick={() => { setNewTitle(""); setIsCreating(false); }}
+                className="p-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
+                title="Cancel"
+              >
+                <X size={14} />
+              </button>
             </div>
+          ) : (
+            <>
+              <h3 className="font-bold text-slate-900 text-[15px] tracking-wide truncate">
+                {column.title}
+              </h3>
+              <span className="bg-slate-200/80 text-slate-500 text-xs px-2 py-0.5 rounded-md font-bold min-w-6 text-center">
+                {taskCount}
+              </span>
+            </>
           )}
-          <span className="bg-slate-200/80 text-slate-500 text-xs px-2 py-0.5 rounded-md font-bold min-w-6 text-center">
-            {taskCount}
-          </span>
         </div>
 
-        {!isReadOnly && (
+        {!isReadOnly && !isCreating && (
           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
             <button
               onClick={() => setIsCreating(true)}
@@ -167,11 +174,46 @@ export default function WorkspaceBoardColumn({
       {children}
 
       {/* ✅ แก้ไข: ซ่อนปุ่มนี้ถ้ากำลังกรอกข้อมูลอยู่ (!isAdding) */}
+      {/* ✅ Task adding input form */}
+      {!editingId && isAdding && !isReadOnly && (
+        <div className="p-3 pt-0 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <textarea
+            autoFocus
+            placeholder="Enter task title..."
+            className="w-full p-2 text-sm text-slate-900 placeholder:text-slate-400 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm bg-white min-h-[60px]"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSaveTask?.(column.id);
+              }
+              if (e.key === "Escape") onCancelAdding?.();
+            }}
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => onSaveTask?.(column.id)}
+              className="flex-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
+            >
+              Add Task
+            </button>
+            <button
+              onClick={() => onCancelAdding?.()}
+              className="p-1.5 text-gray-500 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Add Task Button */}
       {!editingId && !isAdding && !isReadOnly && (
         <div className="p-2 pt-0">
           <button
             onClick={() => onAddTask(column.id)}
-            className="w-full py-2 flex items-center justify-start px-3 gap-2 text-slate-600 hover:text-black hover:bg-slate-200 rounded-xl transition-all text-sm font-bold group"
+            className="w-full py-2 flex items-center justify-start px-3 gap-2 text-slate-700 hover:text-blue-700 hover:bg-slate-200 rounded-xl transition-all text-sm font-bold group"
           >
             <Plus size={16} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
             <span className="group-hover:translate-x-0.5 transition-transform">Add Task</span>

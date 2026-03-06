@@ -21,7 +21,13 @@ export default async function handler(
 
   try {
     // --- AUTHENTICATION CHECK ---
-    const token = getAuthToken(req.headers.cookie || "");
+    let token = getAuthToken(req.headers.cookie || "");
+
+    // Also check Authorization header
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.substring(7);
+    }
+
     const decoded = token ? verifyToken(token) : null;
     const requesterId = decoded?.userId;
 
@@ -104,8 +110,8 @@ export default async function handler(
 
     if (req.method === "PUT") {
       const role = await getRequesterRole();
-      if (role !== "Admin" && role !== "Owner") {
-        return res.status(403).json({ message: "Forbidden: Only Admin/Owner can update board settings" });
+      if (role !== "Admin" && role !== "Owner" && role !== "Editor") {
+        return res.status(403).json({ message: "Forbidden: Only Admin/Owner/Editor can update board settings" });
       }
 
       const { name, description, color, visibility } = req.body;
@@ -145,7 +151,7 @@ export default async function handler(
 
       const membersWithAvatars = board.members.map((m: any) => {
         const user = users.find(
-          (u) =>
+          (u: any) =>
             (u.email && u.email.toLowerCase() === (m.name || "").toLowerCase()) ||
             (u.name && u.name.trim() === (m.name || "").trim())
         );
