@@ -73,6 +73,8 @@ export interface Project {
   columns?: {
     tasks: { isDone: boolean }[];
   }[];
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 export interface WorkListProps {

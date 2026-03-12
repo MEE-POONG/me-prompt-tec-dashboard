@@ -169,16 +169,66 @@ export default async function handler(
     }
 
     if (req.method === "DELETE") {
+      const { permanent } = req.query;
+      const { deletedBy } = req.body || {};
       const role = await getRequesterRole();
-      if (role !== "Admin" && role !== "Owner") {
+
+      // Get user info for deletedBy
+      const user = requesterId
+        ? await (prisma.user.findUnique as any)({ where: { id: requesterId } })
+        : null;
+
+      // Permanent delete - admin only
+      if (permanent === "true") {
+        if (user?.role !== "admin") {
+          return res.status(403).json({ message: "Forbidden: Only Admin can permanently delete" });
+        }
+
+        await (prisma.projectBoard.delete as any)({
+          where: { id },
+        });
+
+        return res.status(204).end();
+      }
+
+      // Soft delete
+      if (role !== "Admin" && role !== "Owner" && user?.role !== "admin") {
         return res.status(403).json({ message: "Forbidden: Only Admin/Owner can delete board" });
       }
 
-      await (prisma.projectBoard.delete as any)({
+      await (prisma.projectBoard.update as any)({
         where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: deletedBy || user?.name || user?.email || "Unknown",
+        },
       });
 
       return res.status(204).end();
+    }
+
+    // PATCH - Restore from trash
+    if (req.method === "PATCH") {
+      const { action } = req.body;
+
+      if (action === "restore") {
+        const role = await getRequesterRole();
+        if (role !== "Admin" && role !== "Owner") {
+          return res.status(403).json({ message: "Forbidden: Only Admin/Owner can restore board" });
+        }
+
+        const board = await (prisma.projectBoard.update as any)({
+          where: { id },
+          data: {
+            deletedAt: null,
+            deletedBy: null,
+          },
+        });
+
+        return res.status(200).json(board);
+      }
+
+      return res.status(400).json({ message: "Invalid action" });
     }
 
     return res.status(405).json({ message: "Method Not Allowed" });

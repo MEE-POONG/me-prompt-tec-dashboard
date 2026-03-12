@@ -1,22 +1,15 @@
 import React from "react";
-import { cn } from "@/lib/utils";
 
 
 interface SearchbarProps {
   value: string; // ค่าที่พิมพ์อยู่ตอนนี้
   onSearch: (value: string) => void; // callback ให้ parent รับค่าการพิมพ์
   placeholder?: string;
-  className?: string;
 }
 
-export default function Searchbar({
-  value,
-  onSearch,
-  placeholder = "ค้นหาโปรเจกต์...",
-  className,
-}: SearchbarProps) {
+export default function Searchbar({ value, onSearch, placeholder }: SearchbarProps) {
   return (
-    <div className={cn("relative w-full max-w-md", className)}>
+    <div className="relative w-full max-w-md">
       <input
         type="text"
         value={value}

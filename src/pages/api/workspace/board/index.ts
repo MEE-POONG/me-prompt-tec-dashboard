@@ -13,7 +13,23 @@ export default async function handler(
 ) {
   try {
     if (req.method === "GET") {
-      const boards = await (prisma.projectBoard.findMany as any)({
+      const { trash } = req.query;
+
+      // Filter based on trash query parameter
+      const whereClause =
+        trash === "true"
+          ? {
+            deletedAt: { not: null },
+          }
+          : {
+            OR: [
+              { deletedAt: null },
+              { deletedAt: { isSet: false } },
+            ],
+          };
+
+      const boards = await prisma.projectBoard.findMany({
+        where: whereClause,
         include: {
           columns: {
             include: {

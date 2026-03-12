@@ -6,6 +6,7 @@ import {
     MoreVertical,
     Trash2,
     Calendar as CalendarIcon,
+    Eye,
 } from "lucide-react";
 import { Project } from "@/types/workspace";
 import { AvatarStack } from "../AvatarStack";
@@ -19,6 +20,7 @@ interface ProjectCardProps {
     onEdit: () => void;
     onDelete: () => void;
     onClick: () => void;
+    onRead: () => void;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
@@ -30,6 +32,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     onEdit,
     onDelete,
     onClick,
+    onRead,
 }) => {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -101,9 +104,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                         }`}
                 >
                     {viewType === "grid" ? (
-                        <div className="w-full">
+                        <div className="w-full min-w-0 overflow-hidden">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                                <h3 className="text-lg font-bold text-gray-900 truncate flex-1">
+                                <h3 className="text-lg font-bold text-gray-900 truncate flex-1 min-w-0">
                                     {project.name}
                                 </h3>
                                 {project.visibility === "PUBLIC" ? (
@@ -124,8 +127,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1">
-                                {project.description}
+                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1 break-words">
+                                {project.description || "No description"}
                             </p>
                         </div>
                     ) : (
@@ -205,14 +208,38 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
                 {viewType === "grid" ? (
                     <div className="flex items-center justify-between mt-auto w-full pt-3 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <CalendarIcon size={14} />
-                            <span>{dateFormatted}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                <CalendarIcon size={14} />
+                                <span>{dateFormatted}</span>
+                            </div>
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onRead();
+                                }}
+                                className="pointer-events-auto flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                                <Eye size={14} />
+                                <span>Read</span>
+                            </button>
                         </div>
                         <AvatarStack members={project.members || []} />
                     </div>
                 ) : (
                     <div className="flex items-center gap-6 ml-auto whitespace-nowrap">
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onRead();
+                            }}
+                            className="pointer-events-auto flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                            <Eye size={16} />
+                            <span>Read</span>
+                        </button>
                         <AvatarStack members={project.members || []} />
                         <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                             <div

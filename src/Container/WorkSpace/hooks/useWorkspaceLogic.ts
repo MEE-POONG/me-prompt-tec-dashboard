@@ -118,12 +118,15 @@ export const useWorkspaceLogic = (
             );
         });
 
+        const isAdmin = currentUser?.role === "admin";
+
         if (!foundMember) {
-            if (workspaceInfo.visibility === "PRIVATE") {
+            if (workspaceInfo.visibility === "PRIVATE" && !isAdmin) {
                 setError("ACCESS_DENIED"); // Handle UI in component
                 return;
             }
-            setIsReadOnly(true);
+            // Admin can view but set readOnly unless they want full access
+            setIsReadOnly(!isAdmin);
         } else {
             if (foundMember.role === "Viewer") {
                 setIsReadOnly(true);
