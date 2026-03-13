@@ -16,19 +16,37 @@ export default function Layouts({
   title = "DashBoard",
   description = "Dashboard ใช้ในเว็บ Me-Prompt-Tec",
 }: LayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+  // ดึงค่า sidebar จาก localStorage เมื่อเริ่มต้น
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebarOpen");
+      return saved === "true";
+    }
+    return false;
+  });
+
   // ✅ 1. เพิ่ม State สำหรับเก็บ Role (ค่าเริ่มต้นเป็น viewer กันเหนียว)
   const [userRole, setUserRole] = useState<string>("viewer");
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    const newState = !isSidebarOpen;
+    setIsSidebarOpen(newState);
+    // บันทึกค่าลง localStorage
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebarOpen", String(newState));
+    }
   };
 
-  // ✅ 2. ดึงข้อมูล Role จาก LocalStorage เมื่อหน้าเว็บโหลดเสร็จ
+  // ✅ 2. ดึงข้อมูล Role และ Sidebar state จาก LocalStorage เมื่อหน้าเว็บโหลดเสร็จ
   useEffect(() => {
     // เช็คว่ารันบน Browser (client-side)
     if (typeof window !== "undefined") {
+      // ดึงค่า sidebar state
+      const savedSidebar = localStorage.getItem("sidebarOpen");
+      if (savedSidebar !== null) {
+        setIsSidebarOpen(savedSidebar === "true");
+      }
+
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {

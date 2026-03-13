@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, PanelLeft, PanelLeftClose } from "lucide-react";
+import { PanelLeft, PanelLeftClose } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
@@ -45,6 +45,7 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
   // ปุ่ม Logout
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
     window.location.href = "/"; // refresh UI หลัง logout
   };
@@ -57,10 +58,10 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
           <div className="flex items-center space-x-4">
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg transition-all duration-300 hover:scale-110 text-purple-800"
+              className="p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:bg-purple-100 text-purple-800"
               aria-label="Toggle Sidebar"
             >
-              {isSidebarOpen ? <Menu className="text-white" /> : <Menu />}
+              {isSidebarOpen ? <PanelLeftClose size={24} /> : <PanelLeft size={24} />}
             </button>
 
             <Link href="/" className="flex items-center space-x-2">

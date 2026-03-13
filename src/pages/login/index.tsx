@@ -1,5 +1,5 @@
 // login/index.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from "lucide-react";
@@ -24,6 +24,21 @@ const CheckCircleIcon = () => (
 
 export default function Login() {
   const router = useRouter();
+
+  // ตรวจสอบว่า login อยู่แล้วหรือไม่ ถ้าใช่ให้ redirect ไป /
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      if (token && user) {
+        router.replace("/");
+      } else {
+        // เคลียร์ค่าที่ค้างอยู่ป้องกันการวนลูป
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+    }
+  }, [router]);
 
   // State
   const [username, setUsername] = useState("");
