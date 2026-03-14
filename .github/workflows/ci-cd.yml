@@ -92,17 +92,17 @@ jobs:
             
             echo "⬇️ Pulling image with tag: $TAG"
             # Remove old container and image to avoid using cache
-            docker stop me-prompt-tec-dashboard || true
-            docker rm me-prompt-tec-dashboard || true
+            docker stop ${{ steps.string.outputs.lowercase }} || true
+            docker rm ${{ steps.string.outputs.lowercase }} || true
             
             # Pull new image
-            docker pull chunwarayut/me-prompt-tec-dashboard:$TAG
+            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
             
             echo "🖼️ Current images on server:"
-            docker images | grep me-prompt-tec-dashboard
+            docker images | grep ${{ steps.string.outputs.lowercase }}
             
             echo "🚀 Starting new container..."
-            docker run --name me-prompt-tec-dashboard \
+            docker run --name ${{ steps.string.outputs.lowercase }} \
               --network kong_kong-net \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d -p 7077:3000 \
@@ -120,11 +120,11 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=1g --memory-swap=1g --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/me-prompt-tec-dashboard:$TAG
+              chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
             
             # Verify running
             sleep 5
-            docker ps | grep me-prompt-tec-dashboard
+            docker ps | grep ${{ steps.string.outputs.lowercase }}
             
             echo "🧹 Cleaning up old images..."
             docker image prune -a -f
