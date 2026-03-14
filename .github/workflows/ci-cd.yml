@@ -1,4 +1,5 @@
-name: CI/CD Pipeline
+
+name: Docker Image CI
 
 on:
   push:
@@ -7,105 +8,77 @@ on:
     branches: [master]
 
 jobs:
-  # 1. 🧪 Test & Verify Code (รันในทุก Push / PR)
-  verify-code:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js 20
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm ci
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    - name: Generate Prisma Client
-      run: npx prisma generate
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    - name: Check Build
-      run: npm run build
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        NEXT_TELEMETRY_DISABLED: 1
+      - id: string
+        uses: ASzc/change-string-case-action@v1
+        with:
+          string: ${{ github.event.repository.name }}
 
-  # 2. 🐳 Build Docker & Push (รันเฉพาะเมื่อ Push ลง Master และ verify-code ผ่าน)
-  build-push:
-    needs: verify-code
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Convert repository name to lowercase
-      id: string
-      run: echo "lowercase=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - name: Check out the repo
+        uses: actions/checkout@v2
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+          build-args: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
-
-    - name: Build and Push Docker Image
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        push: true
-        tags: |
-          chunwarayut/${{ steps.string.outputs.lowercase }}:latest
-          chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
-        build-args: |
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          BUILD_ID=${{ github.run_id }}
-          COMMIT_SHA=${{ github.sha }}
-          BUILD_TIME=${{ github.event.head_commit.timestamp }}
-        no-cache: true
-
-  # 3. 🚀 Deploy to Server (รันหลังจาก Push Image เสร็จ)
   deploy:
-    needs: build-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
     runs-on: ubuntu-latest
-    steps:
-      - name: Convert repository name to lowercase
-        id: string
-        run: echo "lowercase=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: SSH Deploy
+    steps:
+      - id: string
+        uses: ASzc/change-string-case-action@v1
+        with:
+          string: ${{ github.event.repository.name }}
+
+      - name: SSH Command docker pull
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+
+      - name: SSH Command docker stop
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker stop ${{ steps.string.outputs.lowercase }} || true
+
+      - name: SSH Command docker rm
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker rm ${{ steps.string.outputs.lowercase }} || true
+
+      - name: SSH Command docker run
         uses: D3rHase/ssh-command-action@v0.2.2
         with:
           host: ${{ secrets.SERVER_HOST }}
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
           command: |
-            set -e
-            TAG="${{ github.run_id }}"
-            
-            echo "⬇️ Pulling image with tag: $TAG"
-            # Remove old container and image to avoid using cache
-            docker stop ${{ steps.string.outputs.lowercase }} || true
-            docker rm ${{ steps.string.outputs.lowercase }} || true
-            
-            # Pull new image
-            docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
-            
-            echo "🖼️ Current images on server:"
-            docker images | grep ${{ steps.string.outputs.lowercase }}
-            
-            echo "🚀 Starting new container..."
             docker run --name ${{ steps.string.outputs.lowercase }} \
-              --network kong_kong-net \
               --label io.portainer.accesscontrol.teams=discord \
-              --restart=always -d -p 7077:3000 \
+              --restart=always -d \
+              -p 7073:3000 \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               -e EXT_PUBLIC_SOCKET_URL="${{ secrets.EXT_PUBLIC_SOCKET_URL }}" \
@@ -118,18 +91,9 @@ jobs:
               -e CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
               -e MAIL_USER="${{ secrets.MAIL_USER }}" \
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
-              --memory=1g --memory-swap=1g --cpus=1.5 \
+              --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/${{ steps.string.outputs.lowercase }}:${{ github.run_id }}
-            
-            # Verify running
-            sleep 5
-            docker ps | grep ${{ steps.string.outputs.lowercase }}
-            
-            echo "🧹 Cleaning up old images..."
-            docker image prune -a -f
-            
-            echo "✅ Deployment successful with tag: $TAG"
+              chunwarayut/${{ steps.string.outputs.lowercase }}:latest
 
       - name: SSH Command docker image prune
         uses: D3rHase/ssh-command-action@v0.2.2
@@ -146,4 +110,3 @@ jobs:
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
           command: docker logs --timestamps --since=1h ${{ steps.string.outputs.lowercase }}
-
