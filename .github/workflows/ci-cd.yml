@@ -60,6 +60,14 @@ jobs:
           private_key: ${{ secrets.SSH_KEY }}
           command: docker rm ${{ steps.string.outputs.lowercase }} || true
 
+      - name: SSH Command docker pull
+        uses: D3rHase/ssh-command-action@v0.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          private_key: ${{ secrets.SSH_KEY }}
+          command: docker pull chunwarayut/${{ steps.string.outputs.lowercase }}:latest
+
       - name: SSH Command docker run
         uses: D3rHase/ssh-command-action@v0.2.2
         env:
@@ -69,8 +77,6 @@ jobs:
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
           command: |
-            docker pull chunwarayut/me-prompt-tec-dashboard:latest
-
             docker run --name ${CONTAINER_NAME} \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d \
