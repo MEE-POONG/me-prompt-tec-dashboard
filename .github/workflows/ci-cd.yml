@@ -70,14 +70,12 @@ jobs:
 
       - name: SSH Command docker run
         uses: D3rHase/ssh-command-action@v0.2.2
-        env:
-          CONTAINER_NAME: ${{ steps.string.outputs.lowercase }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           user: ${{ secrets.SERVER_USER }}
           private_key: ${{ secrets.SSH_KEY }}
           command: |
-            docker run --name ${CONTAINER_NAME} \
+            docker run --name ${{ steps.string.outputs.lowercase }} \
               --label io.portainer.accesscontrol.teams=discord \
               --restart=always -d \
               -p 7073:3000 \
@@ -95,7 +93,7 @@ jobs:
               -e MAIL_PASS="${{ secrets.MAIL_PASS }}" \
               --memory=512m --memory-swap=512m --cpus=1.5 \
               --log-opt max-size=10m --log-opt max-file=3 \
-              chunwarayut/${CONTAINER_NAME}:latest
+              chunwarayut/${{ steps.string.outputs.lowercase }}:latest
 
       - name: SSH Command docker image prune
         uses: D3rHase/ssh-command-action@v0.2.2
