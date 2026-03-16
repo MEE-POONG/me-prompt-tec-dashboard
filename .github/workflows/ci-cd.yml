@@ -77,6 +77,7 @@ jobs:
           command: >
             docker run
             --name ${{ steps.string.outputs.lowercase }}
+            --network kong_kong-net
             --label io.portainer.accesscontrol.teams=discord
             --restart=always -d
             -p 7073:3000
