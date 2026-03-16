@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Save,
@@ -18,6 +18,7 @@ import {
   User,
   AlertCircle,
   Archive,
+  Loader2,
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import {
@@ -89,6 +90,7 @@ export function WorkspaceSettingsSidebar({
   const [projectName, setProjectName] = useState(workspaceInfo.name || "");
   const [description, setDescription] = useState(workspaceInfo.description || "");
   const [tempDescription, setTempDescription] = useState(workspaceInfo.description || "");
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">(workspaceInfo.visibility || "PRIVATE");
   const [tempVisibility, setTempVisibility] = useState<"PRIVATE" | "PUBLIC">(workspaceInfo.visibility || "PRIVATE");
   const [selectedWorkspace, setSelectedWorkspace] = useState("No Workspace");
@@ -269,6 +271,7 @@ export function WorkspaceSettingsSidebar({
   // --- Handlers (Settings) ---
   const handleSaveDescription = async () => {
     if (!boardId) return;
+    setIsSavingDescription(true);
     try {
       await updateBoard(boardId, { description: tempDescription });
       setDescription(tempDescription);
@@ -277,6 +280,7 @@ export function WorkspaceSettingsSidebar({
         message: "บันทึกสำเร็จ!",
         description: "บันทึกรายละเอียดเรียบร้อยแล้ว",
       });
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Failed to update description", error);
       setErrorModal({
@@ -284,6 +288,8 @@ export function WorkspaceSettingsSidebar({
         message: "เกิดข้อผิดพลาด!",
         description: "ไม่สามารถบันทึกรายละเอียดได้",
       });
+    } finally {
+      setIsSavingDescription(false);
     }
   };
 
@@ -615,13 +621,20 @@ export function WorkspaceSettingsSidebar({
                     </button>
                     <button
                       onClick={handleSaveDescription}
-                      disabled={isReadOnly || tempDescription === description}
-                      className={`px-4 py-1.5 rounded text-sm font-medium transition-all ${isReadOnly || tempDescription === description
+                      disabled={isReadOnly || tempDescription === description || isSavingDescription}
+                      className={`px-4 py-1.5 rounded text-sm font-medium transition-all flex items-center justify-center gap-1 min-w-[70px] ${isReadOnly || tempDescription === description || isSavingDescription
                         ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                         : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm hover:shadow"
                         }`}
                     >
-                      Save
+                      {isSavingDescription ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Saving</span>
+                        </>
+                      ) : (
+                        "Save"
+                      )}
                     </button>
                   </div>
                 </div>

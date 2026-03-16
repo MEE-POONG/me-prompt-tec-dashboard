@@ -233,17 +233,21 @@ export default function WorkList({
         body: JSON.stringify(data),
       });
 
-      if (res.ok) {
-        const updatedBoard = await res.json();
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === updatedBoard.id ? { ...p, ...updatedBoard } : p
-          )
-        );
-        setIsEditModalOpen(false);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to save changes. Please try again.");
       }
-    } catch (error) {
+
+      const updatedBoard = await res.json();
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === updatedBoard.id ? { ...p, ...updatedBoard } : p
+        )
+      );
+      setIsEditModalOpen(false);
+    } catch (error: any) {
       console.error("Update failed", error);
+      throw error;
     }
   };
 

@@ -40,7 +40,10 @@ export default async function handler(
       },
     });
 
-    const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    // We use NODE_ENV to determine the URL, bypassing .env issues entirely
+    const baseUrl = process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : "https://dashboard.me-prompt-technology.com";
     console.log("✅ Verification email sent to:", email);
     console.log("🔗 Base URL used:", baseUrl);
     console.log("🔗 Verification link:", `${baseUrl}/verify?token=${token}`);

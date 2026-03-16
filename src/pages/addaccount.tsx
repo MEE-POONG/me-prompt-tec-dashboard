@@ -366,16 +366,19 @@ export default function AddOrEditAccount() {
                     ตำแหน่ง (Position)
                   </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                       <Briefcase size={18} />
                     </div>
-                    <input
-                      type="text"
-                      className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium"
+                    <select
+                      className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 bg-white font-medium appearance-none cursor-pointer"
                       value={position}
                       onChange={(e) => setPosition(e.target.value)}
-                      placeholder="เช่น Developer, HR, Manager"
-                    />
+                    >
+                      <option value="" disabled>เลือกตำแหน่ง</option>
+                      <option value="Developer">Developer (นักพัฒนา)</option>
+                      <option value="HR">HR (ฝ่ายบุคคล)</option>
+                      <option value="Manager">Manager (ผู้จัดการ)</option>
+                    </select>
                   </div>
                 </div>
 

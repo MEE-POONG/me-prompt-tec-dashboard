@@ -83,8 +83,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
             <div
                 className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 group-hover:shadow-xl group-hover:border-blue-400/50 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
-                        ? "flex flex-col"
-                        : "flex flex-row items-center gap-6"
+                    ? "flex flex-col"
+                    : "flex flex-row items-center gap-6"
                     }`}
             >
                 {isNew && (
@@ -99,8 +99,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
                 <div
                     className={`flex w-full ${viewType === "grid"
-                            ? "justify-between items-start mb-4"
-                            : "items-center gap-4 flex-1"
+                        ? "justify-between items-start mb-4"
+                        : "items-center gap-4 flex-1"
                         }`}
                 >
                     {viewType === "grid" ? (
@@ -127,7 +127,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mt-1 break-words">
+                            <p className="text-sm text-gray-500 line-clamp-4 h-20 mt-1 wrap-break-word">
                                 {project.description || "No description"}
                             </p>
                         </div>
