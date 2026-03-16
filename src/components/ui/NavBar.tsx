@@ -83,7 +83,7 @@ export default function NavBar({ onToggleSidebar, isSidebarOpen }: NavBarProps) 
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="font-bold text-gray-800">
-                  สวัสดี {user.email}
+                  สวัสดี {user.name}
                 </span>
               </div>
             ) : (
