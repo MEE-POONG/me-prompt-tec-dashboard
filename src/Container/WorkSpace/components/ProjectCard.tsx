@@ -82,10 +82,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             />
 
             <div
-                className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 group-hover:shadow-xl group-hover:border-blue-400/50 transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
+                className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-200 group-hover:shadow-xl transition-all h-full relative z-10 pointer-events-none ${viewType === "grid"
                     ? "flex flex-col"
                     : "flex flex-row items-center gap-6"
                     }`}
+                style={{
+                    borderTopWidth: project.color ? '6px' : '1px',
+                    borderTopColor: project.color || '#e5e7eb',
+                }}
             >
                 {isNew && (
                     <div className="absolute -top-1.5 -right-1.5 z-20 flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-lg shadow-blue-200 animate-in zoom-in duration-300">
@@ -243,8 +247,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                         <AvatarStack members={project.members || []} />
                         <div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                             <div
-                                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                                style={{ width: `${progress}%` }}
+                                className="h-1.5 rounded-full transition-all duration-500"
+                                style={{ 
+                                    width: `${progress}%`,
+                                    backgroundColor: project.color || '#3b82f6'
+                                }}
                             ></div>
                         </div>
                     </div>
