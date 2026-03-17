@@ -136,81 +136,78 @@ export const useWorkspaceLogic = (
         }
     }, [workspaceInfo, currentUser]);
 
-    // Polling
+    // SSE Realtime Updates (Replaces Polling)
     useEffect(() => {
         if (!workspaceId) return;
 
-        const checkUpdates = async () => {
+        const eventSource = new EventSource(`/api/realtime/stream?channel=${workspaceId}`);
+
+        eventSource.onmessage = (event) => {
             try {
-                const token =
-                    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-                const res = await fetch(
-                    `/api/workspace/activity?boardId=${workspaceId}&limit=1`,
-                    {
-                        headers: {
-                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                        },
+                const data = JSON.parse(event.data);
+                if (data.type === "activity:created") {
+                    const latestActivity = data.payload;
+                    
+                    // Fetch the latest board data
+                    fetchBoard();
+
+                    let actionText = "อัปเดต";
+                    let notifType: NotificationItem["type"] = "update";
+                    const act = (latestActivity.action || "").toLowerCase();
+
+                    if (act.includes("created task") || act.includes("สร้างงานใหม่")) {
+                        actionText = "สร้างงานใหม่";
+                        notifType = "create";
+                    } else if (act.includes("created list") || act.includes("สร้างลิสต์ใหม่")) {
+                        actionText = "สร้างลิสต์ใหม่";
+                        notifType = "create";
+                    } else if (act.includes("comment")) {
+                        actionText = "คอมเมนต์ใน";
+                        notifType = "comment";
+                    } else if (act.includes("moved")) {
+                        actionText = "ย้ายงาน";
+                        notifType = "update";
+                    } else if (act.includes("deleted")) {
+                        actionText = "ลบ";
+                        notifType = "delete";
+                    } else if (act.includes("renamed")) {
+                        actionText = "เปลี่ยนชื่อ";
+                        notifType = "update";
+                    } else if (act.includes("cleared")) {
+                        actionText = "เคลียร์";
+                        notifType = "delete";
+                    } else if (act.includes("archived")) {
+                        actionText = "จัดเก็บ";
+                        notifType = "update";
                     }
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    const latestActivity = data[0];
 
-                    if (
-                        latestActivity &&
-                        latestActivity.id !== lastActivityIdRef.current
-                    ) {
-                        if (lastActivityIdRef.current !== null) {
-                            fetchBoard();
+                    const userName = typeof latestActivity.user === 'object' ? latestActivity.user.name : latestActivity.user;
 
-                            let actionText = "อัปเดต";
-                            let notifType: NotificationItem["type"] = "update";
-                            const act = (latestActivity.action || "").toLowerCase();
+                    const newNotif: NotificationItem = {
+                        id: Date.now().toString(),
+                        user: userName || "System",
+                        action: actionText,
+                        target: latestActivity.target || "งาน",
+                        timestamp: new Date(),
+                        type: notifType,
+                        isRead: false,
+                    };
 
-                            if (act.includes("created task")) {
-                                actionText = "สร้างงานใหม่";
-                                notifType = "create";
-                            } else if (act.includes("created list")) {
-                                actionText = "สร้างลิสต์ใหม่";
-                                notifType = "create";
-                            } else if (act.includes("comment")) {
-                                actionText = "คอมเมนต์ใน";
-                                notifType = "comment";
-                            } else if (act.includes("moved")) {
-                                actionText = "ย้ายงาน";
-                                notifType = "update";
-                            } else if (act.includes("deleted")) {
-                                actionText = "ลบ";
-                                notifType = "delete";
-                            } else if (act.includes("renamed")) {
-                                actionText = "เปลี่ยนชื่อ";
-                                notifType = "update";
-                            }
-
-                            const newNotif: NotificationItem = {
-                                id: Date.now().toString(),
-                                user: latestActivity.user || "System",
-                                action: actionText,
-                                target: latestActivity.target || "งาน",
-                                timestamp: new Date(),
-                                type: notifType,
-                                isRead: false,
-                            };
-
-                            setNotifications((prev) => [newNotif, ...prev]);
-                        }
-                        lastActivityIdRef.current = latestActivity.id;
-                    } else if (lastActivityIdRef.current === null && latestActivity) {
-                        lastActivityIdRef.current = latestActivity.id;
-                    }
+                    setNotifications((prev) => [newNotif, ...prev]);
                 }
             } catch (e) {
-                console.error("Polling error", e);
+                console.error("SSE Parsing error", e);
             }
         };
 
-        const intervalId = setInterval(checkUpdates, 2000);
-        return () => clearInterval(intervalId);
+        eventSource.onerror = (error) => {
+            console.error("SSE Error:", error);
+            eventSource.close();
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, [workspaceId, fetchBoard]);
 
     // Socket

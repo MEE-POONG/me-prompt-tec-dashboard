@@ -89,7 +89,7 @@ model BoardMember {
   role    String
   email   String?
 
-  board ProjectBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  board ProjectBoard? @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
 model BoardTask {
@@ -112,7 +112,7 @@ model BoardTask {
   endDate     DateTime? @db.Date
   completedAt DateTime? @db.Date
 
-  column       BoardColumn    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  column       BoardColumn?    @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assignees    TaskAssignee[] @relation("BoardTaskToAssignee")
   taskMembers  TaskMember[]   @relation("BoardTaskToMember")
   taskComments TaskComment[]  @relation("BoardTaskToComment")
@@ -347,8 +347,8 @@ model ProjectIntern {
   internId  String @db.ObjectId
   projectId String @db.ObjectId
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  intern  Intern  @relation(fields: [internId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  intern  Intern?  @relation(fields: [internId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, internId])
 }
@@ -358,8 +358,8 @@ model ProjectMember {
   memberId  String @db.ObjectId
   projectId String @db.ObjectId
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member  Member?  @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, memberId])
 }
@@ -378,8 +378,8 @@ model TaskAssignee {
   taskId String @db.ObjectId
   userId String @db.ObjectId
 
-  task BoardTask @relation("BoardTaskToAssignee", fields: [taskId], references: [id], onDelete: Cascade)
-  user User      @relation("UserToAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  task BoardTask? @relation("BoardTaskToAssignee", fields: [taskId], references: [id], onDelete: Cascade)
+  user User?      @relation("UserToAssignee", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
 }
@@ -392,7 +392,7 @@ model TaskComment {
   content   String
   createdAt DateTime @default(now()) @db.Date
 
-  task BoardTask @relation("BoardTaskToComment", fields: [taskId], references: [id], onDelete: Cascade)
+  task BoardTask? @relation("BoardTaskToComment", fields: [taskId], references: [id], onDelete: Cascade)
   user User?     @relation("UserToComment", fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -401,8 +401,8 @@ model TaskMember {
   taskId String @db.ObjectId
   userId String @db.ObjectId
 
-  task BoardTask @relation("BoardTaskToMember", fields: [taskId], references: [id], onDelete: Cascade)
-  user User      @relation("UserToMember", fields: [userId], references: [id], onDelete: Cascade)
+  task BoardTask? @relation("BoardTaskToMember", fields: [taskId], references: [id], onDelete: Cascade)
+  user User?      @relation("UserToMember", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
 }
