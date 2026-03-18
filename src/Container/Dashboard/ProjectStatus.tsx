@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -276,10 +276,10 @@ export default function ProjectStatus() {
       </div>
 
       {/* --- ส่วนกราฟ (Graphs) --- */}
-      <div className="w-full min-h-[300px]">
+      <div className="w-full" style={{ minHeight: 300 }}>
         {activeTab === 'traffic' && (
-          <div className="h-[300px] animate-in fade-in zoom-in duration-500">
-            <ResponsiveContainer width="100%" height="100%">
+          <div style={{ width: '100%', height: 300 }} className="animate-in fade-in zoom-in duration-500">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={trafficData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.5} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} dy={10} />
@@ -293,8 +293,8 @@ export default function ProjectStatus() {
 
         {/* ✅ กราฟ Newsletter (Bar Chart สีม่วง) */}
         {activeTab === 'newsletter' && (
-          <div className="h-[300px] animate-in fade-in zoom-in duration-500">
-            <ResponsiveContainer width="100%" height="100%">
+          <div style={{ width: '100%', height: 300 }} className="animate-in fade-in zoom-in duration-500">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={newsletterGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.5} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} dy={10} />

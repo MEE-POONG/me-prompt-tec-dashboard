@@ -173,8 +173,8 @@ export default function ProjectReport({
             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                <TrendingUp size={20} className="text-blue-500" /> Task Status Overview
             </h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div style={{ width: '100%', height: 288 }}>
+              <ResponsiveContainer width="100%" height={288}>
                 <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" hide />

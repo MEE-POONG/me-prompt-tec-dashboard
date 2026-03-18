@@ -250,9 +250,9 @@ export default function ProjectDashboard({
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[300px] relative">
+          <div className="flex-1 w-full" style={{ minHeight: 300, height: 300 }}>
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={pieData}
