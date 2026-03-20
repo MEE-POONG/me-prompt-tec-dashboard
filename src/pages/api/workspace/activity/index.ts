@@ -34,10 +34,11 @@ export default async function handler(
       });
 
       const activitiesWithAvatars = activities.map((act) => {
+        const actUserStr = typeof act.user === 'string' ? act.user : "";
         const user = users.find(
           (u) =>
-            (u.email && u.email.toLowerCase() === act.user.toLowerCase()) ||
-            (u.name && u.name.trim() === act.user.trim())
+            (u.email && actUserStr && u.email.toLowerCase() === actUserStr.toLowerCase()) ||
+            (u.name && actUserStr && u.name.trim() === actUserStr.trim())
         );
         return {
           ...act,

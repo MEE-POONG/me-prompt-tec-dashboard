@@ -48,8 +48,9 @@ export interface Comment {
 
 export interface ContentBlock {
   id: string;
-  type: "checklist" | "attachment";
+  type: "checklist" | "attachment" | "activity";
   title?: string;
   items?: CheckItem[];
   attachments?: AttachmentItem[];
+  activities?: ActivityLog[];
 }

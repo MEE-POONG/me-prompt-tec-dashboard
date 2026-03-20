@@ -308,7 +308,7 @@ export default function ModalsWorkflow({
               });
             });
             const parsedBlocks = Array.from(blockMap.values());
-            
+
             // ✅ Load saved attachments from DB
             if (data.attachmentList && Array.isArray(data.attachmentList) && data.attachmentList.length > 0) {
               parsedBlocks.push({
@@ -318,7 +318,7 @@ export default function ModalsWorkflow({
                 attachments: data.attachmentList
               });
             }
-            
+
             setBlocks(parsedBlocks);
           } else {
             const parsedBlocks: ContentBlock[] = [];
@@ -352,15 +352,52 @@ export default function ModalsWorkflow({
 
         if (data.column?.board?.id) {
           const boardId = String(data.column.board.id);
-          const acts: any[] = await getActivities(boardId, undefined, data.id);
-          setActivities(
-            acts.map((a) => ({
+          try {
+            const acts: any[] = await getActivities(boardId, undefined, data.id);
+            console.log("=== API getActivities Response ===", acts);
+
+            // Extract empty checklist blocks from activities
+            const emptyBlocksFromLog: ContentBlock[] = [];
+            // Parse oldest to newest to preserve order
+            [...acts].reverse().forEach(act => {
+              if (act.action && act.action.startsWith('added checklist "')) {
+                const match = act.action.match(/added checklist "(.*)"/);
+                if (match && match[1]) {
+                  emptyBlocksFromLog.push({
+                    id: `empty-${act.id}`,
+                    type: "checklist",
+                    title: match[1],
+                    items: [],
+                  });
+                }
+              }
+            });
+
+            const mappedActs = acts.map((a) => ({
               id: a.id,
               user: a.user,
               action: `${a.action} ${a.target || ""}`.trim(),
               time: new Date(a.createdAt).toLocaleString(),
-            }))
-          );
+            }));
+
+            setActivities(mappedActs);
+
+            // Append empty blocks to `blocks` ONLY if a block with that title doesn't exist
+            setBlocks(prevBlocks => {
+              const newBlocks = [...prevBlocks];
+
+              emptyBlocksFromLog.forEach(logBlock => {
+                const alreadyExists = newBlocks.some(b => b.type === "checklist" && b.title === logBlock.title);
+                if (!alreadyExists) {
+                  newBlocks.push(logBlock);
+                }
+              });
+              return newBlocks;
+            });
+          } catch (actErr) {
+            console.error("Failed to fetch activities:", actErr);
+            setActivities([]);
+          }
 
           try {
             const mems: any[] = await getMembers(boardId);
@@ -530,7 +567,6 @@ export default function ModalsWorkflow({
         user: userName,
         action,
         target: title,
-        projectId: boardId,
         taskId: taskId || undefined,
       }).catch((e) => console.error("createActivity failed", e));
   };
@@ -550,7 +586,6 @@ export default function ModalsWorkflow({
             user: currentUser?.name || "You",
             action: "archived",
             target: title,
-            projectId: String(boardId),
             taskId: taskId || undefined,
           });
           logActivity("archived this task");
@@ -590,7 +625,6 @@ export default function ModalsWorkflow({
             user: currentUser?.name || "You",
             action: "deleted",
             target: title,
-            projectId: String(boardId),
             taskId: taskId || undefined,
           });
           logActivity("deleted");
@@ -1083,10 +1117,10 @@ export default function ModalsWorkflow({
           throw new Error("Upload response failed");
         }
       } catch (err: any) {
-        setErrorModal({ 
-          open: true, 
-          message: "อัปโหลดไฟล์ไม่สำเร็จ", 
-          description: err.message || "Failed to upload file to Cloudflare" 
+        setErrorModal({
+          open: true,
+          message: "อัปโหลดไฟล์ไม่สำเร็จ",
+          description: err.message || "Failed to upload file to Cloudflare"
         });
         setLoadingTask(false);
         return; // stop execution
@@ -1104,22 +1138,28 @@ export default function ModalsWorkflow({
       url: finalUrl,
       date: new Date().toLocaleDateString(),
     };
+
+    let updatedAttachments: AttachmentItem[] = [];
+
     const existing = blocks.find((b) => b.type === "attachment");
+
     if (existing) {
+      updatedAttachments = [...(existing.attachments || []), newItem];
       setBlocks((prev) =>
         prev.map((b) =>
           b.id === existing.id
-            ? { ...b, attachments: [...(b.attachments || []), newItem] }
+            ? { ...b, attachments: updatedAttachments }
             : b
         )
       );
     } else {
+      updatedAttachments = [newItem];
       setBlocks((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           type: "attachment",
-          attachments: [newItem],
+          attachments: updatedAttachments,
         },
       ]);
     }
@@ -1131,6 +1171,7 @@ export default function ModalsWorkflow({
       try {
         await updateTask(String(taskId), {
           attachments: (task?.attachments || 0) + 1,
+          attachmentList: updatedAttachments,
         });
       } catch (err) {
         console.error("Failed to update attachments count", err);
@@ -1239,7 +1280,6 @@ export default function ModalsWorkflow({
           user: "You",
           action: "commented",
           target: title,
-          projectId: boardId,
           taskId: taskId || undefined,
         });
       logActivity("commented");

@@ -295,7 +295,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "created task",
                 target: created.title,
-                projectId: String(workspaceId),
                 taskId: created.id,
             });
 
@@ -365,7 +364,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "created list",
                 target: created.title,
-                projectId: String(workspaceId),
             });
 
             if (socket) {
@@ -411,7 +409,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "deleted task",
                 target: taskTitle,
-                projectId: String(workspaceId),
             });
         } catch (err: any) {
             board.setColumns(prev); // Revert UI
@@ -446,7 +443,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "archived task",
                 target: taskTitle,
-                projectId: String(workspaceId),
             });
             if (socket) socket.emit("board-updated", workspaceId);
         } catch (err: any) {
@@ -478,7 +474,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: isDoneCol ? "marked task as completed (moved to done)" : "moved task",
                 target: "task",
-                projectId: String(workspaceId),
                 taskId: String(draggableId),
             });
 
@@ -509,7 +504,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "renamed list",
                 target: title,
-                projectId: String(workspaceId),
             });
             if (socket) socket.emit("board-updated", workspaceId);
         } catch (err) {
@@ -529,7 +523,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "deleted list",
                 target: colTitle,
-                projectId: String(workspaceId),
             });
         } catch (err) {
             board.setColumns(prev);
@@ -553,7 +546,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "cleared list",
                 target: colTitle,
-                projectId: String(workspaceId),
             });
         } catch (err) {
             board.setColumns(prev);
@@ -594,7 +586,6 @@ export const useWorkspaceLogic = (
                 user: getCurrentUserName(currentUser),
                 action: "created task",
                 target: created.title,
-                projectId: String(workspaceId),
                 taskId: created.id,
             });
             await fetchBoard();
