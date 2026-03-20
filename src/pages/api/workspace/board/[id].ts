@@ -1,4 +1,3 @@
-// pages/api/workspace/board/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { getAuthToken } from "@/lib/auth/cookies";

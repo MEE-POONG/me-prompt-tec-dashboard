@@ -169,6 +169,7 @@ export const updateTask = async (
     status?: string;
     comments?: number;
     attachments?: number;
+    attachmentList?: any[]; // ✅ Adds attachment payload saving
     checklist?: number;
     assigneeIds?: string[];
     user?: string;
@@ -302,6 +303,8 @@ export const createChecklistItem = async (data: {
   text: string;
   isChecked?: boolean;
   order?: number;
+  blockId?: string;
+  blockTitle?: string;
 }) => {
   const res = await fetch("/api/workspace/checklist", {
     method: "POST",

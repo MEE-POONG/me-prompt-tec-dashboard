@@ -63,9 +63,10 @@ import {
   createColumn,
   deleteTask,
 } from "@/lib/api/workspace";
-import ModalSuccess from "@/components/ui/Modals/ModalSuccess";
-import ModalError from "@/components/ui/Modals/ModalError";
-import ModalDelete from "@/components/ui/Modals/ModalsDelete";
+import { CustomModals } from "./ModalsWorkflow/components/CustomModals";
+import { PopoverContainer } from "./ModalsWorkflow/components/PopoverContainer";
+import { SidebarBtn } from "./ModalsWorkflow/components/SidebarBtn";
+import { useRealtimeTaskUpdates } from "./ModalsWorkflow/hooks/useRealtimeTaskUpdates";
 
 import { Member, TagItem, CheckItem, AttachmentItem, ActivityLog, Comment, ContentBlock } from "./ModalsWorkflow/types";
 import { ALL_MEMBERS, TAG_COLORS, INITIAL_TAGS, EMOJI_LIST } from "./ModalsWorkflow/constants";
@@ -284,6 +285,71 @@ export default function ModalsWorkflow({
           setDateRange(undefined);
         }
 
+        // [fix] โหลด checklist และ comments โดยตรง ไม่ต้องรอ board.id
+        try {
+          const checklistItems: any[] = await getChecklistItems(data.id);
+          if (checklistItems.length > 0) {
+            const blockMap = new Map<string, ContentBlock>();
+            checklistItems.forEach((ci: any) => {
+              const bId = ci.blockId || "default-checklist";
+              const bTitle = ci.blockTitle || "Checklist";
+              if (!blockMap.has(bId)) {
+                blockMap.set(bId, {
+                  id: bId,
+                  type: "checklist",
+                  title: bTitle,
+                  items: [],
+                });
+              }
+              blockMap.get(bId)!.items!.push({
+                id: ci.id,
+                text: ci.text,
+                isChecked: ci.isChecked,
+              });
+            });
+            const parsedBlocks = Array.from(blockMap.values());
+            
+            // ✅ Load saved attachments from DB
+            if (data.attachmentList && Array.isArray(data.attachmentList) && data.attachmentList.length > 0) {
+              parsedBlocks.push({
+                id: `attachment-${Date.now()}`,
+                type: "attachment",
+                title: "Attachments",
+                attachments: data.attachmentList
+              });
+            }
+            
+            setBlocks(parsedBlocks);
+          } else {
+            const parsedBlocks: ContentBlock[] = [];
+            if (data.attachmentList && Array.isArray(data.attachmentList) && data.attachmentList.length > 0) {
+              parsedBlocks.push({
+                id: `attachment-${Date.now()}`,
+                type: "attachment",
+                title: "Attachments",
+                attachments: data.attachmentList
+              });
+            }
+            setBlocks(parsedBlocks);
+          }
+        } catch (err) {
+          setBlocks([]);
+        }
+
+        try {
+          const coms: any[] = await getComments(data.id);
+          setComments(
+            coms.map((c) => ({
+              id: c.id,
+              user: c.user || c.author || "Unknown",
+              text: c.content,
+              time: new Date(c.createdAt).toLocaleString(),
+              color: "bg-slate-400",
+              isEdited: c.updatedAt && c.updatedAt !== c.createdAt,
+            }))
+          );
+        } catch (e) { }
+
         if (data.column?.board?.id) {
           const boardId = String(data.column.board.id);
           const acts: any[] = await getActivities(boardId, undefined, data.id);
@@ -339,28 +405,6 @@ export default function ModalsWorkflow({
           }
 
           try {
-            const checklistItems: any[] = await getChecklistItems(data.id);
-            if (checklistItems.length > 0) {
-              const blockId = `checklist-${Date.now()}`;
-              const checklistBlock: ContentBlock = {
-                id: blockId,
-                type: "checklist",
-                title: "Checklist",
-                items: checklistItems.map((ci: any) => ({
-                  id: ci.id,
-                  text: ci.text,
-                  isChecked: ci.isChecked,
-                })),
-              };
-              setBlocks([checklistBlock]);
-            } else {
-              setBlocks([]);
-            }
-          } catch (err) {
-            setBlocks([]);
-          }
-
-          try {
             if (data.tag) {
               const found = currentLabels.find((t) => t.name === data.tag);
               if (found) setSelectedTagIds([found.id]);
@@ -377,20 +421,6 @@ export default function ModalsWorkflow({
                 setSelectedTagIds([newId]);
               }
             }
-          } catch (e) { }
-
-          try {
-            const coms: any[] = await getComments(data.id);
-            setComments(
-              coms.map((c) => ({
-                id: c.id,
-                user: c.user || c.author || "Unknown",
-                text: c.content,
-                time: new Date(c.createdAt).toLocaleString(),
-                color: "bg-slate-400",
-                isEdited: c.updatedAt && c.updatedAt !== c.createdAt,
-              }))
-            );
           } catch (e) { }
         }
       } catch (err: any) {
@@ -410,178 +440,7 @@ export default function ModalsWorkflow({
     };
   }, [isOpen, task?.id]);
 
-  useEffect(() => {
-    if (!isOpen || !taskId) return;
-    const channel = `task:${taskId}`;
-    const es = new EventSource(
-      `/api/realtime/stream?channel=${encodeURIComponent(channel)}`
-    );
-
-    es.onmessage = (ev) => {
-      try {
-        // Check if data is valid JSON before parsing
-        if (!ev.data || ev.data.trim().startsWith('<')) {
-          console.warn("Received HTML instead of JSON from SSE, ignoring");
-          return;
-        }
-
-        const data = JSON.parse(ev.data);
-        const { type, payload } = data;
-        if (!type || !payload) return;
-
-        // ✅ Handle Real-time Status Update
-        if (type === "task:updated") {
-          if (payload.id === taskId) {
-            if (payload.status === "Done" || payload.status === "Completed") {
-              setIsCompleted(true);
-            } else if (payload.status === "In Progress" || payload.status === "To Do") {
-              setIsCompleted(false);
-            }
-          }
-        }
-
-        if (type === "checklist:created") {
-          const item = payload;
-          setBlocks((prev) => {
-            const idx = prev.findIndex((b) => b.type === "checklist");
-
-            // 1. If Checklist block doesn't exist, create it
-            if (idx === -1) {
-              return [
-                {
-                  id: `checklist-${Date.now()}`,
-                  type: "checklist",
-                  title: "Checklist",
-                  items: [
-                    { id: item.id, text: item.text, isChecked: item.isChecked },
-                  ],
-                },
-                ...prev,
-              ];
-            }
-
-            // 2. [FIXED] Strict duplicate check
-            // Use .some() to prevent duplicates if SSE fires after local update
-            const currentBlock = prev[idx];
-
-            // Normalize incoming text and existing text for comparison
-            const incomingText = item.text ? item.text.trim() : "";
-
-            const exists = currentBlock.items?.some(
-              (i) =>
-                i.id === item.id ||
-                (i.id.startsWith("temp-") && i.text.trim() === incomingText)
-            );
-
-            if (exists) {
-              // If it already exists (likely from optimistic update), do NOT add again
-              return prev;
-            }
-
-            // 3. Otherwise, append the new item
-            return prev.map((b) =>
-              b.type === "checklist"
-                ? {
-                  ...b,
-                  items: [
-                    ...(b.items || []),
-                    {
-                      id: item.id,
-                      text: item.text,
-                      isChecked: item.isChecked,
-                    },
-                  ],
-                }
-                : b
-            );
-          });
-        }
-        if (type === "checklist:updated") {
-          const item = payload;
-          setBlocks((prev) =>
-            prev.map((b) =>
-              b.type === "checklist"
-                ? {
-                  ...b,
-                  items: b.items?.map((i) =>
-                    i.id === item.id
-                      ? {
-                        id: item.id,
-                        text: item.text,
-                        isChecked: item.isChecked,
-                      }
-                      : i
-                  ),
-                }
-                : b
-            )
-          );
-        }
-        if (type === "checklist:deleted") {
-          const { id } = payload;
-          setBlocks((prev) =>
-            prev.map((b) =>
-              b.type === "checklist"
-                ? { ...b, items: b.items?.filter((i) => i.id !== id) }
-                : b
-            )
-          );
-        }
-        if (type === "comment:created") {
-          const c = payload;
-          setComments((prev) => [
-            {
-              id: c.id,
-              user: c.author || "Unknown",
-              text: c.content,
-              time: new Date(c.createdAt).toLocaleString(),
-              color: "bg-slate-400",
-            },
-            ...prev,
-          ]);
-        }
-        if (type === "comment:updated") {
-          const c = payload;
-          setComments((prev) =>
-            prev.map((cm) =>
-              cm.id === c.id
-                ? {
-                  id: c.id,
-                  user: c.author || "Unknown",
-                  text: c.content,
-                  time: new Date(c.updatedAt || c.createdAt).toLocaleString(),
-                  color: "bg-slate-400",
-                  isEdited: true,
-                }
-                : cm
-            )
-          );
-        }
-        if (type === "comment:deleted") {
-          const { id } = payload;
-          setComments((prev) => prev.filter((cm) => cm.id !== id));
-        }
-        if (type === "activity:created") {
-          const a = payload;
-          setActivities((prev) => [
-            {
-              id: a.id,
-              user: a.user,
-              action: `${a.action} ${a.target || ""}`.trim(),
-              time: new Date(a.createdAt).toLocaleString(),
-            },
-            ...prev,
-          ]);
-        }
-      } catch (e) {
-        console.error("Invalid SSE payload", e);
-      }
-    };
-    es.onerror = (e) => {
-      es.close();
-    };
-    return () => es.close();
-  }, [isOpen, taskId]);
+  useRealtimeTaskUpdates({ isOpen, taskId, setIsCompleted, setBlocks, setComments, setActivities });
 
   useEffect(() => {
     if (!isOpen) {
@@ -1000,12 +859,18 @@ export default function ModalsWorkflow({
       )
     );
     try {
+      // Find the block's current title
+      const targetBlock = blocks.find((b) => b.id === blockId);
+      const blockTitle = targetBlock?.title || "Checklist";
+
       // Send trimmed text to API
       const created = await createChecklistItem({
         taskId: String(taskId),
         text: trimmedText,
         isChecked: false,
         order: 0,
+        blockId: blockId,
+        blockTitle: blockTitle,
       });
       setBlocks((prev) =>
         prev.map((b) =>
@@ -1058,11 +923,16 @@ export default function ModalsWorkflow({
         // ✅ Fix: Check if taskId is a valid MongoDB ObjectId
         const isValidTaskId = taskId && /^[a-fA-F0-9]{24}$/.test(String(taskId));
         if (isValidTaskId && tempText !== undefined) {
+          const targetBlock = blocks.find((b) => b.id === blockId);
+          const blockTitle = targetBlock?.title || "Checklist";
+
           const created = await createChecklistItem({
             taskId: String(taskId),
             text: tempText,
             isChecked: newCheckedState,
             order: 0,
+            blockId: blockId,
+            blockTitle: blockTitle,
           });
           setBlocks((prev) =>
             prev.map((b) =>
@@ -1190,14 +1060,48 @@ export default function ModalsWorkflow({
 
   const handleAddAttachment = async (
     type: "link" | "file",
-    val1: string,
+    val1: string | File,
     val2?: string
   ) => {
+    let finalUrl = type === "link" ? (val1 as string) : undefined;
+    let finalName = val2 || (typeof val1 === "string" ? val1 : "Unknown File");
+
+    if (type === "file" && val1 instanceof File) {
+      finalName = val1.name;
+      try {
+        setLoadingTask(true);
+        const formData = new FormData();
+        formData.append("file", val1);
+        const uploadRes = await fetch("/api/cloudflare-image/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.data?.variants?.[0]) {
+          finalUrl = uploadData.data.variants[0];
+        } else {
+          throw new Error("Upload response failed");
+        }
+      } catch (err: any) {
+        setErrorModal({ 
+          open: true, 
+          message: "อัปโหลดไฟล์ไม่สำเร็จ", 
+          description: err.message || "Failed to upload file to Cloudflare" 
+        });
+        setLoadingTask(false);
+        return; // stop execution
+      } finally {
+        setLoadingTask(false);
+      }
+    } else if (type === "file" && typeof val1 === "string") {
+      finalName = val1;
+    }
+
     const newItem: AttachmentItem = {
       id: Date.now().toString(),
       type,
-      name: val2 || val1,
-      url: type === "link" ? val1 : undefined,
+      name: finalName,
+      url: finalUrl,
       date: new Date().toLocaleDateString(),
     };
     const existing = blocks.find((b) => b.type === "attachment");
@@ -1580,12 +1484,17 @@ export default function ModalsWorkflow({
         .filter((id): id is string => !!id);
 
       const due = dateRange?.from ? dateRange.from.toISOString() : null;
+      // ✅ Collect attachments from blocks
+      const attachmentBlock = blocks.find((b) => b.type === "attachment");
+      const currentAttachments = attachmentBlock?.attachments || [];
+
       const payload: any = { // ✅ Explicitly type as any to fix TS error 2353
         title,
         description: desc,
         assigneeIds: userIds, // ✅ Send User IDs
         dueDate: due,
         checklist: checklistCount,
+        attachmentList: currentAttachments, // ✅ Attachments list for DB
         status: isCompleted ? "Done" : "In Progress" // Ensure status is saved
       };
 
@@ -2727,11 +2636,12 @@ export default function ModalsWorkflow({
                               className="hidden"
                               ref={fileInputRef}
                               onChange={(e) => {
-                                if (e.target.files?.[0])
+                                if (e.target.files?.[0]) {
                                   handleAddAttachment(
                                     "file",
-                                    e.target.files[0].name
+                                    e.target.files[0]
                                   );
+                                }
                               }}
                             />
                           </div>
@@ -2780,97 +2690,3 @@ export default function ModalsWorkflow({
     </>
   );
 }
-
-// Render helpers for custom modals within the same component flow
-function CustomModals({
-  successModal,
-  setSuccessModal,
-  errorModal,
-  setErrorModal,
-  deleteModal,
-  setDeleteModal,
-}: any) {
-  return (
-    <>
-      <ModalSuccess
-        open={successModal.open}
-        message={successModal.message}
-        description={successModal.description}
-        onClose={() => setSuccessModal({ ...successModal, open: false })}
-      />
-      <ModalError
-        open={errorModal.open}
-        message={errorModal.message}
-        description={errorModal.description}
-        onClose={() => setErrorModal({ ...errorModal, open: false })}
-      />
-      <ModalSuccess
-        open={successModal.open}
-        message={successModal.message}
-        onClose={() => setSuccessModal({ ...successModal, open: false })}
-        description={successModal.description}
-      />
-      <ModalDelete
-        open={deleteModal.open}
-        message={deleteModal.message}
-        onClose={() => setDeleteModal({ ...deleteModal, open: false })}
-        onConfirm={deleteModal.onConfirm}
-      />
-    </>
-  );
-}
-
-// --- 5. Helper Components ---
-const SidebarBtn = ({ icon: Icon, label, onClick, active }: any) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${active
-      ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 shadow-sm"
-      : "text-slate-700 hover:bg-slate-200/70 active:bg-slate-200"
-      }`}
-  >
-    <Icon size={18} className={active ? "text-blue-600" : "text-slate-500"} />{" "}
-    {label}
-  </button>
-);
-
-const PopoverContainer = ({
-  title,
-  onClose,
-  children,
-  width = "w-80",
-  showBack,
-  onBack,
-}: {
-  title: any;
-  onClose: () => void;
-  children?: React.ReactNode;
-  width?: string;
-  showBack?: boolean;
-  onBack?: () => void;
-}) => (
-  <div
-    className={`absolute top-0 right-[105%] mr-2 ${width} bg-white rounded-xl shadow-2xl border border-slate-200 z-50 animate-in fade-in zoom-in-95 slide-in-from-right-4 overflow-hidden ring-1 ring-slate-900/5`}
-  >
-    <div className="flex justify-between items-center px-4 py-3 border-b border-slate-100 bg-slate-50/50 relative">
-      {showBack ? (
-        <button
-          onClick={onBack}
-          className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200/50"
-        >
-          <ChevronLeft size={18} />
-        </button>
-      ) : (
-        <div className="w-6"></div>
-      )}
-      <h4 className="font-bold text-slate-700 text-sm">{title}</h4>
-      <button
-        onClick={onClose}
-        className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-200/50 transition-colors"
-      >
-        <X size={16} />
-      </button>
-    </div>
-    <div className="p-4">{children}</div>
-  </div>
-);

@@ -24,7 +24,7 @@ export default async function handler(
     }
 
     if (req.method === "POST") {
-      const { taskId, text, isChecked, order } = req.body;
+      const { taskId, text, isChecked, order, blockId, blockTitle } = req.body;
 
       if (!taskId || !text) {
         return res
@@ -38,6 +38,8 @@ export default async function handler(
           text,
           isChecked: isChecked || false,
           order: order ?? 0,
+          blockId: blockId || null,
+          blockTitle: blockTitle || null,
         },
       });
 

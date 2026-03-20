@@ -93,8 +93,9 @@ model BoardMember {
 }
 
 model BoardTask {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  attachments Int       @default(0)
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  attachments    Int       @default(0)
+  attachmentList Json?
   checklist   Int       @default(0)
   columnId    String    @db.ObjectId
   comments    Int       @default(0)
@@ -112,18 +113,25 @@ model BoardTask {
   endDate     DateTime? @db.Date
   completedAt DateTime? @db.Date
 
-  column       BoardColumn?    @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  assignees    TaskAssignee[] @relation("BoardTaskToAssignee")
-  taskMembers  TaskMember[]   @relation("BoardTaskToMember")
-  taskComments TaskComment[]  @relation("BoardTaskToComment")
+  column         BoardColumn?    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignees      TaskAssignee[]  @relation("BoardTaskToAssignee")
+  taskMembers    TaskMember[]    @relation("BoardTaskToMember")
+  taskComments   TaskComment[]   @relation("BoardTaskToComment")
+  checklistItems ChecklistItem[]
 }
 
 model ChecklistItem {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  taskId    String  @db.ObjectId
-  text      String
-  isChecked Boolean
-  order     Int
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  taskId     String    @db.ObjectId
+  text       String
+  isChecked  Boolean
+  order      Int
+  blockId    String?   // Adds ability to group into specific checklist blocks
+  blockTitle String?   // Stores the checklist block's title
+
+  task      BoardTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 model CloudflareImage {

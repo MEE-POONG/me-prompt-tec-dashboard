@@ -104,7 +104,7 @@ export default async function handler(
       const {
         title, description, tag, tagColor, priority, order,
         dueDate, startDate, endDate, columnId, comments,
-        attachments, checklist, assigneeIds, user
+        attachments, attachmentList, checklist, assigneeIds, user
       } = req.body;
 
       const updateData: any = { updatedAt: new Date() }; // Always update updatedAt
@@ -120,6 +120,7 @@ export default async function handler(
       if (columnId !== undefined) updateData.columnId = columnId;
       if (comments !== undefined) updateData.comments = comments;
       if (attachments !== undefined) updateData.attachments = attachments;
+      if (attachmentList !== undefined) updateData.attachmentList = attachmentList;
       if (checklist !== undefined) updateData.checklist = checklist;
       if (req.body.isArchived !== undefined) updateData.isArchived = req.body.isArchived;
 
